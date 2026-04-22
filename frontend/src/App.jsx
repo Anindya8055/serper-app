@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import "./App.css";
 
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
 const countries = [
   { code: "bd", name: "Bangladesh" },
   { code: "us", name: "United States" },
@@ -137,7 +139,7 @@ function App() {
   const fetchHistory = async () => {
     try {
       setHistoryLoading(true);
-      const res = await fetch("/api/history");
+      const res = await fetch(`${API_BASE}/api/history`);
       const data = await res.json();
 
       if (!res.ok) {
@@ -170,7 +172,7 @@ function App() {
         country: searchCountry
       });
 
-      const res = await fetch(`/api/search-status?${params.toString()}`, {
+      const res = await fetch(`${API_BASE}/api/search-status?${params.toString()}`, {
         signal: controller.signal
       });
 
@@ -252,7 +254,7 @@ function App() {
         analyzed: false
       });
 
-      const res = await fetch("/api/search", {
+      const res = await fetch(`${API_BASE}/api/search`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -616,7 +618,7 @@ function App() {
                           </div>
                         </td>
                         <td>
-                           <span className={`status-pill ${item.analysisStatus || "pending"}`}>
+                          <span className={`status-pill ${item.analysisStatus || "pending"}`}>
                             {item.analysisStatus || "pending"}
                           </span>
                         </td>
