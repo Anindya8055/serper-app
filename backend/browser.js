@@ -10,10 +10,6 @@ function resolveExecutablePath() {
     if (autoPath) return autoPath;
   } catch {}
 
-  if (process.env.PUPPETEER_EXECUTABLE_PATH) {
-    return process.env.PUPPETEER_EXECUTABLE_PATH;
-  }
-
   return undefined;
 }
 
