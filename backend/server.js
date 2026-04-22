@@ -4,20 +4,32 @@ const cors = require("cors");
 const axios = require("axios");
 const prisma = require("./db");
 const { analyzeDomain, extractPageData } = require("./analyzer");
-const { classifyContentType, inferTypeFromSignals, normalizeType } = require("./classifier");
+const {
+  classifyContentType,
+  inferTypeFromSignals,
+  normalizeType
+} = require("./classifier");
 const {
   cleanUrls,
   getBaseDomain,
   buildHomepageUrl
 } = require("./utils");
-const { closeBrowser, warmupPagePool, getPooledPage, releasePage } = require("./browser");
+const {
+  closeBrowser,
+  warmupPagePool,
+  getPooledPage,
+  releasePage
+} = require("./browser");
 
 const app = express();
-app.use(cors());
-app.use(cors({
-  origin: process.env.FRONTEND_URL || true,
-  credentials: true
-}));
+
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL || true,
+    credentials: true
+  })
+);
+
 app.use(express.json());
 
 const API_KEY = process.env.SERPER_API_KEY;
@@ -81,7 +93,6 @@ function buildPendingResult(url) {
 
 async function analyzeSingleResult(item, domainMap) {
   const domainAnalysis = domainMap.get(item.domain);
-  let pageResult = null;
   let fallbackReason = null;
 
   const page = await getPooledPage();
@@ -89,7 +100,7 @@ async function analyzeSingleResult(item, domainMap) {
   try {
     const pageData = await extractPageData(page, item.url);
 
-    pageResult = inferTypeFromSignals({
+    const pageResult = inferTypeFromSignals({
       url: item.url,
       title: pageData.title || "",
       metaDescription: pageData.metaDescription || "",
@@ -111,18 +122,23 @@ async function analyzeSingleResult(item, domainMap) {
 
     return {
       ...item,
-      siteType: normalizeType(domainAnalysis?.siteType || item.siteType || "Small business"),
+      siteType: normalizeType(
+        domainAnalysis?.siteType || item.siteType || "Small business"
+      ),
       contentType: normalizeType(pageResult.siteType),
-      confidence: pageResult.confidence || domainAnalysis?.confidence || item.confidence || "Low",
+      confidence:
+        pageResult.confidence ||
+        domainAnalysis?.confidence ||
+        item.confidence ||
+        "Low",
       matchedSignals: mergeMatchedSignals(
         domainAnalysis?.matchedSignals || [],
         pageResult.matchedSignals || [],
         [`Content analyzed from page: ${pageData.title || item.url}`]
       ),
-      analyzedPages: [...new Set([
-        ...(domainAnalysis?.analyzedPages || []),
-        item.url
-      ])],
+      analyzedPages: [
+        ...new Set([...(domainAnalysis?.analyzedPages || []), item.url])
+      ],
       analysisStatus: "done"
     };
   } catch (error) {
@@ -137,12 +153,16 @@ async function analyzeSingleResult(item, domainMap) {
 
   return {
     ...item,
-    siteType: normalizeType(domainAnalysis?.siteType || item.siteType || "Small business"),
+    siteType: normalizeType(
+      domainAnalysis?.siteType || item.siteType || "Small business"
+    ),
     contentType: fallbackContentType,
     confidence: domainAnalysis?.confidence || item.confidence || "Low",
     matchedSignals: mergeMatchedSignals(
       domainAnalysis?.matchedSignals || [],
-      [`Fallback: content type inferred from URL/site prior (${fallbackReason || "unknown error"})`]
+      [
+        `Fallback: content type inferred from URL/site prior (${fallbackReason || "unknown error"})`
+      ]
     ),
     analyzedPages: domainAnalysis?.analyzedPages || item.analyzedPages || [],
     analysisStatus: "done"
@@ -164,7 +184,9 @@ async function runAnalysisInBackground(keyword, country) {
       if (!existing?.resultsSnapshot?.length) return;
 
       const results = [...existing.resultsSnapshot];
-      const uniqueDomains = [...new Set(results.map((item) => item.domain).filter(Boolean))];
+      const uniqueDomains = [
+        ...new Set(results.map((item) => item.domain).filter(Boolean))
+      ];
       const domainMap = new Map();
 
       await runPool(uniqueDomains, DOMAIN_CONCURRENCY, async (domain) => {
@@ -181,7 +203,9 @@ async function runAnalysisInBackground(keyword, country) {
             homepageUrl,
             siteType: "Small business",
             confidence: "Low",
-            matchedSignals: [`Fallback: unable to analyze domain (${error.message})`],
+            matchedSignals: [
+              `Fallback: unable to analyze domain (${error.message})`
+            ],
             analyzedPages: homepageUrl ? [homepageUrl] : []
           });
         }
@@ -190,8 +214,13 @@ async function runAnalysisInBackground(keyword, country) {
           if (results[i].domain === domain) {
             results[i] = {
               ...results[i],
-              siteType: normalizeType(domainMap.get(domain)?.siteType || "Small business"),
-              confidence: domainMap.get(domain)?.confidence || results[i].confidence || "Low",
+              siteType: normalizeType(
+                domainMap.get(domain)?.siteType || "Small business"
+              ),
+              confidence:
+                domainMap.get(domain)?.confidence ||
+                results[i].confidence ||
+                "Low",
               matchedSignals: mergeMatchedSignals(
                 domainMap.get(domain)?.matchedSignals || [],
                 results[i].matchedSignals || []
@@ -212,7 +241,10 @@ async function runAnalysisInBackground(keyword, country) {
         results[index] = analyzedItem;
         completed++;
 
-        if (completed % SNAPSHOT_BATCH_SIZE === 0 || completed === results.length) {
+        if (
+          completed % SNAPSHOT_BATCH_SIZE === 0 ||
+          completed === results.length
+        ) {
           await updateSearchSnapshot(keyword, country, results);
         }
       });
@@ -231,6 +263,7 @@ app.get("/api/health", async (req, res) => {
     await prisma.$queryRaw`SELECT 1`;
     return res.json({ ok: true, database: "connected" });
   } catch (error) {
+    console.error("Health route error:", error.message);
     return res.status(500).json({ ok: false, database: "disconnected" });
   }
 });
@@ -251,8 +284,17 @@ app.get("/api/history", async (req, res) => {
 
     return res.json(searches);
   } catch (error) {
-    console.error(error.message);
-    return res.status(500).json({ error: "Failed to load history" });
+    console.error("History route error:", error);
+    console.error("History route message:", error.message);
+    console.error("History route code:", error.code);
+    console.error("History route meta:", error.meta);
+
+    return res.status(500).json({
+      error: "Failed to load history",
+      details: error.message,
+      code: error.code || null,
+      meta: error.meta || null
+    });
   }
 });
 
@@ -276,9 +318,15 @@ app.get("/api/search-status", async (req, res) => {
     }
 
     const results = search.resultsSnapshot;
-    const doneCount = results.filter((item) => item.analysisStatus === "done").length;
-    const processingCount = results.filter((item) => item.analysisStatus === "processing").length;
-    const pendingCount = results.filter((item) => item.analysisStatus === "pending").length;
+    const doneCount = results.filter(
+      (item) => item.analysisStatus === "done"
+    ).length;
+    const processingCount = results.filter(
+      (item) => item.analysisStatus === "processing"
+    ).length;
+    const pendingCount = results.filter(
+      (item) => item.analysisStatus === "pending"
+    ).length;
 
     return res.json({
       keyword,
@@ -291,7 +339,7 @@ app.get("/api/search-status", async (req, res) => {
       results
     });
   } catch (error) {
-    console.error("Status error:", error.message);
+    console.error("Status route error:", error.message);
     return res.status(500).json({ error: "Failed to fetch status" });
   }
 });
@@ -336,7 +384,9 @@ app.post("/api/search", async (req, res) => {
         total: existing.resultsSnapshot.length,
         analyzed,
         results: existing.resultsSnapshot,
-        statusUrl: `/api/search-status?keyword=${encodeURIComponent(keyword)}&country=${country}`
+        statusUrl: `/api/search-status?keyword=${encodeURIComponent(
+          keyword
+        )}&country=${country}`
       });
     }
 
@@ -396,7 +446,9 @@ app.post("/api/search", async (req, res) => {
       total: quickResults.length,
       analyzed: false,
       results: quickResults,
-      statusUrl: `/api/search-status?keyword=${encodeURIComponent(keyword)}&country=${country}`
+      statusUrl: `/api/search-status?keyword=${encodeURIComponent(
+        keyword
+      )}&country=${country}`
     });
   } catch (error) {
     console.error("Search error status:", error.response?.status);
@@ -443,7 +495,9 @@ app.post("/api/analyze", async (req, res) => {
       message: "Analysis started",
       keyword,
       country,
-      statusUrl: `/api/search-status?keyword=${encodeURIComponent(keyword)}&country=${country}`
+      statusUrl: `/api/search-status?keyword=${encodeURIComponent(
+        keyword
+      )}&country=${country}`
     });
   } catch (error) {
     console.error("Analyze trigger error:", error.message);
