@@ -14,7 +14,10 @@ const { closeBrowser, warmupPagePool, getPooledPage, releasePage } = require("./
 
 const app = express();
 
-app.use(cors());
+app.use(cors({
+  origin: process.env.FRONTEND_URL || true,
+  credentials: true
+}));
 app.use(express.json());
 
 const API_KEY = process.env.SERPER_API_KEY;
