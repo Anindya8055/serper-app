@@ -94,10 +94,11 @@ function buildPendingResult(url) {
 async function analyzeSingleResult(item, domainMap) {
   const domainAnalysis = domainMap.get(item.domain);
   let fallbackReason = null;
-
-  const page = await getPooledPage();
+  let page = null;
 
   try {
+    page = await getPooledPage();
+
     const pageData = await extractPageData(page, item.url);
 
     const pageResult = inferTypeFromSignals({
@@ -144,7 +145,9 @@ async function analyzeSingleResult(item, domainMap) {
   } catch (error) {
     fallbackReason = error.message;
   } finally {
-    await releasePage(page);
+    if (page) {
+      await releasePage(page).catch(() => {});
+    }
   }
 
   const fallbackContentType = normalizeType(
@@ -250,6 +253,8 @@ async function runAnalysisInBackground(keyword, country) {
       });
 
       await updateSearchSnapshot(keyword, country, results);
+    } catch (error) {
+      console.error("Background analysis job failed:", error.message);
     } finally {
       activeJobs.delete(jobKey);
     }
@@ -521,9 +526,11 @@ process.on("SIGTERM", async () => {
   process.exit(0);
 });
 
-warmupPagePool().catch((err) => {
-  console.error("Page pool warmup failed:", err.message);
-});
+if (process.env.ENABLE_BROWSER_WARMUP === "true") {
+  warmupPagePool().catch((err) => {
+    console.error("Page pool warmup failed:", err.message);
+  });
+}
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

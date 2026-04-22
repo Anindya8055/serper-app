@@ -1,3 +1,4 @@
+const fs = require("fs");
 const puppeteer = require("puppeteer");
 
 let browserInstance = null;
@@ -7,7 +8,7 @@ const MAX_POOL_SIZE = 4;
 function resolveExecutablePath() {
   try {
     const autoPath = puppeteer.executablePath();
-    if (autoPath) return autoPath;
+    if (autoPath && fs.existsSync(autoPath)) return autoPath;
   } catch {}
 
   return undefined;
