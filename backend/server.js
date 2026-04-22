@@ -23,10 +23,19 @@ const {
 
 const app = express();
 
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  "http://localhost:5173",
+  "http://localhost:3000"
+].filter(Boolean);
+
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || true,
-    credentials: true
+    origin(origin, callback) {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      return callback(new Error(`CORS blocked for origin: ${origin}`));
+    }
   })
 );
 
@@ -41,6 +50,11 @@ const PAGE_CONCURRENCY = 4;
 const SNAPSHOT_BATCH_SIZE = 5;
 
 const activeJobs = new Map();
+
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path} - Origin: ${req.headers.origin || "none"}`);
+  next();
+});
 
 async function runPool(items, concurrency, worker) {
   let index = 0;
@@ -263,6 +277,14 @@ async function runAnalysisInBackground(keyword, country) {
   activeJobs.set(jobKey, jobPromise);
 }
 
+app.get("/api/debug", (req, res) => {
+  res.json({
+    ok: true,
+    origin: req.headers.origin || null,
+    frontendUrl: process.env.FRONTEND_URL || null
+  });
+});
+
 app.get("/api/health", async (req, res) => {
   try {
     await prisma.$queryRaw`SELECT 1`;
@@ -289,16 +311,10 @@ app.get("/api/history", async (req, res) => {
 
     return res.json(searches);
   } catch (error) {
-    console.error("History route error:", error);
-    console.error("History route message:", error.message);
-    console.error("History route code:", error.code);
-    console.error("History route meta:", error.meta);
-
+    console.error("History route error:", error.message);
     return res.status(500).json({
       error: "Failed to load history",
-      details: error.message,
-      code: error.code || null,
-      meta: error.meta || null
+      details: error.message
     });
   }
 });
