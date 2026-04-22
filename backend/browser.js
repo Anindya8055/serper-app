@@ -5,21 +5,23 @@ const pagePool = [];
 const MAX_POOL_SIZE = 4;
 
 function resolveExecutablePath() {
+  try {
+    const autoPath = puppeteer.executablePath();
+    if (autoPath) return autoPath;
+  } catch {}
+
   if (process.env.PUPPETEER_EXECUTABLE_PATH) {
     return process.env.PUPPETEER_EXECUTABLE_PATH;
   }
 
-  try {
-    return puppeteer.executablePath();
-  } catch {
-    return undefined;
-  }
+  return undefined;
 }
 
 async function getBrowser() {
   if (browserInstance) return browserInstance;
 
   const executablePath = resolveExecutablePath();
+  console.log("Puppeteer executablePath:", executablePath || "auto");
 
   browserInstance = await puppeteer.launch({
     headless: true,
