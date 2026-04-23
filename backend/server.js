@@ -23,34 +23,35 @@ const {
 
 const app = express();
 
-const allowedOrigins = [
-  process.env.FRONTEND_URL,
+const allowedOrigins = new Set([
   "http://localhost:5173",
   "http://localhost:3000",
   "https://serper-app-3wyy.vercel.app"
-].filter(Boolean);
+]);
 
-const vercelPreviewPattern =
-  /^https:\/\/serper-app-3wyy-[a-z0-9-]+-anindyac708-6432s-projects\.vercel\.app$/;
+function isOriginAllowed(origin) {
+  if (!origin) return true;
+  if (allowedOrigins.has(origin)) return true;
+
+  return (
+    origin.endsWith(".vercel.app") &&
+    origin.includes("anindyac708-6432s-projects")
+  );
+}
 
 const corsOptions = {
   origin(origin, callback) {
-    if (!origin) return callback(null, true);
-
-    const exactMatch = allowedOrigins.includes(origin);
-    const previewMatch = vercelPreviewPattern.test(origin);
-
-    if (exactMatch || previewMatch) {
+    if (isOriginAllowed(origin)) {
       return callback(null, true);
     }
 
     console.warn("CORS blocked origin:", origin);
-    console.warn("Allowed origins:", allowedOrigins);
+    console.warn("Allowed origins set:", Array.from(allowedOrigins));
     return callback(new Error(`CORS blocked for origin: ${origin}`));
   },
   methods: ["GET", "POST", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: false
+  optionsSuccessStatus: 200
 };
 
 app.options("*", cors(corsOptions));
@@ -297,9 +298,7 @@ app.get("/api/debug", (req, res) => {
   res.json({
     ok: true,
     origin: req.headers.origin || null,
-    frontendUrl: process.env.FRONTEND_URL || null,
-    allowedOrigins,
-    previewPattern: vercelPreviewPattern.toString()
+    allowedOrigins: Array.from(allowedOrigins)
   });
 });
 
@@ -568,6 +567,5 @@ if (process.env.ENABLE_BROWSER_WARMUP === "true") {
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
-  console.log("Allowed origins:", allowedOrigins);
-  console.log("Preview origin pattern:", vercelPreviewPattern.toString());
+  console.log("Allowed origins:", Array.from(allowedOrigins));
 });
