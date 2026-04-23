@@ -29,16 +29,23 @@ const allowedOrigins = [
   "http://localhost:3000"
 ].filter(Boolean);
 
-app.use(
-  cors({
-    origin(origin, callback) {
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) return callback(null, true);
-      return callback(new Error(`CORS blocked for origin: ${origin}`));
-    }
-  })
-);
+const corsOptions = {
+  origin(origin, callback) {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    console.warn("CORS blocked origin:", origin);
+    console.warn("Allowed origins:", allowedOrigins);
+    return callback(new Error(`CORS blocked for origin: ${origin}`));
+  },
+  methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: false
+};
 
+// Handle preflight OPTIONS requests for ALL routes — must be before other middleware
+app.options("*", cors(corsOptions));
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 const API_KEY = process.env.SERPER_API_KEY;
@@ -281,7 +288,8 @@ app.get("/api/debug", (req, res) => {
   res.json({
     ok: true,
     origin: req.headers.origin || null,
-    frontendUrl: process.env.FRONTEND_URL || null
+    frontendUrl: process.env.FRONTEND_URL || null,
+    allowedOrigins
   });
 });
 
@@ -550,4 +558,5 @@ if (process.env.ENABLE_BROWSER_WARMUP === "true") {
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
+  console.log("Allowed origins:", allowedOrigins);
 });
