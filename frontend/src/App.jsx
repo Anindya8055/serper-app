@@ -17,6 +17,7 @@ import {
 import "./App.css";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+console.log("API_BASE:", API_BASE); // remove after confirming
 
 const countries = [
   { code: "bd", name: "Bangladesh" },
@@ -148,8 +149,9 @@ function App() {
       }
 
       setHistoryItems(Array.isArray(data) ? data : []);
-    } catch {
-      setMessage("Failed to load history.");
+    } catch (error) {
+      console.error("fetchHistory error:", error);
+      setMessage(`Failed to load history: ${error.message || "Network error"}`);
     } finally {
       setHistoryLoading(false);
     }
@@ -219,7 +221,8 @@ function App() {
       }, POLL_INTERVAL);
     } catch (error) {
       if (error.name !== "AbortError") {
-        setMessage("Failed to poll analysis status.");
+        console.error("pollSearchStatus error:", error);
+        setMessage(`Poll error: ${error.message || "Network error"}`);
         setPolling(false);
         setLoading(false);
       }
@@ -307,8 +310,9 @@ function App() {
       pollTimeoutRef.current = setTimeout(() => {
         pollSearchStatus(cleanKeyword, country, selectedCountryName);
       }, POLL_INTERVAL);
-    } catch {
-      setMessage("Server error. Please try again.");
+    } catch (error) {
+      console.error("handleSearch error:", error);
+      setMessage(`Request failed: ${error.message || "Network error. Check your connection."}`);
       setResults([]);
       setResultSource("");
       setLoading(false);
@@ -714,4 +718,3 @@ function App() {
 }
 
 export default App;
-
