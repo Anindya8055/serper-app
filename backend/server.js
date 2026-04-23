@@ -26,13 +26,24 @@ const app = express();
 const allowedOrigins = [
   process.env.FRONTEND_URL,
   "http://localhost:5173",
-  "http://localhost:3000"
+  "http://localhost:3000",
+  "https://serper-app-3wyy.vercel.app"
 ].filter(Boolean);
+
+const vercelPreviewPattern =
+  /^https:\/\/serper-app-3wyy-[a-z0-9-]+-anindyac708-6432s-projects\.vercel\.app$/;
 
 const corsOptions = {
   origin(origin, callback) {
     if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) return callback(null, true);
+
+    const exactMatch = allowedOrigins.includes(origin);
+    const previewMatch = vercelPreviewPattern.test(origin);
+
+    if (exactMatch || previewMatch) {
+      return callback(null, true);
+    }
+
     console.warn("CORS blocked origin:", origin);
     console.warn("Allowed origins:", allowedOrigins);
     return callback(new Error(`CORS blocked for origin: ${origin}`));
@@ -42,9 +53,7 @@ const corsOptions = {
   credentials: false
 };
 
-// Handle preflight OPTIONS requests for ALL routes — must be before other middleware
 app.options("*", cors(corsOptions));
-
 app.use(cors(corsOptions));
 app.use(express.json());
 
@@ -289,7 +298,8 @@ app.get("/api/debug", (req, res) => {
     ok: true,
     origin: req.headers.origin || null,
     frontendUrl: process.env.FRONTEND_URL || null,
-    allowedOrigins
+    allowedOrigins,
+    previewPattern: vercelPreviewPattern.toString()
   });
 });
 
@@ -559,4 +569,5 @@ if (process.env.ENABLE_BROWSER_WARMUP === "true") {
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
   console.log("Allowed origins:", allowedOrigins);
+  console.log("Preview origin pattern:", vercelPreviewPattern.toString());
 });
