@@ -62,9 +62,9 @@ const API_KEY = process.env.SERPER_API_KEY;
 const PORT = process.env.PORT || 5000;
 const TARGET_URL_COUNT = 50;
 const MAX_PAGES = 15;
-const DOMAIN_CONCURRENCY = 3;
-const PAGE_CONCURRENCY = 4;
-const SNAPSHOT_BATCH_SIZE = 5;
+const DOMAIN_CONCURRENCY = 2;
+const PAGE_CONCURRENCY = 2;
+const SNAPSHOT_BATCH_SIZE = 3;
 
 const activeJobs = new Map();
 

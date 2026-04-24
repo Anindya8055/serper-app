@@ -10,7 +10,6 @@ function resolveExecutablePath() {
     const autoPath = puppeteer.executablePath();
     if (autoPath && fs.existsSync(autoPath)) return autoPath;
   } catch {}
-
   return undefined;
 }
 
@@ -34,7 +33,9 @@ async function getBrowser() {
       "--disable-background-networking",
       "--disable-background-timer-throttling",
       "--disable-backgrounding-occluded-windows",
-      "--disable-renderer-backgrounding"
+      "--disable-renderer-backgrounding",
+      "--disable-features=site-per-process",
+      "--disable-extensions"
     ]
   });
 
@@ -54,8 +55,12 @@ async function preparePage(page) {
       "(KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
   );
 
-  page.setDefaultNavigationTimeout(45000);
-  page.setDefaultTimeout(45000);
+  await page.setExtraHTTPHeaders({
+    "Accept-Language": "en-US,en;q=0.9"
+  });
+
+  page.setDefaultNavigationTimeout(20000);
+  page.setDefaultTimeout(20000);
 
   try {
     await page.setRequestInterception(true);
@@ -63,14 +68,26 @@ async function preparePage(page) {
     page.removeAllListeners("request");
     page.on("request", (request) => {
       const resourceType = request.resourceType();
+      const url = request.url().toLowerCase();
 
-      if (["image", "media", "font"].includes(resourceType)) {
+      if (
+        ["image", "media", "font", "stylesheet"].includes(resourceType) ||
+        url.includes("doubleclick") ||
+        url.includes("google-analytics") ||
+        url.includes("googletagmanager") ||
+        url.includes("facebook.net") ||
+        url.includes("hotjar") ||
+        url.includes("clarity.ms")
+      ) {
         return request.abort();
       }
 
       return request.continue();
     });
   } catch {}
+
+  page.on("error", () => {});
+  page.on("pageerror", () => {});
 
   return page;
 }
@@ -100,7 +117,7 @@ async function releasePage(page) {
 
     await page.goto("about:blank", {
       waitUntil: "domcontentloaded",
-      timeout: 10000
+      timeout: 5000
     }).catch(() => {});
 
     if (pagePool.length < MAX_POOL_SIZE) {
