@@ -1,29 +1,16 @@
-const fs = require("fs");
-const puppeteer = require("puppeteer");
+const { chromium } = require("playwright");
 
 let browserInstance = null;
 const pagePool = [];
 const MAX_POOL_SIZE = 2;
 
-function resolveExecutablePath() {
-  try {
-    const autoPath = puppeteer.executablePath();
-    if (autoPath && fs.existsSync(autoPath)) return autoPath;
-  } catch {}
-  return undefined;
-}
-
 async function getBrowser() {
   if (browserInstance) return browserInstance;
 
-  const executablePath = resolveExecutablePath();
-  console.log("Puppeteer executablePath:", executablePath || "auto");
+  console.log("Launching Playwright browser...");
 
-  browserInstance = await puppeteer.launch({
+  browserInstance = await chromium.launch({
     headless: true,
-    executablePath,
-    timeout: 60000,
-    protocolTimeout: 120000,
     args: [
       "--no-sandbox",
       "--disable-setuid-sandbox",
@@ -31,10 +18,6 @@ async function getBrowser() {
       "--disable-gpu",
       "--no-zygote",
       "--disable-background-networking",
-      "--disable-background-timer-throttling",
-      "--disable-backgrounding-occluded-windows",
-      "--disable-renderer-backgrounding",
-      "--disable-features=site-per-process",
       "--disable-extensions"
     ]
   });
@@ -42,72 +25,61 @@ async function getBrowser() {
   browserInstance.on("disconnected", () => {
     browserInstance = null;
     pagePool.length = 0;
+    console.log("Playwright browser disconnected");
   });
 
   return browserInstance;
 }
 
-async function preparePage(page) {
-  await page.setViewport({ width: 1280, height: 720 });
-
-  await page.setUserAgent(
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
-      "(KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
-  );
-
-  await page.setExtraHTTPHeaders({
-    "Accept-Language": "en-US,en;q=0.9"
-  });
-
-  page.setDefaultNavigationTimeout(20000);
-  page.setDefaultTimeout(20000);
-
-  try {
-    await page.setRequestInterception(true);
-
-    page.removeAllListeners("request");
-    page.on("request", (request) => {
-      const resourceType = request.resourceType();
-      const url = request.url().toLowerCase();
-
-      if (
-        ["image", "media", "font", "stylesheet"].includes(resourceType) ||
-        url.includes("doubleclick") ||
-        url.includes("google-analytics") ||
-        url.includes("googletagmanager") ||
-        url.includes("facebook.net") ||
-        url.includes("hotjar") ||
-        url.includes("clarity.ms")
-      ) {
-        return request.abort();
-      }
-
-      return request.continue();
-    });
-  } catch {}
-
-  page.on("error", () => {});
-  page.on("pageerror", () => {});
-
-  return page;
-}
-
 async function createPage() {
   const browser = await getBrowser();
-  const page = await browser.newPage();
-  return preparePage(page);
+
+  const context = await browser.newContext({
+    userAgent:
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
+      "(KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+    viewport: { width: 1280, height: 720 },
+    locale: "en-US",
+    extraHTTPHeaders: { "Accept-Language": "en-US,en;q=0.9" }
+  });
+
+  const page = await context.newPage();
+
+  await page.route("**/*", (route) => {
+    const type = route.request().resourceType();
+    const url = route.request().url().toLowerCase();
+
+    if (["image", "media", "font", "stylesheet"].includes(type)) {
+      return route.abort();
+    }
+
+    if (
+      url.includes("google-analytics") ||
+      url.includes("googletagmanager") ||
+      url.includes("doubleclick") ||
+      url.includes("facebook.net") ||
+      url.includes("hotjar") ||
+      url.includes("clarity.ms")
+    ) {
+      return route.abort();
+    }
+
+    return route.continue();
+  });
+
+  page.setDefaultTimeout(20000);
+  page.setDefaultNavigationTimeout(20000);
+
+  return page;
 }
 
 async function getPooledPage() {
   while (pagePool.length > 0) {
     const page = pagePool.pop();
     try {
-      if (page && !page.isClosed()) {
-        return page;
-      }
+      if (page && !page.isClosed()) return page;
     } catch {}
   }
-
   return createPage();
 }
 
@@ -123,19 +95,17 @@ async function releasePage(page) {
     if (pagePool.length < MAX_POOL_SIZE) {
       pagePool.push(page);
     } else {
-      await page.close().catch(() => {});
+      await page.context().close().catch(() => {});
     }
   } catch {
     try {
-      await page.close();
+      await page.context().close();
     } catch {}
   }
 }
 
-async function warmupPagePool(size = MAX_POOL_SIZE) {
-  const needed = Math.max(0, size - pagePool.length);
-
-  for (let i = 0; i < needed; i++) {
+async function warmupPagePool(size = 1) {
+  for (let i = pagePool.length; i < size; i++) {
     try {
       const page = await createPage();
       pagePool.push(page);
@@ -150,7 +120,7 @@ async function closeBrowser() {
   while (pagePool.length) {
     const page = pagePool.pop();
     try {
-      await page.close();
+      await page.context().close();
     } catch {}
   }
 

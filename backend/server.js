@@ -7,19 +7,15 @@ const { analyzeDomain, extractPageData } = require("./analyzer");
 const {
   classifyContentType,
   inferTypeFromSignals,
-  normalizeType
+  normalizeType,
+  getDomainPrior
 } = require("./classifier");
 const {
   cleanUrls,
   getBaseDomain,
   buildHomepageUrl
 } = require("./utils");
-const {
-  closeBrowser,
-  warmupPagePool,
-  getPooledPage,
-  releasePage
-} = require("./browser");
+const { closeBrowser, warmupPagePool } = require("./browser");
 
 const app = express();
 
@@ -32,7 +28,6 @@ const allowedOrigins = new Set([
 function isOriginAllowed(origin) {
   if (!origin) return true;
   if (allowedOrigins.has(origin)) return true;
-
   return (
     origin.endsWith(".vercel.app") &&
     origin.includes("anindyac708-6432s-projects")
@@ -41,12 +36,8 @@ function isOriginAllowed(origin) {
 
 const corsOptions = {
   origin(origin, callback) {
-    if (isOriginAllowed(origin)) {
-      return callback(null, true);
-    }
-
+    if (isOriginAllowed(origin)) return callback(null, true);
     console.warn("CORS blocked origin:", origin);
-    console.warn("Allowed origins set:", Array.from(allowedOrigins));
     return callback(new Error(`CORS blocked for origin: ${origin}`));
   },
   methods: ["GET", "POST", "OPTIONS"],
@@ -62,9 +53,9 @@ const API_KEY = process.env.SERPER_API_KEY;
 const PORT = process.env.PORT || 5000;
 const TARGET_URL_COUNT = 50;
 const MAX_PAGES = 15;
-const DOMAIN_CONCURRENCY = 2;
-const PAGE_CONCURRENCY = 2;
-const SNAPSHOT_BATCH_SIZE = 3;
+const DOMAIN_CONCURRENCY = 3;
+const PAGE_CONCURRENCY = 4;
+const SNAPSHOT_BATCH_SIZE = 5;
 
 const activeJobs = new Map();
 
@@ -73,35 +64,25 @@ app.use((req, res, next) => {
   next();
 });
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
 async function runPool(items, concurrency, worker) {
   let index = 0;
-
   async function runner() {
     while (index < items.length) {
       const currentIndex = index++;
       await worker(items[currentIndex], currentIndex);
     }
   }
-
-  const workers = Array.from(
-    { length: Math.min(concurrency, items.length) },
-    () => runner()
+  await Promise.all(
+    Array.from({ length: Math.min(concurrency, items.length) }, () => runner())
   );
-
-  await Promise.all(workers);
 }
 
 async function updateSearchSnapshot(keyword, country, resultsSnapshot) {
   await prisma.search.update({
-    where: {
-      keyword_country: {
-        keyword,
-        country
-      }
-    },
-    data: {
-      resultsSnapshot
-    }
+    where: { keyword_country: { keyword, country } },
+    data: { resultsSnapshot }
   });
 }
 
@@ -122,15 +103,16 @@ function buildPendingResult(url) {
   };
 }
 
+// ─── Core: analyze a single URL result ────────────────────────────────────────
+
 async function analyzeSingleResult(item, domainMap) {
   const domainAnalysis = domainMap.get(item.domain);
-  let fallbackReason = null;
-  let page = null;
+
+  // Known domain prior takes highest priority — never overridden by failed scrape
+  const knownPrior = getDomainPrior(item.domain);
 
   try {
-    page = await getPooledPage();
-
-    const pageData = await extractPageData(page, item.url);
+    const pageData = await extractPageData(null, item.url);
 
     const pageResult = inferTypeFromSignals({
       url: item.url,
@@ -149,21 +131,18 @@ async function analyzeSingleResult(item, domainMap) {
         hasProductSchema: !!pageData.hasProductSchema,
         hasArticleSchema: !!pageData.hasArticleSchema
       },
-      siteTypeHint: domainAnalysis?.siteType || null
+      siteTypeHint: knownPrior || domainAnalysis?.siteType || null
     });
 
     return {
       ...item,
       siteType: normalizeType(
-        domainAnalysis?.siteType || item.siteType || "Small business"
+        knownPrior || domainAnalysis?.siteType || pageResult.siteType || "Small business"
       ),
       contentType: normalizeType(pageResult.siteType),
-      confidence:
-        pageResult.confidence ||
-        domainAnalysis?.confidence ||
-        item.confidence ||
-        "Low",
+      confidence: pageResult.confidence || domainAnalysis?.confidence || "Low",
       matchedSignals: mergeMatchedSignals(
+        knownPrior ? [`Known domain prior: ${knownPrior}`] : [],
         domainAnalysis?.matchedSignals || [],
         pageResult.matchedSignals || [],
         [`Content analyzed from page: ${pageData.title || item.url}`]
@@ -174,34 +153,30 @@ async function analyzeSingleResult(item, domainMap) {
       analysisStatus: "done"
     };
   } catch (error) {
-    fallbackReason = error.message;
-  } finally {
-    if (page) {
-      await releasePage(page).catch(() => {});
-    }
+    // Fallback: use known prior or domain analysis — never default to "Small business"
+    // for domains we recognise
+    const effectiveType = knownPrior || domainAnalysis?.siteType || null;
+    const fallbackContentType = normalizeType(
+      classifyContentType(item.url, {}, effectiveType)
+    );
+
+    return {
+      ...item,
+      siteType: normalizeType(effectiveType || "Small business"),
+      contentType: fallbackContentType,
+      confidence: knownPrior ? "High" : domainAnalysis?.confidence || "Low",
+      matchedSignals: mergeMatchedSignals(
+        knownPrior ? [`Known domain prior: ${knownPrior}`] : [],
+        domainAnalysis?.matchedSignals || [],
+        [`Fallback: unable to fetch page (${error.message})`]
+      ),
+      analyzedPages: domainAnalysis?.analyzedPages || item.analyzedPages || [],
+      analysisStatus: "done"
+    };
   }
-
-  const fallbackContentType = normalizeType(
-    classifyContentType(item.url, {}, domainAnalysis?.siteType || null)
-  );
-
-  return {
-    ...item,
-    siteType: normalizeType(
-      domainAnalysis?.siteType || item.siteType || "Small business"
-    ),
-    contentType: fallbackContentType,
-    confidence: domainAnalysis?.confidence || item.confidence || "Low",
-    matchedSignals: mergeMatchedSignals(
-      domainAnalysis?.matchedSignals || [],
-      [
-        `Fallback: content type inferred from URL/site prior (${fallbackReason || "unknown error"})`
-      ]
-    ),
-    analyzedPages: domainAnalysis?.analyzedPages || item.analyzedPages || [],
-    analysisStatus: "done"
-  };
 }
+
+// ─── Background analysis job ──────────────────────────────────────────────────
 
 async function runAnalysisInBackground(keyword, country) {
   const jobKey = `${keyword}::${country}`;
@@ -210,9 +185,7 @@ async function runAnalysisInBackground(keyword, country) {
   const jobPromise = (async () => {
     try {
       const existing = await prisma.search.findUnique({
-        where: {
-          keyword_country: { keyword, country }
-        }
+        where: { keyword_country: { keyword, country } }
       });
 
       if (!existing?.resultsSnapshot?.length) return;
@@ -223,43 +196,53 @@ async function runAnalysisInBackground(keyword, country) {
       ];
       const domainMap = new Map();
 
+      // Phase 1: analyze each unique domain (homepage)
       await runPool(uniqueDomains, DOMAIN_CONCURRENCY, async (domain) => {
         const homepageUrl = buildHomepageUrl(domain);
+        const knownPrior = getDomainPrior(domain);
 
         try {
           const analysis = await analyzeDomain(homepageUrl);
-          domainMap.set(domain, analysis);
+          // If we have a known prior, override the scraped siteType with it
+          domainMap.set(domain, {
+            ...analysis,
+            siteType: knownPrior || analysis.siteType,
+            confidence: knownPrior ? "High" : analysis.confidence,
+            matchedSignals: mergeMatchedSignals(
+              knownPrior ? [`Known domain prior: ${knownPrior}`] : [],
+              analysis.matchedSignals || []
+            )
+          });
         } catch (error) {
           console.error(`Failed to analyze domain ${domain}:`, error.message);
 
           domainMap.set(domain, {
             domain,
             homepageUrl,
-            siteType: "Small business",
-            confidence: "Low",
+            siteType: knownPrior || "Small business",
+            confidence: knownPrior ? "High" : "Low",
             matchedSignals: [
-              `Fallback: unable to analyze domain (${error.message})`
+              knownPrior
+                ? `Known domain prior: ${knownPrior}`
+                : `Fallback: unable to analyze domain (${error.message})`
             ],
-            analyzedPages: homepageUrl ? [homepageUrl] : []
+            analyzedPages: []
           });
         }
 
+        // Update snapshot with domain-level results
         for (let i = 0; i < results.length; i++) {
           if (results[i].domain === domain) {
+            const da = domainMap.get(domain);
             results[i] = {
               ...results[i],
-              siteType: normalizeType(
-                domainMap.get(domain)?.siteType || "Small business"
-              ),
-              confidence:
-                domainMap.get(domain)?.confidence ||
-                results[i].confidence ||
-                "Low",
+              siteType: normalizeType(da?.siteType || "Small business"),
+              confidence: da?.confidence || results[i].confidence || "Low",
               matchedSignals: mergeMatchedSignals(
-                domainMap.get(domain)?.matchedSignals || [],
+                da?.matchedSignals || [],
                 results[i].matchedSignals || []
               ),
-              analyzedPages: domainMap.get(domain)?.analyzedPages || [],
+              analyzedPages: da?.analyzedPages || [],
               analysisStatus: results[i].contentType ? "done" : "processing"
             };
           }
@@ -268,6 +251,7 @@ async function runAnalysisInBackground(keyword, country) {
         await updateSearchSnapshot(keyword, country, results);
       });
 
+      // Phase 2: analyze each individual URL page
       let completed = 0;
 
       await runPool(results, PAGE_CONCURRENCY, async (item, index) => {
@@ -293,6 +277,8 @@ async function runAnalysisInBackground(keyword, country) {
 
   activeJobs.set(jobKey, jobPromise);
 }
+
+// ─── Routes ───────────────────────────────────────────────────────────────────
 
 app.get("/api/debug", (req, res) => {
   res.json({
@@ -325,7 +311,6 @@ app.get("/api/history", async (req, res) => {
         updatedAt: true
       }
     });
-
     return res.json(searches);
   } catch (error) {
     console.error("History route error:", error.message);
@@ -340,15 +325,11 @@ app.get("/api/search-status", async (req, res) => {
   const keyword = String(req.query.keyword || "").toLowerCase().trim();
   const country = String(req.query.country || "bd").toLowerCase();
 
-  if (!keyword) {
-    return res.status(400).json({ error: "Keyword required" });
-  }
+  if (!keyword) return res.status(400).json({ error: "Keyword required" });
 
   try {
     const search = await prisma.search.findUnique({
-      where: {
-        keyword_country: { keyword, country }
-      }
+      where: { keyword_country: { keyword, country } }
     });
 
     if (!search?.resultsSnapshot?.length) {
@@ -356,15 +337,9 @@ app.get("/api/search-status", async (req, res) => {
     }
 
     const results = search.resultsSnapshot;
-    const doneCount = results.filter(
-      (item) => item.analysisStatus === "done"
-    ).length;
-    const processingCount = results.filter(
-      (item) => item.analysisStatus === "processing"
-    ).length;
-    const pendingCount = results.filter(
-      (item) => item.analysisStatus === "pending"
-    ).length;
+    const doneCount = results.filter((r) => r.analysisStatus === "done").length;
+    const processingCount = results.filter((r) => r.analysisStatus === "processing").length;
+    const pendingCount = results.filter((r) => r.analysisStatus === "pending").length;
 
     return res.json({
       keyword,
@@ -399,9 +374,7 @@ app.post("/api/search", async (req, res) => {
 
   try {
     const existing = await prisma.search.findUnique({
-      where: {
-        keyword_country: { keyword, country }
-      }
+      where: { keyword_country: { keyword, country } }
     });
 
     if (existing?.resultsSnapshot?.length) {
@@ -422,9 +395,7 @@ app.post("/api/search", async (req, res) => {
         total: existing.resultsSnapshot.length,
         analyzed,
         results: existing.resultsSnapshot,
-        statusUrl: `/api/search-status?keyword=${encodeURIComponent(
-          keyword
-        )}&country=${country}`
+        statusUrl: `/api/search-status?keyword=${encodeURIComponent(keyword)}&country=${country}`
       });
     }
 
@@ -434,11 +405,7 @@ app.post("/api/search", async (req, res) => {
     while (allUrls.length < TARGET_URL_COUNT && page <= MAX_PAGES) {
       const response = await axios.post(
         "https://google.serper.dev/search",
-        {
-          q: keyword,
-          page,
-          gl: country
-        },
+        { q: keyword, page, gl: country },
         {
           headers: {
             "X-API-KEY": API_KEY,
@@ -448,9 +415,8 @@ app.post("/api/search", async (req, res) => {
         }
       );
 
-      const results = response.data?.organic || [];
-      const pageUrls = results.map((item) => item.link).filter(Boolean);
-
+      const pageResults = response.data?.organic || [];
+      const pageUrls = pageResults.map((item) => item.link).filter(Boolean);
       allUrls.push(...pageUrls);
       allUrls = cleanUrls(allUrls);
       page++;
@@ -460,17 +426,9 @@ app.post("/api/search", async (req, res) => {
     const quickResults = finalUrls.map(buildPendingResult);
 
     await prisma.search.upsert({
-      where: {
-        keyword_country: { keyword, country }
-      },
-      update: {
-        resultsSnapshot: quickResults
-      },
-      create: {
-        keyword,
-        country,
-        resultsSnapshot: quickResults
-      }
+      where: { keyword_country: { keyword, country } },
+      update: { resultsSnapshot: quickResults },
+      create: { keyword, country, resultsSnapshot: quickResults }
     });
 
     void runAnalysisInBackground(keyword, country).catch((err) => {
@@ -484,15 +442,10 @@ app.post("/api/search", async (req, res) => {
       total: quickResults.length,
       analyzed: false,
       results: quickResults,
-      statusUrl: `/api/search-status?keyword=${encodeURIComponent(
-        keyword
-      )}&country=${country}`
+      statusUrl: `/api/search-status?keyword=${encodeURIComponent(keyword)}&country=${country}`
     });
   } catch (error) {
-    console.error("Search error status:", error.response?.status);
-    console.error("Search error data:", error.response?.data);
-    console.error("Search error message:", error.message);
-
+    console.error("Search error:", error.response?.status, error.message);
     return res.status(500).json({
       error: "Something went wrong while fetching URLs",
       details: error.message
@@ -513,9 +466,7 @@ app.post("/api/analyze", async (req, res) => {
 
   try {
     const existing = await prisma.search.findUnique({
-      where: {
-        keyword_country: { keyword, country }
-      }
+      where: { keyword_country: { keyword, country } }
     });
 
     if (!existing?.resultsSnapshot?.length) {
@@ -533,19 +484,18 @@ app.post("/api/analyze", async (req, res) => {
       message: "Analysis started",
       keyword,
       country,
-      statusUrl: `/api/search-status?keyword=${encodeURIComponent(
-        keyword
-      )}&country=${country}`
+      statusUrl: `/api/search-status?keyword=${encodeURIComponent(keyword)}&country=${country}`
     });
   } catch (error) {
     console.error("Analyze trigger error:", error.message);
-
     return res.status(500).json({
       error: "Failed to start analysis",
       details: error.message
     });
   }
 });
+
+// ─── Shutdown & startup ───────────────────────────────────────────────────────
 
 process.on("SIGINT", async () => {
   await closeBrowser();
@@ -560,7 +510,7 @@ process.on("SIGTERM", async () => {
 });
 
 if (process.env.ENABLE_BROWSER_WARMUP === "true") {
-  warmupPagePool().catch((err) => {
+  warmupPagePool(1).catch((err) => {
     console.error("Page pool warmup failed:", err.message);
   });
 }
