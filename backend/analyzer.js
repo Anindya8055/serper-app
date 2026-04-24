@@ -37,7 +37,11 @@ async function fetchWithCheerio(url) {
     $('meta[property="og:description"]').attr("content") ||
     "";
 
-  const bodyText = $("body").text().replace(/\s+/g, " ").trim().slice(0, 15000);
+  const bodyText = $("body")
+    .text()
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 15000);
 
   const links = [];
   $("a[href]").each((_, el) => {
@@ -53,17 +57,28 @@ async function fetchWithCheerio(url) {
     if (text) linksText.push(text);
   });
 
-  const normalizedText = `${title} ${metaDescription} ${bodyText}`.replace(/\s+/g, " ").trim();
+  const normalizedText = `${title} ${metaDescription} ${bodyText}`
+    .replace(/\s+/g, " ")
+    .trim();
 
   const schemaRaw = [];
   $('script[type="application/ld+json"]').each((_, el) => {
     schemaRaw.push($(el).html() || "");
   });
-  const schemaText = schemaRaw.join(" ").replace(/\s+/g, "").toLowerCase();
+  const schemaText = schemaRaw.join(" ");
 
   const linksJoined = linksText.join(" ");
 
-  return buildPageData(url, title, metaDescription, normalizedText, html, links, linksJoined, schemaText);
+  return buildPageData(
+    url,
+    title,
+    metaDescription,
+    normalizedText,
+    html,
+    links,
+    linksJoined,
+    schemaText
+  );
 }
 
 // ─── Playwright-based scraper (fallback for JS-heavy pages) ──────────────────
@@ -79,7 +94,9 @@ async function fetchWithPlaywright(url) {
       await page.evaluate(() => {
         const title = document.title || "";
         const metaDescription =
-          document.querySelector('meta[name="description"]')?.getAttribute("content") || "";
+          document
+            .querySelector('meta[name="description"]')
+            ?.getAttribute("content") || "";
         const bodyText = document.body?.innerText || "";
         const links = [...document.querySelectorAll("a[href]")]
           .map((a) => a.href)
@@ -97,9 +114,18 @@ async function fetchWithPlaywright(url) {
       .replace(/\s+/g, " ")
       .trim();
 
-    const schemaText = html.replace(/\s+/g, "").toLowerCase();
+    const schemaText = (html || "");
 
-    return buildPageData(url, title, metaDescription, normalizedText, html, links, linksText, schemaText);
+    return buildPageData(
+      url,
+      title,
+      metaDescription,
+      normalizedText,
+      html,
+      links,
+      linksText,
+      schemaText
+    );
   } finally {
     if (page) await releasePage(page).catch(() => {});
   }
@@ -107,38 +133,69 @@ async function fetchWithPlaywright(url) {
 
 // ─── Shared signal extraction ─────────────────────────────────────────────────
 
-function buildPageData(url, title, metaDescription, normalizedText, html, links, linksText, schemaText) {
+function buildPageData(
+  url,
+  title,
+  metaDescription,
+  normalizedText,
+  html,
+  links,
+  linksText,
+  schemaText
+) {
   const t = normalizedText;
   const l = linksText;
-  const lowerHtml = html.toLowerCase();
+  const lowerHtml = String(html || "").toLowerCase();
 
   const hasCart =
-    !!html.match(/class="[^"]*cart[^"]*count[^"]*"|class="[^"]*minicart[^"]*"|data-testid="[^"]*cart[^"]*"/i) ||
-    /add[\s-]?to[\s-]?cart|your[\s-]?cart|view[\s-]?cart|shopping[\s-]?bag|proceed[\s-]?to[\s-]?checkout/i.test(t + " " + l);
+    !!html.match(
+      /class="[^"]*cart[^"]*count[^"]*"|class="[^"]*minicart[^"]*"|data-testid="[^"]*cart[^"]*"/i
+    ) ||
+    /add[\s-]?to[\s-]?cart|your[\s-]?cart|view[\s-]?cart|shopping[\s-]?bag|proceed[\s-]?to[\s-]?checkout/i.test(
+      t + " " + l
+    );
 
   const hasAffiliateLinks =
     /amazon\.com|bestbuy\.com|walmart\.com|target\.com/i.test(lowerHtml) &&
     /buy|deal|price|shop/i.test(l);
 
-  const hasMap = /google\.com\/maps|maps\.google|leaflet|mapbox/i.test(lowerHtml);
-  const hasSearchAndFilter = /filter|search results|sort by|refine/i.test(t + " " + l);
-  const hasReviews = /write a review|read reviews|rating|ratings|stars?\s*out\s*of/i.test(t + " " + l + " " + lowerHtml);
-  const hasHours = /hours|open now|closed now|opening hours|hours of operation/i.test(t + " " + l + " " + lowerHtml);
-  const hasPhone = /(\+?\d{1,3}[\s\-]?)?(\(?\d{2,4}\)?[\s\-]?)?\d{3,4}[\s\-]?\d{3,4}/.test(t);
+  const hasMap =
+    /google\.com\/maps|maps\.google|leaflet|mapbox/i.test(lowerHtml);
+  const hasSearchAndFilter =
+    /filter|search results|sort by|refine/i.test(t + " " + l);
+  const hasReviews =
+    /write a review|read reviews|rating|ratings|stars?\s*out\s*of/i.test(
+      t + " " + l + " " + lowerHtml
+    );
+  const hasHours =
+    /hours|open now|closed now|opening hours|hours of operation/i.test(
+      t + " " + l + " " + lowerHtml
+    );
+  const hasPhone =
+    /(\+?\d{1,3}[\s\-]?)?(\(?\d{2,4}\)?[\s\-]?)?\d{3,4}[\s\-]?\d{3,4}/.test(t);
   const hasAddress =
-    /\b(road|street|st\.|avenue|ave|block|sector|suite|floor|building|house|city|zip|postal|office|boulevard|blvd)\b/i.test(t);
+    /\b(road|street|st\.|avenue|ave|block|sector|suite|floor|building|house|city|zip|postal|office|boulevard|blvd)\b/i.test(
+      t
+    );
+
+  const schemaLower = String(schemaText || "").replace(/\s+/g, "").toLowerCase();
 
   const hasBusinessListingSchema =
-    /\"@type\":\"(localbusiness|organization|restaurant|dentist|store|attorney|medicalbusiness|homeandconstructionbusiness|automotivebusiness|hotel|lodgingbusiness)\"/i.test(schemaText);
-  const hasProductSchema = /\"@type\":\"product\"/i.test(schemaText);
+    /"@type":"(localbusiness|organization|restaurant|dentist|store|attorney|medicalbusiness|homeandconstructionbusiness|automotivebusiness|hotel|lodgingbusiness)"/i.test(
+      schemaLower
+    );
+  const hasProductSchema = /"@type":"product"/i.test(schemaLower);
   const hasArticleSchema =
-    /\"@type\":\"(article|newsarticle|blogposting|techarticle|reviewarticle)\"/i.test(schemaText);
+    /"@type":"(article|newsarticle|blogposting|techarticle|reviewarticle)"/i.test(
+      schemaLower
+    );
 
   return {
     url,
     title,
     metaDescription,
     bodyText: normalizedText.slice(0, 12000),
+    schemaText: schemaText || "",
     links: links.slice(0, 200),
     linksText: l.slice(0, 8000),
     hasCart,
@@ -162,14 +219,18 @@ async function extractPageData(_, url) {
   try {
     return await fetchWithCheerio(url);
   } catch (cheerioError) {
-    console.warn(`Cheerio failed for ${url}: ${cheerioError.message} — trying Playwright`);
+    console.warn(
+      `Cheerio failed for ${url}: ${cheerioError.message} — trying Playwright`
+    );
   }
 
   // Playwright fallback
   try {
     return await fetchWithPlaywright(url);
   } catch (playwrightError) {
-    throw new Error(`Both Cheerio and Playwright failed for ${url}: ${playwrightError.message}`);
+    throw new Error(
+      `Both Cheerio and Playwright failed for ${url}: ${playwrightError.message}`
+    );
   }
 }
 
@@ -177,14 +238,20 @@ async function extractPageData(_, url) {
 
 async function analyzeDomain(homepageUrl) {
   const homepage = await extractPageData(null, homepageUrl);
-  const importantLinks = pickImportantLinks(homepage.links, homepageUrl).slice(0, 3);
+  const importantLinks = pickImportantLinks(homepage.links, homepageUrl).slice(
+    0,
+    3
+  );
 
   const extraPages = [];
   for (const link of importantLinks) {
     try {
       extraPages.push(await extractPageData(null, link));
     } catch (error) {
-      console.error(`Failed analyzing internal page ${link}:`, error.message);
+      console.error(
+        `Failed analyzing internal page ${link}:`,
+        error.message
+      );
     }
   }
 

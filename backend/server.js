@@ -68,12 +68,14 @@ app.use((req, res, next) => {
 
 async function runPool(items, concurrency, worker) {
   let index = 0;
+
   async function runner() {
     while (index < items.length) {
       const currentIndex = index++;
       await worker(items[currentIndex], currentIndex);
     }
   }
+
   await Promise.all(
     Array.from({ length: Math.min(concurrency, items.length) }, () => runner())
   );
@@ -120,6 +122,7 @@ async function analyzeSingleResult(item, domainMap) {
       metaDescription: pageData.metaDescription || "",
       bodyText: pageData.bodyText || "",
       linksText: pageData.linksText || "",
+      schemaText: pageData.schemaText || "",
       signals: {
         hasCart: !!pageData.hasCart,
         hasSearchAndFilter: !!pageData.hasSearchAndFilter,
@@ -137,7 +140,10 @@ async function analyzeSingleResult(item, domainMap) {
     return {
       ...item,
       siteType: normalizeType(
-        knownPrior || domainAnalysis?.siteType || pageResult.siteType || "Small business"
+        knownPrior ||
+          domainAnalysis?.siteType ||
+          pageResult.siteType ||
+          "Small business"
       ),
       contentType: normalizeType(pageResult.siteType),
       confidence: pageResult.confidence || domainAnalysis?.confidence || "Low",
@@ -203,6 +209,7 @@ async function runAnalysisInBackground(keyword, country) {
 
         try {
           const analysis = await analyzeDomain(homepageUrl);
+
           // If we have a known prior, override the scraped siteType with it
           domainMap.set(domain, {
             ...analysis,
@@ -311,6 +318,7 @@ app.get("/api/history", async (req, res) => {
         updatedAt: true
       }
     });
+
     return res.json(searches);
   } catch (error) {
     console.error("History route error:", error.message);
@@ -325,7 +333,9 @@ app.get("/api/search-status", async (req, res) => {
   const keyword = String(req.query.keyword || "").toLowerCase().trim();
   const country = String(req.query.country || "bd").toLowerCase();
 
-  if (!keyword) return res.status(400).json({ error: "Keyword required" });
+  if (!keyword) {
+    return res.status(400).json({ error: "Keyword required" });
+  }
 
   try {
     const search = await prisma.search.findUnique({
@@ -338,8 +348,12 @@ app.get("/api/search-status", async (req, res) => {
 
     const results = search.resultsSnapshot;
     const doneCount = results.filter((r) => r.analysisStatus === "done").length;
-    const processingCount = results.filter((r) => r.analysisStatus === "processing").length;
-    const pendingCount = results.filter((r) => r.analysisStatus === "pending").length;
+    const processingCount = results.filter(
+      (r) => r.analysisStatus === "processing"
+    ).length;
+    const pendingCount = results.filter(
+      (r) => r.analysisStatus === "pending"
+    ).length;
 
     return res.json({
       keyword,
@@ -395,7 +409,9 @@ app.post("/api/search", async (req, res) => {
         total: existing.resultsSnapshot.length,
         analyzed,
         results: existing.resultsSnapshot,
-        statusUrl: `/api/search-status?keyword=${encodeURIComponent(keyword)}&country=${country}`
+        statusUrl: `/api/search-status?keyword=${encodeURIComponent(
+          keyword
+        )}&country=${country}`
       });
     }
 
@@ -442,7 +458,9 @@ app.post("/api/search", async (req, res) => {
       total: quickResults.length,
       analyzed: false,
       results: quickResults,
-      statusUrl: `/api/search-status?keyword=${encodeURIComponent(keyword)}&country=${country}`
+      statusUrl: `/api/search-status?keyword=${encodeURIComponent(
+        keyword
+      )}&country=${country}`
     });
   } catch (error) {
     console.error("Search error:", error.response?.status, error.message);
@@ -484,7 +502,9 @@ app.post("/api/analyze", async (req, res) => {
       message: "Analysis started",
       keyword,
       country,
-      statusUrl: `/api/search-status?keyword=${encodeURIComponent(keyword)}&country=${country}`
+      statusUrl: `/api/search-status?keyword=${encodeURIComponent(
+        keyword
+      )}&country=${country}`
     });
   } catch (error) {
     console.error("Analyze trigger error:", error.message);

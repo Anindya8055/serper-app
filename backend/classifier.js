@@ -9,123 +9,33 @@ const SITE_TYPES = [
 ];
 
 const KNOWN_DOMAIN_PRIORS = {
-  // News & editorial
-  "cnn.com": "Newspaper",
-  "bbc.com": "Newspaper",
-  "bbc.co.uk": "Newspaper",
-  "nytimes.com": "Newspaper",
-  "washingtonpost.com": "Newspaper",
-  "theguardian.com": "Newspaper",
-  "reuters.com": "Newspaper",
-  "apnews.com": "Newspaper",
-  "foxnews.com": "Newspaper",
-  "foxsports.com": "Newspaper",
-  "espn.com": "Newspaper",
-  "si.com": "Newspaper",
-  "bleacherreport.com": "Newspaper",
-  "nbcsports.com": "Newspaper",
-  "cbssports.com": "Newspaper",
-  "nfl.com": "Newspaper",
-  "arstechnica.com": "Newspaper",
-  "theverge.com": "Newspaper",
-  "wired.com": "Newspaper",
-  "techcrunch.com": "Newspaper",
-  "engadget.com": "Newspaper",
-  "androidcentral.com": "Newspaper",
-  "androidauthority.com": "Newspaper",
-  "gsmarena.com": "Newspaper",
-  "tomsguide.com": "Newspaper",
-  "tomshardware.com": "Newspaper",
-  "pcmag.com": "Newspaper",
-  "cnet.com": "Newspaper",
-  "zdnet.com": "Newspaper",
-  "gizmodo.com": "Newspaper",
-  "mashable.com": "Newspaper",
-  "digitaltrends.com": "Newspaper",
-  "notebookcheck.net": "Newspaper",
-  "phonearena.com": "Newspaper",
-  "consumerreports.org": "Newspaper",
-  "britannica.com": "Newspaper",
-  "wikipedia.org": "Newspaper",
-  "wikimedia.org": "Newspaper",
-  "techradar.com": "Newspaper",
-  "ign.com": "Newspaper",
-  "techadvisor.com": "Newspaper",
-  "pcworld.com": "Newspaper",
-  "usnews.com": "Newspaper",
-  "inkl.com": "Newspaper",
-  "androidpolice.com": "Newspaper",
-  "caranddriver.com": "Newspaper",
-  "motortrend.com": "Newspaper",
-
-  // Blogs
-  "sbnation.com": "Blog",
-  "9to5google.com": "Blog",
-  "9to5mac.com": "Blog",
-  "howtogeek.com": "Blog",
-  "thurrott.com": "Blog",
-  "markellisreviews.com": "Blog",
-  "silverandblackpride.com": "Blog",
-  "bleedinggreennation.com": "Blog",
-
-  // E-commerce
   "amazon.com": "E-commerce",
-  "amazon.co.uk": "E-commerce",
-  "amazon.in": "E-commerce",
-  "amazon.de": "E-commerce",
-  "amazon.ca": "E-commerce",
-  "walmart.com": "E-commerce",
   "ebay.com": "E-commerce",
-  "target.com": "E-commerce",
-  "bestbuy.com": "E-commerce",
-  "aliexpress.com": "E-commerce",
+  "walmart.com": "E-commerce",
   "etsy.com": "E-commerce",
+  "aliexpress.com": "E-commerce",
   "flipkart.com": "E-commerce",
   "daraz.com": "E-commerce",
   "newegg.com": "E-commerce",
-  "costco.com": "E-commerce",
-  "adorama.com": "E-commerce",
-  "bhphotovideo.com": "E-commerce",
   "backmarket.com": "E-commerce",
   "swappa.com": "E-commerce",
-  "store.google.com": "E-commerce",
 
-  // Google properties
-  "google.com": "E-commerce",
-
-  // Carriers / Service
-  "verizon.com": "Service",
-  "t-mobile.com": "Service",
-  "att.com": "Service",
-  "sprint.com": "Service",
-  "xfinity.com": "Service",
-
-  // Directories
-  "cars.com": "Directory",
-  "autotrader.com": "Directory",
-  "edmunds.com": "Directory",
-  "kbb.com": "Directory",
   "yelp.com": "Directory",
   "tripadvisor.com": "Directory",
   "yellowpages.com": "Directory",
   "angi.com": "Directory",
-  "houzz.com": "Directory",
   "zillow.com": "Directory",
   "realtor.com": "Directory",
-  "trulia.com": "Directory",
+  "cars.com": "Directory",
+  "autotrader.com": "Directory",
+  "kbb.com": "Directory",
+  "houzz.com": "Directory",
 
-  // SaaS
-  "shopify.com": "Saas",
-  "stripe.com": "Saas",
   "github.com": "Saas",
   "gitlab.com": "Saas",
   "slack.com": "Saas",
-  "notion.so": "Saas",
   "figma.com": "Saas",
-  "hubspot.com": "Saas",
-  "salesforce.com": "Saas",
-  "zoom.us": "Saas",
-  "atlassian.com": "Saas",
+  "notion.so": "Saas",
   "linear.app": "Saas",
   "vercel.com": "Saas",
   "netlify.com": "Saas"
@@ -180,25 +90,56 @@ function getTopScore(scores) {
   const secondScore = sorted[1]?.[1] || 0;
 
   if (topScore <= 0) {
-    return { siteType: "Small business", confidence: "Low", topScore, secondScore, sorted };
+    return {
+      siteType: "Small business",
+      confidence: "Low",
+      topScore,
+      secondScore,
+      sorted
+    };
   }
 
   let confidence = "Low";
-  if (topScore >= 14 && topScore - secondScore >= 5) confidence = "High";
-  else if (topScore >= 8 && topScore - secondScore >= 2) confidence = "Medium";
+  if (topScore >= 16 && topScore - secondScore >= 6) confidence = "High";
+  else if (topScore >= 9 && topScore - secondScore >= 3) confidence = "Medium";
 
-  return { siteType: normalizeType(siteType), confidence, topScore, secondScore, sorted };
+  return {
+    siteType: normalizeType(siteType),
+    confidence,
+    topScore,
+    secondScore,
+    sorted
+  };
+}
+
+function isBotBlocked(title, bodyText) {
+  const t = String(title || "").toLowerCase();
+  const b = String(bodyText || "").toLowerCase().slice(0, 500);
+  const blockPhrases = [
+    "just a moment",
+    "robot or human",
+    "access denied",
+    "attention required",
+    "are you human",
+    "enable javascript",
+    "please verify",
+    "ddos protection",
+    "checking your browser",
+    "403 forbidden",
+    "temporarily unavailable"
+  ];
+  return blockPhrases.some((p) => t.includes(p) || b.includes(p));
 }
 
 function isEditorialUrl(url) {
   return /\/(review|reviews|article|articles|blog|blogs|news|post|posts|opinion|editorial|story|stories|features?|analysis|guide|guides|how-?to)\//i.test(
-    String(url)
+    String(url || "")
   );
 }
 
 function isCommerceUrl(url) {
-  return /\/(product|products|shop|store|cart|checkout|collections?|categories?|dp\/|gp\/product\/|buy\/)/i.test(
-    String(url)
+  return /\/(product|products|shop|store|cart|checkout|collections?|categories?|dp\/|gp\/|buy\/|browse\/|c\/)|[?&](k|rh|i|node)=/i.test(
+    String(url || "")
   );
 }
 
@@ -208,27 +149,212 @@ function isKnownRetailDomain(domain) {
   );
 }
 
+function extractSchemaTypes(schemaText) {
+  const s = String(schemaText || "").toLowerCase();
+  return {
+    isNewsArticle: /"@type"\s*:\s*"(newsarticle|reportagenewsarticle|liveblogposting)"/i.test(
+      s
+    ),
+    isBlogPosting: /"@type"\s*:\s*"blogposting"/i.test(s),
+    isArticle: /"@type"\s*:\s*"(article|techarticle|scholarlyarticle)"/i.test(s),
+    isProduct: /"@type"\s*:\s*"product"/i.test(s),
+    isLocalBusiness: /"@type"\s*:\s*"(localbusiness|restaurant|dentist|attorney|medicalbusiness|store|hotel|lodgingbusiness|automotivebusiness|homeandconstructionbusiness)"/i.test(
+      s
+    ),
+    isOrganization: /"@type"\s*:\s*"(organization|corporation|nonprofit)"/i.test(
+      s
+    ),
+    isSoftwareApp: /"@type"\s*:\s*"(softwareapplication|webapplication|mobileapplication)"/i.test(
+      s
+    ),
+    isReview: /"@type"\s*:\s*"(review|aggregaterating)"/i.test(s)
+  };
+}
+
 function scoreUrlPath(url, matchedSignals) {
   const scores = createScores();
-  const lowerUrl = String(url || "").toLowerCase();
+  const u = String(url || "").toLowerCase();
 
-  if (/(\/(blog|post|posts|article|articles|author)\/)/i.test(lowerUrl))
-    addScore(scores, matchedSignals, "Blog", 5, "blog/article URL path");
+  if (
+    /\/(world|politics|science|health|sports|entertainment|business|technology|opinion|editorial|breaking|live|local|national|international)\//i.test(
+      u
+    )
+  ) {
+    addScore(scores, matchedSignals, "Newspaper", 8, "news section URL path");
+  }
 
-  if (/(\/(news|latest|world|politics|opinion|editorial|live|breaking|features?|review|reviews|analysis|guide|how-?to)\/)/i.test(lowerUrl))
-    addScore(scores, matchedSignals, "Newspaper", 5, "news/editorial URL path");
+  if (/(\/blog|\/post|\/posts|\/author|\/authors|\/category|\/tag|\/archive)\//i.test(u)) {
+    addScore(scores, matchedSignals, "Blog", 7, "blog content URL path");
+  }
 
-  if (/(\/(product|products|shop|store|cart|checkout|collections?|categories?|dp\/|gp\/product\/|browse)\/|[?&](k|rh|i|node)=)/i.test(lowerUrl))
-    addScore(scores, matchedSignals, "E-commerce", 8, "commerce/taxonomy URL path");
+  if (
+    /\/(article|articles|story|stories|guide|guides|review|reviews|analysis|how-?to|features?)\//i.test(
+      u
+    )
+  ) {
+    addScore(scores, matchedSignals, "Blog", 4, "article URL path");
+    addScore(scores, matchedSignals, "Newspaper", 3, "article URL path");
+  }
 
-  if (/(\/(pricing|demo|free-trial|trial|signup|sign-up|sign-in|login|app|platform|software)\/)/i.test(lowerUrl))
-    addScore(scores, matchedSignals, "Saas", 5, "saas URL path");
+  if (
+    /\/(product|products|shop|store|cart|checkout|collections?|categories?|browse|c\/|dp\/|gp\/)|[?&](k|rh|i|node|q)=/i.test(
+      u
+    )
+  ) {
+    addScore(scores, matchedSignals, "E-commerce", 9, "commerce URL path");
+  }
 
-  if (/(\/(directory|listing|listings|companies|businesses|vendors|near-me|biz|provider|contractor)\/)/i.test(lowerUrl))
-    addScore(scores, matchedSignals, "Directory", 4, "directory/listing URL path");
+  if (
+    /\/(pricing|demo|free-trial|trial|signup|sign-up|login|sign-in|app|platform|software|dashboard|workspace|integrations)\//i.test(
+      u
+    )
+  ) {
+    addScore(scores, matchedSignals, "Saas", 7, "SaaS URL path");
+  }
 
-  if (/(\/(services?|book|booking|appointment|consultation|quote|contact)\/)/i.test(lowerUrl))
-    addScore(scores, matchedSignals, "Service", 5, "service URL path");
+  if (
+    /\/(directory|listing|listings|companies|businesses|vendors|near-me|biz|providers?|contractors?|places)\//i.test(
+      u
+    )
+  ) {
+    addScore(scores, matchedSignals, "Directory", 7, "directory listing URL path");
+  }
+
+  if (
+    /\/(services?|book|booking|appointment|consultation|quote|our-work|portfolio|case-study)\//i.test(
+      u
+    )
+  ) {
+    addScore(scores, matchedSignals, "Service", 6, "service URL path");
+  }
+
+  return scores;
+}
+
+function scoreSchema(schemaTypes, matchedSignals, context = {}) {
+  const scores = createScores();
+  const { isEditorial, isCommerce } = context;
+
+  if (schemaTypes.isNewsArticle) {
+    addScore(
+      scores,
+      matchedSignals,
+      "Newspaper",
+      14,
+      "NewsArticle schema — definitive"
+    );
+    subtractScore(
+      scores,
+      matchedSignals,
+      "Blog",
+      4,
+      "NewsArticle schema overrides Blog"
+    );
+  }
+
+  if (schemaTypes.isBlogPosting) {
+    addScore(
+      scores,
+      matchedSignals,
+      "Blog",
+      14,
+      "BlogPosting schema — definitive"
+    );
+    subtractScore(
+      scores,
+      matchedSignals,
+      "Newspaper",
+      4,
+      "BlogPosting schema overrides Newspaper"
+    );
+  }
+
+  if (
+    schemaTypes.isArticle &&
+    !schemaTypes.isNewsArticle &&
+    !schemaTypes.isBlogPosting
+  ) {
+    addScore(scores, matchedSignals, "Newspaper", 5, "Article schema (ambiguous)");
+    addScore(scores, matchedSignals, "Blog", 5, "Article schema (ambiguous)");
+  }
+
+  if (schemaTypes.isProduct) {
+    if (isEditorial) {
+      addScore(
+        scores,
+        matchedSignals,
+        "Blog",
+        5,
+        "Product schema on editorial page = review markup"
+      );
+      addScore(
+        scores,
+        matchedSignals,
+        "Newspaper",
+        4,
+        "Product schema on editorial page = review markup"
+      );
+    } else if (isCommerce) {
+      addScore(
+        scores,
+        matchedSignals,
+        "E-commerce",
+        12,
+        "Product schema on commerce page"
+      );
+    } else {
+      addScore(scores, matchedSignals, "E-commerce", 6, "Product schema detected");
+    }
+  }
+
+  if (schemaTypes.isLocalBusiness) {
+    addScore(
+      scores,
+      matchedSignals,
+      "Directory",
+      8,
+      "LocalBusiness schema detected"
+    );
+    addScore(
+      scores,
+      matchedSignals,
+      "Small business",
+      5,
+      "LocalBusiness schema (could be single business)"
+    );
+    addScore(
+      scores,
+      matchedSignals,
+      "Service",
+      4,
+      "LocalBusiness schema (could be service)"
+    );
+  }
+
+  if (schemaTypes.isSoftwareApp) {
+    addScore(
+      scores,
+      matchedSignals,
+      "Saas",
+      14,
+      "SoftwareApplication schema — definitive"
+    );
+  }
+
+  if (!schemaTypes.isLocalBusiness && !schemaTypes.isSoftwareApp && schemaTypes.isOrganization) {
+    addScore(scores, matchedSignals, "Small business", 3, "Organization schema");
+    addScore(scores, matchedSignals, "Service", 2, "Organization schema");
+  }
+
+  if (schemaTypes.isReview && !schemaTypes.isProduct) {
+    addScore(
+      scores,
+      matchedSignals,
+      "Directory",
+      4,
+      "Review/AggregateRating schema"
+    );
+  }
 
   return scores;
 }
@@ -238,38 +364,94 @@ function scoreTitle(title, matchedSignals, url = "") {
   const t = String(title || "").toLowerCase();
   const isEditorial = isEditorialUrl(url);
 
-  if (/(blog|author|opinion|editorial|story|stories|insights|tips|review|analysis|guide)/i.test(t))
-    addScore(scores, matchedSignals, "Blog", 4, "blog/editorial title");
+  if (
+    /(breaking|live updates?|developing story|report:|exclusive:|analysis:|watch:|listen:)/i.test(
+      t
+    )
+  ) {
+    addScore(scores, matchedSignals, "Newspaper", 8, "breaking/live news title");
+  }
 
-  if (/(news|breaking|report|journal|headlines|live updates)/i.test(t))
-    addScore(scores, matchedSignals, "Newspaper", 5, "news title");
+  if (
+    /(news|headlines|journal|press|times|post|daily|weekly|gazette|tribune|herald)/i.test(
+      t
+    )
+  ) {
+    addScore(
+      scores,
+      matchedSignals,
+      "Newspaper",
+      5,
+      "publication name pattern in title"
+    );
+  }
+
+  if (
+    /(best \d|top \d+|how to |guide to |tips for |vs\.?|comparison|review:|hands.?on|i tested|my experience|week \d|month \d)/i.test(
+      t
+    )
+  ) {
+    addScore(
+      scores,
+      matchedSignals,
+      "Blog",
+      6,
+      "editorial/review/listicle title"
+    );
+  }
+
+  if (/(blog|author|opinion|story|insights|tutorial|checklist)/i.test(t)) {
+    addScore(scores, matchedSignals, "Blog", 4, "blog keyword in title");
+  }
 
   if (
     !isEditorial &&
-    /(shop|buy|sale|deals|official store|cart|checkout|best sellers)/i.test(t) &&
-    !/(review|reviews|best \w+ for|guide|how to|vs\.?|comparison)/i.test(t)
-  )
-    addScore(scores, matchedSignals, "E-commerce", 5, "commerce title");
-
-  if (/(best |top \d|review|reviews|vs\.?|comparison|rated|rating|hands.?on|first look)/i.test(t)) {
-    addScore(scores, matchedSignals, "Blog", 3, "review/comparison title");
-    addScore(scores, matchedSignals, "Newspaper", 2, "review/editorial title");
+    /(shop|buy|sale|deals|official store|cart|checkout|best sellers|free shipping)/i.test(
+      t
+    ) &&
+    !/(review|vs\.?|comparison|guide|how to|best .* for)/i.test(t)
+  ) {
+    addScore(scores, matchedSignals, "E-commerce", 7, "storefront action title");
   }
 
-  if (/(pricing|free trial|request demo|book demo|software|platform|api|crm|automation)/i.test(t))
-    addScore(scores, matchedSignals, "Saas", 5, "saas title");
+  if (
+    /(pricing|free trial|request demo|book a demo|software|platform|api|crm|automation|workspace|dashboard)/i.test(
+      t
+    )
+  ) {
+    addScore(scores, matchedSignals, "Saas", 7, "SaaS product title");
+  }
 
   if (
-    /(directory|find businesses|listings|companies|providers|near me)/i.test(t) &&
+    /(find |search |near me|top \d+ .* in |best .* near|directory|listings?|compare)/i.test(
+      t
+    ) &&
     !/(shop|buy|sale|deals|cart|checkout)/i.test(t)
-  )
-    addScore(scores, matchedSignals, "Directory", 5, "directory title");
+  ) {
+    addScore(scores, matchedSignals, "Directory", 6, "directory/search title");
+  }
 
-  if (/(services?|appointment|consultation|quote|repair|agency|clinic|law firm)/i.test(t))
-    addScore(scores, matchedSignals, "Service", 5, "service title");
+  if (
+    /(services?|appointment|consultation|quote|repair|agency|clinic|law firm|contractor|plumber|electrician|dentist|lawyer)/i.test(
+      t
+    )
+  ) {
+    addScore(scores, matchedSignals, "Service", 7, "service business title");
+  }
 
-  if (/(about us|contact us|hours|family owned|locally owned)/i.test(t))
-    addScore(scores, matchedSignals, "Small business", 4, "small business title");
+  if (
+    /(about us|contact us|family owned|locally owned|est\. \d{4}|since \d{4}|welcome to)/i.test(
+      t
+    )
+  ) {
+    addScore(
+      scores,
+      matchedSignals,
+      "Small business",
+      5,
+      "small business identity title"
+    );
+  }
 
   return scores;
 }
@@ -279,33 +461,64 @@ function scoreMetaDescription(meta, matchedSignals, url = "") {
   const t = String(meta || "").toLowerCase();
   const isEditorial = isEditorialUrl(url);
 
-  if (/(latest news|news.*reviews|editorial|trends|analysis|breaking|reporting)/i.test(t))
-    addScore(scores, matchedSignals, "Newspaper", 4, "editorial meta");
+  if (
+    /(latest news|breaking news|news and analysis|reporting on|editorial|coverage of|our journalists|staff reporter)/i.test(
+      t
+    )
+  ) {
+    addScore(scores, matchedSignals, "Newspaper", 6, "editorial meta description");
+  }
 
-  if (/(blog|articles|insights|tips|guide|tutorial)/i.test(t))
-    addScore(scores, matchedSignals, "Blog", 3, "blog meta");
+  if (
+    /(blog|tips|insights|tutorials?|guides?|how-to|in-depth|my take|personal)/i.test(
+      t
+    )
+  ) {
+    addScore(scores, matchedSignals, "Blog", 5, "blog meta description");
+  }
 
   if (
     !isEditorial &&
-    /(buy|shop|browse|free shipping|official store|cart|checkout|delivery|pickup|best sellers|in stock)/i.test(t) &&
-    !/(review|guide|comparison|best \w+ for)/i.test(t)
-  )
-    addScore(scores, matchedSignals, "E-commerce", 5, "commerce meta");
-
-  if (/(free trial|all-in-one platform|software|automation|api|dashboard)/i.test(t))
-    addScore(scores, matchedSignals, "Saas", 4, "saas meta");
+    /(buy|shop|browse|free shipping|official store|cart|checkout|delivery|in stock|best sellers|lowest price)/i.test(
+      t
+    ) &&
+    !/(review|guide|comparison|best .* for)/i.test(t)
+  ) {
+    addScore(scores, matchedSignals, "E-commerce", 6, "storefront meta description");
+  }
 
   if (
-    /(directory|browse listings|find local|compare providers|ratings|hours|location)/i.test(t) &&
-    !/(shop|buy|sale|cart|checkout)/i.test(t)
-  )
-    addScore(scores, matchedSignals, "Directory", 4, "directory meta");
+    /(free trial|all-in-one platform|software for|automate your|api for|manage your|your workspace|start for free|no credit card)/i.test(
+      t
+    )
+  ) {
+    addScore(scores, matchedSignals, "Saas", 7, "SaaS product meta description");
+  }
 
-  if (/(our services|book now|request a quote|trusted experts)/i.test(t))
-    addScore(scores, matchedSignals, "Service", 4, "service meta");
+  if (
+    /(find local|browse listings|compare .* near|read reviews|business hours|top-rated .* near|\d+ (businesses|companies|providers) in)/i.test(
+      t
+    ) &&
+    !/(shop|buy|cart|checkout)/i.test(t)
+  ) {
+    addScore(scores, matchedSignals, "Directory", 6, "directory meta description");
+  }
 
-  if (/(local business|family owned|serving|visit our store)/i.test(t))
-    addScore(scores, matchedSignals, "Small business", 3, "small business meta");
+  if (
+    /(our services|book (now|online|today)|request a? quote|trusted|licensed|insured|free estimate|call (us|today)|get (a free|an? instant) quote)/i.test(
+      t
+    )
+  ) {
+    addScore(scores, matchedSignals, "Service", 7, "service meta description");
+  }
+
+  if (
+    /(family owned|locally owned|serving .* since|visit our|your local|neighborhood|proudly serving)/i.test(
+      t
+    )
+  ) {
+    addScore(scores, matchedSignals, "Small business", 6, "small business meta description");
+  }
 
   return scores;
 }
@@ -316,42 +529,261 @@ function scoreBodyText(bodyText, matchedSignals, url = "") {
   const isEditorial = isEditorialUrl(url);
   const isCommerce = isCommerceUrl(url);
 
-  if (/(posted by|written by|comments|subscribe to our (blog|newsletter)|latest posts|related posts|share this article|published on)/i.test(t))
-    addScore(scores, matchedSignals, "Blog", 4, "blog body text");
+  if (
+    /\b(reuters|associated press|\bap\b|bloomberg news|afp|the wire|press trust)\b/i.test(
+      t
+    )
+  ) {
+    addScore(
+      scores,
+      matchedSignals,
+      "Newspaper",
+      14,
+      "wire service attribution — definitive"
+    );
+  }
 
-  if (/(breaking news|latest news|reporting|journalism|press|newsroom|editors'? choice|staff writer|correspondent)/i.test(t))
-    addScore(scores, matchedSignals, "Newspaper", 5, "news/editorial body text");
+  if (
+    /\b(staff reporter|staff writer|senior correspondent|managing editor|editor in chief|our newsroom|by .{3,40} correspondent)\b/i.test(
+      t
+    )
+  ) {
+    addScore(scores, matchedSignals, "Newspaper", 10, "editorial staff title");
+  }
 
-  const hasStrictCommerceTerms =
-    /(add to cart|buy now|checkout|shop now|in stock|out of stock|free shipping|sold by|best sellers|place order|your cart|proceed to checkout)/i.test(t);
+  if (
+    /(breaking news|developing story|this story (has been updated|is developing)|we will update|live updates?|live blog)/i.test(
+      t
+    )
+  ) {
+    addScore(scores, matchedSignals, "Newspaper", 9, "live/breaking news signal");
+  }
 
-  const hasLooseCommerceTerms =
-    /(price|prices|deals|order|delivery|pickup|sku|brand|model|products|items)/i.test(t);
+  if (
+    /(correction:|editor['’]?s note:|an earlier version of this (article|story)|this article has been updated)/i.test(
+      t
+    )
+  ) {
+    addScore(scores, matchedSignals, "Newspaper", 10, "editorial correction notice");
+  }
 
-  if (hasStrictCommerceTerms)
-    addScore(scores, matchedSignals, "E-commerce", 9, "storefront action terms in body");
-  else if (hasLooseCommerceTerms && isCommerce && !isEditorial)
-    addScore(scores, matchedSignals, "E-commerce", 5, "commerce terms on commerce URL");
-  else if (hasLooseCommerceTerms && !isEditorial)
-    addScore(scores, matchedSignals, "E-commerce", 2, "commerce terms in body (low weight)");
+  const timestampMatches = (t.match(/\d+ (seconds?|minutes?|hours?) ago/gi) || [])
+    .length;
+  if (timestampMatches >= 4) {
+    addScore(
+      scores,
+      matchedSignals,
+      "Newspaper",
+      8,
+      "high timestamp density (news feed)"
+    );
+  } else if (timestampMatches >= 2) {
+    addScore(
+      scores,
+      matchedSignals,
+      "Newspaper",
+      4,
+      "moderate timestamp density"
+    );
+  }
 
-  if (/(free trial|request demo|book demo|start for free|your workspace|team workspace|all-in-one platform|integrations|api documentation|software pricing)/i.test(t))
-    addScore(scores, matchedSignals, "Saas", 7, "saas product body text");
+  if (
+    /(latest news|top stories|most read|trending stories|news feed|see all stories|more stories)/i.test(
+      t
+    )
+  ) {
+    addScore(scores, matchedSignals, "Newspaper", 6, "news feed/aggregation terms");
+  }
 
-  const hasBusinessDirectoryTerms =
-    /(companies|businesses|providers|professionals|contractors|agencies|restaurants|doctors|dentists|lawyers|attorneys|clinics|salons|gyms|hotels|places|near me|local businesses|business listing|listed business)/i.test(t);
+  if (
+    /(subscribe (to (our|my) (blog|newsletter)|for updates)|join \d[\d,]* (readers?|subscribers?)|get (new )?posts? (by email|delivered))/i.test(
+      t
+    )
+  ) {
+    addScore(
+      scores,
+      matchedSignals,
+      "Blog",
+      10,
+      "blog newsletter/subscriber CTA"
+    );
+  }
 
-  const hasLocalDirectoryTerms =
-    /(business details|hours|open now|closed now|phone number|directions|map|nearby|claimed|find local)/i.test(t);
+  if (
+    /(about the author|author bio|follow (me|us) on|i['’]?ve been|in my (opinion|experience|view)|this (post|article) (covers|explains|walks you))/i.test(
+      t
+    )
+  ) {
+    addScore(scores, matchedSignals, "Blog", 9, "personal author signal");
+  }
 
-  if (hasBusinessDirectoryTerms && hasLocalDirectoryTerms && !hasStrictCommerceTerms)
-    addScore(scores, matchedSignals, "Directory", 8, "business directory body text");
+  if (
+    /(leave a (reply|comment)|join the discussion|comments? \(\d|disqus|related posts?|you (might|may) also (like|enjoy)|more from this author)/i.test(
+      t
+    )
+  ) {
+    addScore(scores, matchedSignals, "Blog", 6, "blog community/engagement signals");
+  }
 
-  if (/(our services|schedule appointment|book appointment|request quote|call us today|consultation|get a quote)/i.test(t))
-    addScore(scores, matchedSignals, "Service", 6, "service body text");
+  if (
+    /(posted (in|on)|filed under|tagged:?|categories?:|last updated:)/i.test(t)
+  ) {
+    addScore(scores, matchedSignals, "Blog", 5, "blog taxonomy signals");
+  }
 
-  if (/(visit us|our location|hours of operation|family owned|locally owned|call now)/i.test(t))
-    addScore(scores, matchedSignals, "Small business", 5, "small business body text");
+  const hasHardCommerceTerms =
+    /(add to cart|buy now|proceed to checkout|shop now|in stock|out of stock|free shipping|sold by|best sellers|place (your )?order|your (shopping )?cart|return policy|add to (wishlist|bag))/i.test(
+      t
+    );
+  const hasSoftCommerceTerms =
+    /(price|prices|deal|deals|order|delivery|pickup|sku|brand|model|products|items)/i.test(
+      t
+    );
+
+  if (hasHardCommerceTerms) {
+    addScore(scores, matchedSignals, "E-commerce", 12, "storefront action terms");
+  } else if (hasSoftCommerceTerms && isCommerce && !isEditorial) {
+    addScore(
+      scores,
+      matchedSignals,
+      "E-commerce",
+      6,
+      "commerce terms on commerce page"
+    );
+  } else if (hasSoftCommerceTerms && !isEditorial) {
+    addScore(
+      scores,
+      matchedSignals,
+      "E-commerce",
+      2,
+      "loose commerce terms (low weight)"
+    );
+  }
+
+  if (
+    /(start (your )?free trial|no credit card (required|needed)|cancel anytime|upgrade your plan|your workspace|team (workspace|plan|account)|all-in-one platform|connect (your )?apps?|api documentation|api (key|access|endpoint)|software (pricing|plans?)|integrations? (with|available))/i.test(
+      t
+    )
+  ) {
+    addScore(scores, matchedSignals, "Saas", 12, "SaaS product-specific terms");
+  }
+
+  if (
+    /(book (a )?demo|request (a )?demo|see (it )?in action|watch (a )?demo|schedule (a )?call|talk to (sales|us)|contact sales)/i.test(
+      t
+    )
+  ) {
+    addScore(scores, matchedSignals, "Saas", 8, "SaaS sales motion terms");
+  }
+
+  if (
+    /(monthly|annual) (plan|billing|subscription)|per (user|seat|month)|billed (monthly|annually)|upgrade (to|your)|downgrade/i.test(
+      t
+    )
+  ) {
+    addScore(scores, matchedSignals, "Saas", 9, "SaaS pricing model terms");
+  }
+
+  const hasListingSubjectTerms =
+    /(restaurants?|doctors?|dentists?|lawyers?|attorneys?|plumbers?|electricians?|contractors?|salons?|gyms?|hotels?|clinics?|pharmacies?|service providers?|local businesses?|companies nearby|businesses in|providers? in|professionals? in)/i.test(
+      t
+    );
+  const hasListingActionTerms =
+    /(write a review|read (all )?reviews|open now|closed now|get directions|claimed|unclaimed|hours of operation|find (near|nearby|local)|browse (near|by category|all))/i.test(
+      t
+    );
+  const hasListingMetaTerms =
+    /(business details|\d+ reviews?|rated \d\.\d|stars? out of|average rating|verified listing|listed on)/i.test(
+      t
+    );
+
+  const directorySignalCount = [
+    hasListingSubjectTerms,
+    hasListingActionTerms,
+    hasListingMetaTerms
+  ].filter(Boolean).length;
+
+  if (directorySignalCount >= 2) {
+    addScore(
+      scores,
+      matchedSignals,
+      "Directory",
+      10,
+      `compound directory signals (${directorySignalCount}/3 clusters)`
+    );
+  } else if (directorySignalCount === 1 && !hasHardCommerceTerms) {
+    addScore(
+      scores,
+      matchedSignals,
+      "Directory",
+      3,
+      "weak directory signal (1/3 clusters)"
+    );
+  }
+
+  if (
+    /(schedule (an? )?(appointment|consultation|call|meeting)|book (an? )?(appointment|service|session)|request (a )?quote|get (a )?(free )?estimate|call us (today|now|for)|we (serve|service|cover) (the|your))/i.test(
+      t
+    )
+  ) {
+    addScore(scores, matchedSignals, "Service", 10, "service engagement CTA");
+  }
+
+  if (
+    /(licensed( and insured)?|insured( and licensed)?|fully insured|certified (technician|professional|contractor)|years of (experience|service)|satisfaction guaranteed|our (team of|experienced)|we (specialize in|are experts in))/i.test(
+      t
+    )
+  ) {
+    addScore(
+      scores,
+      matchedSignals,
+      "Service",
+      8,
+      "professional service credentials"
+    );
+  }
+
+  if (
+    /(residential( and commercial)?|commercial( and residential)?|emergency (service|repair|call)|same.?day service|24\/7 (service|availability|support)|serving .{3,30} (area|county|region))/i.test(
+      t
+    )
+  ) {
+    addScore(
+      scores,
+      matchedSignals,
+      "Service",
+      7,
+      "local/emergency service terms"
+    );
+  }
+
+  if (
+    /(family.?owned( and operated)?|locally owned|proudly serving|our (small )?business|visit (us|our store)|in-store (pickup|experience)|come (see|visit) us|stop (in|by)|established in \d{4})/i.test(
+      t
+    )
+  ) {
+    addScore(
+      scores,
+      matchedSignals,
+      "Small business",
+      8,
+      "small business identity signals"
+    );
+  }
+
+  if (
+    /(our location|find us at|we are located|directions to|hours of operation|monday.*friday|open (monday|tuesday|wednesday|thursday|friday|saturday|sunday))/i.test(
+      t
+    )
+  ) {
+    addScore(
+      scores,
+      matchedSignals,
+      "Small business",
+      5,
+      "physical location/hours signals"
+    );
+  }
 
   return scores;
 }
@@ -360,29 +792,68 @@ function scoreLinksText(linksText, matchedSignals) {
   const scores = createScores();
   const t = String(linksText || "").toLowerCase();
 
-  if (/(blog|articles|latest posts|read more)/i.test(t))
-    addScore(scores, matchedSignals, "Blog", 2, "blog nav/link text");
-
-  if (/(news|world|politics|features|opinion|headlines|reviews|analysis)/i.test(t))
-    addScore(scores, matchedSignals, "Newspaper", 3, "news/editorial nav");
-
-  if (/(shop|cart|checkout|wishlist|deals|sale|collections|departments|best sellers)/i.test(t))
-    addScore(scores, matchedSignals, "E-commerce", 4, "commerce nav");
-
-  if (/(pricing|demo|login|sign in|integrations|platform|features)/i.test(t))
-    addScore(scores, matchedSignals, "Saas", 3, "saas nav");
+  if (
+    /\b(world|politics|science|health|sports|entertainment|breaking news|opinion|editorial|national|international|business news)\b/i.test(
+      t
+    )
+  ) {
+    addScore(scores, matchedSignals, "Newspaper", 6, "news section nav links");
+  }
 
   if (
-    /(directory|listings|companies|businesses|vendors|near me|maps|providers)/i.test(t) &&
-    !/(shop|cart|checkout|sale|collections)/i.test(t)
-  )
-    addScore(scores, matchedSignals, "Directory", 3, "directory nav");
+    /\b(blog|latest posts|all posts|read more|archives?|subscribe|newsletter|tutorials?|guides?)\b/i.test(
+      t
+    )
+  ) {
+    addScore(scores, matchedSignals, "Blog", 5, "blog nav links");
+  }
 
-  if (/(services|book now|appointment|quote|contact us)/i.test(t))
-    addScore(scores, matchedSignals, "Service", 3, "service nav");
+  if (
+    /\b(shop (all|now|by)|cart|checkout|wishlist|deals|sale|collections?|departments?|brands?|best sellers|free shipping|track (your )?order)\b/i.test(
+      t
+    )
+  ) {
+    addScore(scores, matchedSignals, "E-commerce", 6, "e-commerce nav links");
+  }
 
-  if (/(about us|visit us|locations|hours)/i.test(t))
-    addScore(scores, matchedSignals, "Small business", 2, "small business nav");
+  if (
+    /\b(pricing|features?|start free|free trial|demo|sign (in|up)|login|integrations?|api|documentation|changelog|roadmap)\b/i.test(
+      t
+    )
+  ) {
+    addScore(scores, matchedSignals, "Saas", 5, "SaaS nav links");
+  }
+
+  if (
+    /\b(directory|listings?|browse (all|by|near)|find (a |near|local)|near me|compare|top-rated|categories?)\b/i.test(
+      t
+    ) &&
+    !/(shop|cart|checkout|sale|products?|collections?)/i.test(t)
+  ) {
+    addScore(scores, matchedSignals, "Directory", 5, "directory nav links");
+  }
+
+  if (
+    /\b(our services?|book (now|online)|schedule|appointment|get a quote|free estimate|contact us|service areas?)\b/i.test(
+      t
+    )
+  ) {
+    addScore(scores, matchedSignals, "Service", 5, "service nav links");
+  }
+
+  if (
+    /\b(about us|our (story|team|history)|visit us|hours|find us|gallery|testimonials)\b/i.test(
+      t
+    )
+  ) {
+    addScore(
+      scores,
+      matchedSignals,
+      "Small business",
+      4,
+      "small business nav links"
+    );
+  }
 
   return scores;
 }
@@ -390,143 +861,264 @@ function scoreLinksText(linksText, matchedSignals) {
 function scoreStructuredSignals(signals, matchedSignals, context = {}) {
   const scores = createScores();
   const url = String(context.url || "").toLowerCase();
-  const bodyText = String(context.bodyText || "").toLowerCase();
+  const body = String(context.bodyText || "").toLowerCase();
   const domain = String(context.domain || "").toLowerCase();
   const isEditorial = isEditorialUrl(url);
-  const isCommerce = isCommerceUrl(url);
-
-  const retailUrlPatterns =
-    /\/dp\/|\/gp\/|\/gp\/product\/|\/browse\/|\/shop\/|\/c\/|\/collections?\/|\/category\/|\/categories\/|\/s(\?|\/)|[?&](k|rh|i|node|low-price|high-price)=/i;
-
-  const hasStrictCommerceBody =
-    /(add to cart|buy now|checkout|shop now|in stock|out of stock|free shipping|sold by|best sellers|place order|proceed to checkout)/i.test(bodyText);
-
   const knownRetail = isKnownRetailDomain(domain);
+  const hasHardCommerceInBody =
+    /(add to cart|buy now|checkout|shop now|in stock|out of stock|free shipping|sold by|best sellers|place order|your cart)/i.test(
+      body
+    );
 
   if (signals.hasCart) {
-    if (isEditorial || (!isCommerce && signals.hasArticleSchema))
-      addScore(scores, matchedSignals, "E-commerce", 1, "cart-like signal on editorial page");
-    else if (hasStrictCommerceBody || isCommerce || knownRetail)
-      addScore(scores, matchedSignals, "E-commerce", 10, "cart detected (storefront)");
-    else
-      addScore(scores, matchedSignals, "E-commerce", 4, "cart detected (ambiguous)");
+    if (isEditorial) {
+      addScore(
+        scores,
+        matchedSignals,
+        "E-commerce",
+        1,
+        "cart on editorial page (likely affiliate)"
+      );
+    } else if (hasHardCommerceInBody || isCommerceUrl(url) || knownRetail) {
+      addScore(
+        scores,
+        matchedSignals,
+        "E-commerce",
+        12,
+        "cart confirmed as storefront"
+      );
+    } else {
+      addScore(
+        scores,
+        matchedSignals,
+        "E-commerce",
+        5,
+        "cart detected (context ambiguous)"
+      );
+    }
   }
 
-  const hasStrongCommerceIntent =
-    signals.hasCart ||
-    signals.hasProductSchema ||
-    hasStrictCommerceBody ||
-    retailUrlPatterns.test(url) ||
-    knownRetail;
+  if (knownRetail) {
+    addScore(scores, matchedSignals, "E-commerce", 10, "known retail domain");
+  }
 
-  if (hasStrongCommerceIntent && !isEditorial && !signals.hasArticleSchema)
-    addScore(scores, matchedSignals, "E-commerce", 10, "strong commerce intent detected");
-  else if (hasStrongCommerceIntent && (isEditorial || signals.hasArticleSchema))
-    addScore(scores, matchedSignals, "E-commerce", 2, "commerce signals on editorial page");
-
-  if (signals.hasSearchAndFilter && isCommerce && !isEditorial)
-    addScore(scores, matchedSignals, "E-commerce", 4, "search/filter on commerce page");
+  if (signals.hasSearchAndFilter && isCommerceUrl(url) && !isEditorial) {
+    addScore(
+      scores,
+      matchedSignals,
+      "E-commerce",
+      5,
+      "product search+filter on commerce page"
+    );
+  }
 
   if (signals.hasPhone) {
-    addScore(scores, matchedSignals, "Small business", 2, "phone detected");
-    addScore(scores, matchedSignals, "Service", 2, "phone can indicate service business");
+    addScore(scores, matchedSignals, "Service", 3, "phone number detected");
+    addScore(scores, matchedSignals, "Small business", 2, "phone number detected");
+    if (signals.hasAddress) {
+      addScore(scores, matchedSignals, "Directory", 2, "phone + address (NAP pair)");
+    }
   }
 
   if (signals.hasAddress) {
-    addScore(scores, matchedSignals, "Small business", 3, "address detected");
-    addScore(scores, matchedSignals, "Service", 2, "address can indicate local service");
+    addScore(
+      scores,
+      matchedSignals,
+      "Small business",
+      4,
+      "physical address detected"
+    );
+    addScore(scores, matchedSignals, "Service", 3, "physical address detected");
   }
 
   if (signals.hasMap) {
-    addScore(scores, matchedSignals, "Service", 2, "map detected");
-    addScore(scores, matchedSignals, "Small business", 2, "location/map detected");
+    addScore(scores, matchedSignals, "Service", 3, "map embed detected");
+    addScore(scores, matchedSignals, "Small business", 3, "map embed detected");
+    if (signals.hasAddress && signals.hasPhone) {
+      addScore(
+        scores,
+        matchedSignals,
+        "Directory",
+        4,
+        "map + NAP = directory-like profile"
+      );
+    }
   }
 
-  if (signals.hasReviews && !hasStrongCommerceIntent)
-    addScore(scores, matchedSignals, "Directory", 5, "reviews detected (non-commerce)");
-
-  if (signals.hasBusinessListingSchema && !hasStrongCommerceIntent)
-    addScore(scores, matchedSignals, "Directory", 6, "business/listing schema detected");
-
-  if (signals.hasProductSchema) {
-    if (isEditorial) {
-      addScore(scores, matchedSignals, "Blog", 4, "product schema on review URL = editorial markup");
-      addScore(scores, matchedSignals, "Newspaper", 3, "product schema on review URL = editorial markup");
-      addScore(scores, matchedSignals, "E-commerce", 1, "product schema on editorial page");
-    } else if (isCommerce || knownRetail)
-      addScore(scores, matchedSignals, "E-commerce", 8, "product schema on commerce page");
-    else
-      addScore(scores, matchedSignals, "E-commerce", 3, "product schema detected (ambiguous)");
+  if (signals.hasReviews) {
+    if (!hasHardCommerceInBody && !signals.hasCart && !knownRetail) {
+      addScore(
+        scores,
+        matchedSignals,
+        "Directory",
+        5,
+        "reviews in non-commerce context"
+      );
+    } else {
+      addScore(scores, matchedSignals, "E-commerce", 2, "reviews in commerce context");
+    }
   }
 
-  if (signals.hasArticleSchema) {
-    addScore(scores, matchedSignals, "Blog", 4, "article schema detected");
-    addScore(scores, matchedSignals, "Newspaper", 4, "article/news schema detected");
+  if (
+    (signals.hasCart || knownRetail || (hasHardCommerceInBody && isCommerceUrl(url))) &&
+    !isEditorial
+  ) {
+    subtractScore(
+      scores,
+      matchedSignals,
+      "Directory",
+      8,
+      "suppressed: strong commerce context"
+    );
+    subtractScore(
+      scores,
+      matchedSignals,
+      "Small business",
+      4,
+      "suppressed: strong commerce context"
+    );
   }
-
-  if (retailUrlPatterns.test(url) && !isEditorial)
-    addScore(scores, matchedSignals, "E-commerce", 8, "retail taxonomy/URL pattern detected");
-
-  if (knownRetail)
-    addScore(scores, matchedSignals, "E-commerce", 10, "known retail domain prior");
-
-  const isTrueBusinessDirectory =
-    /(companies|businesses|providers|professionals|contractors|restaurants|doctors|dentists|lawyers|attorneys|near me|local businesses|business listing)/i.test(bodyText) &&
-    (signals.hasAddress || signals.hasMap || signals.hasPhone) &&
-    !hasStrongCommerceIntent &&
-    !signals.hasProductSchema;
-
-  if (isTrueBusinessDirectory)
-    addScore(scores, matchedSignals, "Directory", 8, "business/provider listing signals detected");
-
-  if (hasStrongCommerceIntent && !isEditorial && !signals.hasArticleSchema)
-    subtractScore(scores, matchedSignals, "Directory", 8, "suppressed due to commerce signals");
 
   return scores;
 }
 
 function applyInteractionRules(scores, matchedSignals, context) {
   const t = String(context.bodyText || "").toLowerCase();
+  const nav = String(context.linksText || "").toLowerCase();
   const url = String(context.url || "").toLowerCase();
+  const signals = context.signals || {};
   const isEditorial = isEditorialUrl(url);
 
-  const hasDirectoryText =
-    /(write a review|read reviews|business details|open now|closed now|directions|claimed|nearby|providers|companies|businesses)/i.test(t);
-  const hasBlogText =
-    /(posted by|written by|latest posts|subscribe to our blog)/i.test(t);
-  const hasNewsText =
-    /(breaking news|latest news|journalism|newsroom)/i.test(t);
-  const hasLocalBusinessText =
-    /(visit us|family owned|hours of operation|our location)/i.test(t);
-  const hasStrictCommerceText =
-    /(add to cart|checkout|buy now|shop now|in stock|out of stock|free shipping|sold by|best sellers|place order)/i.test(t);
+  const blogScore = scores["Blog"] || 0;
+  const newsScore = scores["Newspaper"] || 0;
+  const ecomScore = scores["E-commerce"] || 0;
+  const saasScore = scores["Saas"] || 0;
+  const sbScore = scores["Small business"] || 0;
+  const serviceScore = scores["Service"] || 0;
+  const dirScore = scores["Directory"] || 0;
 
-  if (/(\/(biz|listing|listings|companies|businesses)\/)/i.test(url) && hasDirectoryText && !hasStrictCommerceText)
-    addScore(scores, matchedSignals, "Directory", 6, "listing path + listing text");
+  if (blogScore > 0 && newsScore > 0 && Math.abs(blogScore - newsScore) < 6) {
+    if (/\b(reuters|ap news|associated press|bloomberg|afp)\b/i.test(t)) {
+      addScore(
+        scores,
+        matchedSignals,
+        "Newspaper",
+        8,
+        "tiebreak: wire service attribution → Newspaper"
+      );
+    } else if (
+      /\b(i (tested|tried|used|bought|reviewed)|my (review|experience|take|opinion)|in my (opinion|experience))\b/i.test(
+        t
+      )
+    ) {
+      addScore(
+        scores,
+        matchedSignals,
+        "Blog",
+        8,
+        "tiebreak: first-person narrative → Blog"
+      );
+    } else if (
+      /\b(staff (reporter|writer)|correspondent|managing editor|newsroom)\b/i.test(
+        t
+      )
+    ) {
+      addScore(
+        scores,
+        matchedSignals,
+        "Newspaper",
+        6,
+        "tiebreak: staff editorial titles → Newspaper"
+      );
+    } else if (
+      /(subscribe to (my|this) (blog|newsletter)|join \d+ readers)/i.test(t)
+    ) {
+      addScore(
+        scores,
+        matchedSignals,
+        "Blog",
+        6,
+        "tiebreak: personal subscriber CTA → Blog"
+      );
+    } else if (
+      /\b(world|politics|science|health|entertainment|breaking)\b/i.test(nav)
+    ) {
+      addScore(
+        scores,
+        matchedSignals,
+        "Newspaper",
+        5,
+        "tiebreak: news section nav → Newspaper"
+      );
+    }
+  }
 
-  if (hasDirectoryText && context.signals.hasSearchAndFilter && !hasStrictCommerceText)
-    addScore(scores, matchedSignals, "Directory", 4, "listing text + filters");
+  if (isEditorial && blogScore + newsScore >= 8 && ecomScore > blogScore + newsScore + 4) {
+    subtractScore(
+      scores,
+      matchedSignals,
+      "E-commerce",
+      8,
+      "editorial URL context suppresses E-commerce"
+    );
+  }
 
-  if (hasDirectoryText && context.signals.hasAddress && context.signals.hasPhone && !hasStrictCommerceText)
-    addScore(scores, matchedSignals, "Directory", 3, "listing text + NAP signals");
+  if (saasScore > 12 && ecomScore > 0) {
+    subtractScore(
+      scores,
+      matchedSignals,
+      "E-commerce",
+      Math.min(ecomScore, 6),
+      "SaaS dominant: suppress E-commerce"
+    );
+  }
 
-  if (hasBlogText && hasNewsText)
-    addScore(scores, matchedSignals, "Newspaper", 2, "editorial/blog overlap favors news");
+  if (sbScore > 0 && serviceScore > 0) {
+    if (
+      /(licensed|insured|certified|years of experience|satisfaction guaranteed|emergency service|serving .{3,30} (area|county))/i.test(
+        t
+      )
+    ) {
+      addScore(
+        scores,
+        matchedSignals,
+        "Service",
+        5,
+        "professional service credentials → Service over Small business"
+      );
+    }
+    if (
+      /(family.?owned|locally owned|our little|our store|come visit|pop in)/i.test(
+        t
+      ) &&
+      serviceScore <= sbScore
+    ) {
+      addScore(
+        scores,
+        matchedSignals,
+        "Small business",
+        4,
+        "local identity language → Small business"
+      );
+    }
+  }
 
-  if (hasLocalBusinessText && context.signals.hasAddress && context.signals.hasPhone)
-    addScore(scores, matchedSignals, "Small business", 4, "local business text + NAP");
-
-  if (hasStrictCommerceText && context.signals.hasCart && !isEditorial)
-    addScore(scores, matchedSignals, "E-commerce", 6, "storefront text + cart");
-
-  if (hasStrictCommerceText && context.signals.hasProductSchema && !isEditorial)
-    addScore(scores, matchedSignals, "E-commerce", 5, "storefront text + product schema");
-
-  if (/(\/(browse|dp|gp|shop|s\?))/i.test(url) && hasStrictCommerceText && !isEditorial)
-    addScore(scores, matchedSignals, "E-commerce", 5, "retail URL + storefront text");
-
-  if (isEditorial && (hasBlogText || hasNewsText || context.signals.hasArticleSchema))
-    subtractScore(scores, matchedSignals, "E-commerce", 4, "editorial context suppresses e-commerce");
+  if (dirScore > 0 && serviceScore > 0) {
+    const isMultiListingPage =
+      /(browse all|view all listings|compare .* providers|find .* near|search results|showing \d+ (results|businesses))/i.test(
+        t
+      );
+    if (!isMultiListingPage && (signals.hasAddress || signals.hasPhone)) {
+      subtractScore(
+        scores,
+        matchedSignals,
+        "Directory",
+        5,
+        "single-business page → demote Directory"
+      );
+      addScore(scores, matchedSignals, "Service", 3, "single-business page → promote Service");
+    }
+  }
 }
 
 function inferTypeFromSignals({
@@ -535,6 +1127,7 @@ function inferTypeFromSignals({
   metaDescription = "",
   bodyText = "",
   linksText = "",
+  schemaText = "",
   signals = {},
   siteTypeHint = null
 }) {
@@ -549,44 +1142,94 @@ function inferTypeFromSignals({
     }
   })();
 
-  const domainPrior = getDomainPrior(domain) || siteTypeHint;
+  if (isBotBlocked(title, bodyText)) {
+    matchedSignals.push("Warning: bot-blocked page — body/meta scoring skipped");
+    mergeScores(scores, scoreUrlPath(url, matchedSignals), 1.5);
 
-  if (domainPrior && SITE_TYPES.includes(domainPrior))
-    addScore(scores, matchedSignals, domainPrior, 15, `known domain prior: ${domainPrior}`);
+    const prior = getDomainPrior(domain) || siteTypeHint;
+    if (prior && SITE_TYPES.includes(prior)) {
+      addScore(
+        scores,
+        matchedSignals,
+        prior,
+        12,
+        `domain prior (bot-blocked fallback): ${prior}`
+      );
+    }
 
-  mergeScores(scores, scoreTitle(title, matchedSignals, url), 1.6);
-  mergeScores(scores, scoreMetaDescription(metaDescription, matchedSignals, url), 1.3);
-  mergeScores(scores, scoreBodyText(bodyText, matchedSignals, url), 1.0);
-  mergeScores(scores, scoreLinksText(linksText, matchedSignals), 1.1);
+    const topBot = getTopScore(scores);
+    return {
+      siteType: topBot.siteType,
+      confidence: "Low",
+      matchedSignals,
+      scores,
+      topScore: topBot.topScore,
+      secondScore: topBot.secondScore
+    };
+  }
+
+  const schemaTypes = extractSchemaTypes(schemaText);
+
+  mergeScores(
+    scores,
+    scoreSchema(schemaTypes, matchedSignals, {
+      isEditorial: isEditorialUrl(url),
+      isCommerce: isCommerceUrl(url)
+    }),
+    1.5
+  );
+  mergeScores(scores, scoreTitle(title, matchedSignals, url), 1.4);
+  mergeScores(
+    scores,
+    scoreMetaDescription(metaDescription, matchedSignals, url),
+    1.2
+  );
+  mergeScores(
+    scores,
+    scoreBodyText(bodyText, matchedSignals, url),
+    1.0
+  );
+  mergeScores(scores, scoreLinksText(linksText, matchedSignals), 1.0);
   mergeScores(scores, scoreUrlPath(url, matchedSignals), 0.9);
   mergeScores(
     scores,
-    scoreStructuredSignals(signals, matchedSignals, { url, bodyText, linksText, domain, title }),
-    1.2
+    scoreStructuredSignals(signals, matchedSignals, {
+      url,
+      bodyText,
+      linksText,
+      domain
+    }),
+    1.1
   );
 
-  applyInteractionRules(scores, matchedSignals, { url, bodyText, linksText, signals });
-
-  const isEditorial = isEditorialUrl(url);
-  const editorialScore = (scores["Blog"] || 0) + (scores["Newspaper"] || 0);
-  const ecomScore = scores["E-commerce"] || 0;
-
-  if (signals.hasArticleSchema && isEditorial && editorialScore > 0) {
-    const cap = editorialScore + 6;
-    if (ecomScore > cap) {
-      scores["E-commerce"] = cap;
-      matchedSignals.push(`Editorial override: article schema + review URL caps E-commerce at ${cap}`);
-    }
+  const domainPrior = getDomainPrior(domain);
+  if (domainPrior && SITE_TYPES.includes(domainPrior)) {
+    addScore(
+      scores,
+      matchedSignals,
+      domainPrior,
+      4,
+      `domain prior (tiebreaker): ${domainPrior}`
+    );
+  }
+  if (!domainPrior && siteTypeHint && SITE_TYPES.includes(siteTypeHint)) {
+    addScore(
+      scores,
+      matchedSignals,
+      siteTypeHint,
+      3,
+      "site type hint from domain analysis"
+    );
   }
 
-  if (isEditorial && editorialScore >= 8 && !isKnownRetailDomain(domain) && !isCommerceUrl(url))
-    subtractScore(scores, matchedSignals, "E-commerce", 6, "strong editorial URL/context");
-
-  if (!domainPrior && siteTypeHint && SITE_TYPES.includes(siteTypeHint))
-    addScore(scores, matchedSignals, siteTypeHint, 2, "site type prior");
+  applyInteractionRules(scores, matchedSignals, {
+    url,
+    bodyText,
+    linksText,
+    signals
+  });
 
   const top = getTopScore(scores);
-
   return {
     siteType: top.siteType,
     confidence: top.confidence,
@@ -604,6 +1247,7 @@ function classifyContentType(url, pageSignals = {}, siteTypeHint = null) {
     metaDescription: pageSignals.metaDescription || "",
     bodyText: pageSignals.bodyText || "",
     linksText: pageSignals.linksText || "",
+    schemaText: pageSignals.schemaText || "",
     signals: {
       hasCart: !!pageSignals.hasCart,
       hasSearchAndFilter: !!pageSignals.hasSearchAndFilter,
@@ -626,6 +1270,7 @@ function scoreSignals(aggregateText, linksText, signals = {}, homepageUrl = "") 
     metaDescription: "",
     bodyText: aggregateText,
     linksText,
+    schemaText: "",
     signals
   });
 
