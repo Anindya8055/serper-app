@@ -12,12 +12,13 @@ import {
   Database,
   Wifi,
   RefreshCw,
-  LoaderCircle
+  LoaderCircle,
+  Clock,
+  CheckCircle2
 } from "lucide-react";
 import "./App.css";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
-console.log("API_BASE:", API_BASE); // remove after confirming
 
 const countries = [
   { code: "bd", name: "Bangladesh" },
@@ -77,6 +78,13 @@ const countries = [
 
 const POLL_INTERVAL = 2000;
 
+function formatTime(ms) {
+  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+  const mins = Math.floor(ms / 60000);
+  const secs = ((ms % 60000) / 1000).toFixed(0);
+  return `${mins}m ${secs}s`;
+}
+
 function App() {
   const [view, setView] = useState("home");
   const [keyword, setKeyword] = useState("");
@@ -94,10 +102,17 @@ function App() {
   const [progress, setProgress] = useState({
     total: 0,
     doneCount: 0,
+    errorCount: 0,
     processingCount: 0,
     pendingCount: 0,
     analyzed: false
   });
+
+  // --- timer state ---
+  const [elapsedMs, setElapsedMs] = useState(0);
+  const [totalTimeMs, setTotalTimeMs] = useState(null);
+  const analysisStartRef = useRef(null);
+  const timerRef = useRef(null);
 
   const pollTimeoutRef = useRef(null);
   const abortRef = useRef(null);
@@ -118,6 +133,7 @@ function App() {
     return () => {
       if (pollTimeoutRef.current) clearTimeout(pollTimeoutRef.current);
       if (abortRef.current) abortRef.current.abort();
+      if (timerRef.current) clearInterval(timerRef.current);
     };
   }, []);
 
@@ -135,6 +151,26 @@ function App() {
       abortRef.current = null;
     }
     setPolling(false);
+  };
+
+  const startTimer = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    analysisStartRef.current = Date.now();
+    setElapsedMs(0);
+    setTotalTimeMs(null);
+    timerRef.current = setInterval(() => {
+      setElapsedMs(Date.now() - analysisStartRef.current);
+    }, 500);
+  };
+
+  const stopTimer = () => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    if (analysisStartRef.current) {
+      setTotalTimeMs(Date.now() - analysisStartRef.current);
+    }
   };
 
   const fetchHistory = async () => {
@@ -183,6 +219,7 @@ function App() {
       if (!res.ok) {
         setMessage(data.error || "Failed to check analysis status.");
         setPolling(false);
+        stopTimer();
         return;
       }
 
@@ -191,6 +228,7 @@ function App() {
       setProgress({
         total: data.total || resultRows.length,
         doneCount: data.doneCount || 0,
+        errorCount: data.errorCount || 0,
         processingCount: data.processingCount || 0,
         pendingCount: data.pendingCount || 0,
         analyzed: !!data.analyzed
@@ -204,6 +242,7 @@ function App() {
       });
 
       if (data.analyzed) {
+        stopTimer();
         setPolling(false);
         setLoading(false);
         setMessage(
@@ -225,6 +264,7 @@ function App() {
         setMessage(`Poll error: ${error.message || "Network error"}`);
         setPolling(false);
         setLoading(false);
+        stopTimer();
       }
     }
   };
@@ -241,6 +281,9 @@ function App() {
     }
 
     clearPolling();
+    if (timerRef.current) clearInterval(timerRef.current);
+    setTotalTimeMs(null);
+    setElapsedMs(0);
 
     try {
       setLoading(true);
@@ -252,6 +295,7 @@ function App() {
       setProgress({
         total: 0,
         doneCount: 0,
+        errorCount: 0,
         processingCount: 0,
         pendingCount: 0,
         analyzed: false
@@ -259,13 +303,8 @@ function App() {
 
       const res = await fetch(`${API_BASE}/api/search`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          keyword: cleanKeyword,
-          country
-        })
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ keyword: cleanKeyword, country })
       });
 
       const data = await res.json();
@@ -290,6 +329,7 @@ function App() {
       setProgress({
         total: data.total || resultRows.length,
         doneCount: data.analyzed ? resultRows.length : 0,
+        errorCount: 0,
         processingCount: 0,
         pendingCount: data.analyzed ? 0 : resultRows.length,
         analyzed: !!data.analyzed
@@ -307,6 +347,9 @@ function App() {
         `Found ${data.total || 0} results for "${cleanKeyword}" in ${selectedCountryName}. Analysis is running...`
       );
 
+      // start live timer when analysis begins
+      startTimer();
+
       pollTimeoutRef.current = setTimeout(() => {
         pollSearchStatus(cleanKeyword, country, selectedCountryName);
       }, POLL_INTERVAL);
@@ -316,20 +359,26 @@ function App() {
       setResults([]);
       setResultSource("");
       setLoading(false);
+      stopTimer();
     }
   };
 
   const loadHistoryItem = (item) => {
     clearPolling();
+    if (timerRef.current) clearInterval(timerRef.current);
+    setTotalTimeMs(null);
+    setElapsedMs(0);
 
     const snapshot = Array.isArray(item.resultsSnapshot) ? item.resultsSnapshot : [];
     const countryName =
       countries.find((c) => c.code === item.country)?.name || item.country;
 
     const doneCount = snapshot.filter((x) => x.analysisStatus === "done").length;
+    const errorCount = snapshot.filter((x) => x.analysisStatus === "error").length;
     const processingCount = snapshot.filter((x) => x.analysisStatus === "processing").length;
     const pendingCount = snapshot.filter((x) => x.analysisStatus === "pending").length;
-    const analyzed = snapshot.length > 0 && doneCount === snapshot.length;
+    const analyzed =
+      snapshot.length > 0 && processingCount === 0 && pendingCount === 0;
 
     setKeyword(item.keyword);
     setCountry(item.country);
@@ -342,21 +391,14 @@ function App() {
       countryName,
       total: snapshot.length
     });
-    setProgress({
-      total: snapshot.length,
-      doneCount,
-      processingCount,
-      pendingCount,
-      analyzed
-    });
-
+    setProgress({ total: snapshot.length, doneCount, errorCount, processingCount, pendingCount, analyzed });
     setMessage(
       `Loaded ${snapshot.length} cached results for "${item.keyword}" in ${countryName}.`
     );
-
     setView("home");
 
     if (!analyzed && item.keyword && item.country) {
+      startTimer();
       pollTimeoutRef.current = setTimeout(() => {
         pollSearchStatus(item.keyword, item.country, countryName);
       }, POLL_INTERVAL);
@@ -365,7 +407,6 @@ function App() {
 
   const copyAllUrls = async () => {
     if (!results.length) return;
-
     try {
       await navigator.clipboard.writeText(results.map((item) => item.url).join("\n"));
       setMessage("All URLs copied to clipboard.");
@@ -376,11 +417,9 @@ function App() {
 
   const downloadTxt = () => {
     if (!results.length) return;
-
     const blob = new Blob([results.map((item) => item.url).join("\n")], {
       type: "text/plain;charset=utf-8"
     });
-
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
     link.download = "urls.txt";
@@ -391,11 +430,9 @@ function App() {
 
   const downloadCsv = () => {
     if (!results.length) return;
-
     const csvRows = [
       ["No", "URL", "Content Type", "Site Type", "Confidence", "Status"].join(",")
     ];
-
     results.forEach((item, index) => {
       csvRows.push(
         [
@@ -408,7 +445,6 @@ function App() {
         ].join(",")
       );
     });
-
     const blob = new Blob([csvRows.join("\n")], { type: "text/csv;charset=utf-8" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
@@ -423,10 +459,14 @@ function App() {
   };
 
   const onKeyDown = (e) => {
-    if (e.key === "Enter" && !loading) {
-      handleSearch();
-    }
+    if (e.key === "Enter" && !loading) handleSearch();
   };
+
+  // derived progress values
+  const finished = progress.doneCount + (progress.errorCount || 0);
+  const progressPercent =
+    progress.total > 0 ? Math.round((finished / progress.total) * 100) : 0;
+  const showProgress = hasSearched && progress.total > 0;
 
   return (
     <div className="app-shell">
@@ -446,7 +486,6 @@ function App() {
             <History size={16} />
             <span>Search History</span>
           </button>
-
           <button type="button" className="ghost-btn" onClick={toggleTheme}>
             {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
             <span>{theme === "dark" ? "Light mode" : "Dark mode"}</span>
@@ -507,7 +546,11 @@ function App() {
                 disabled={loading || !keyword.trim()}
                 type="button"
               >
-                {loading || polling ? <LoaderCircle size={18} className="spin-icon" /> : <Search size={18} />}
+                {loading || polling ? (
+                  <LoaderCircle size={18} className="spin-icon" />
+                ) : (
+                  <Search size={18} />
+                )}
                 <span>{loading ? "Searching..." : polling ? "Updating..." : "Search"}</span>
               </button>
             </div>
@@ -526,12 +569,45 @@ function App() {
             </div>
           )}
 
-          {hasSearched && (
-            <div className="source-badge">
-              <RefreshCw size={15} className={polling ? "spin-icon" : ""} />
-              <span>
-                Done: {progress.doneCount} · Processing: {progress.processingCount} · Pending: {progress.pendingCount}
-              </span>
+          {/* ── LIVE PROGRESS BLOCK ── */}
+          {showProgress && (
+            <div className="analysis-progress-block">
+              <div className="progress-bar-wrap">
+                <div
+                  className="progress-bar-fill"
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
+
+              <div className="progress-meta-row">
+                <div className="progress-counts">
+                  <RefreshCw size={14} className={polling ? "spin-icon" : ""} />
+                  <span>
+                    <strong>{finished}</strong>/{progress.total} analyzed
+                    {progress.errorCount > 0 && (
+                      <span className="error-count"> · {progress.errorCount} errors</span>
+                    )}
+                  </span>
+                </div>
+
+                <div className="progress-timer">
+                  {progress.analyzed ? (
+                    <>
+                      <CheckCircle2 size={14} className="done-icon" />
+                      <span>Completed in <strong>{formatTime(totalTimeMs ?? 0)}</strong></span>
+                    </>
+                  ) : polling ? (
+                    <>
+                      <Clock size={14} className="clock-icon" />
+                      <span>Analyzing… <strong>{formatTime(elapsedMs)}</strong></span>
+                    </>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="progress-percent-label">
+                {progressPercent}% complete
+              </div>
             </div>
           )}
 
@@ -681,7 +757,6 @@ function App() {
                 const snapshot = Array.isArray(item.resultsSnapshot)
                   ? item.resultsSnapshot
                   : [];
-
                 const countryName =
                   countries.find((c) => c.code === item.country)?.name || item.country;
 
@@ -696,7 +771,6 @@ function App() {
                       <span className="history-keyword">{item.keyword}</span>
                       <span className="history-count">{snapshot.length} results</span>
                     </div>
-
                     <div className="history-card-meta">
                       <span>{countryName}</span>
                       <span>{new Date(item.createdAt).toLocaleString()}</span>

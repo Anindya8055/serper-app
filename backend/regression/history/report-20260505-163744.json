@@ -1,0 +1,332 @@
+{
+  "runId": "20260505-163744",
+  "dataset": "test_dataset.csv",
+  "settings": {
+    "enableBrowserUpgrade": "0"
+  },
+  "summary": {
+    "total": 239,
+    "correct": 214,
+    "failed": 25,
+    "accuracy": 89.5
+  },
+  "confusionMatrix": {
+    "Newspaper": {
+      "Newspaper": 44,
+      "ERROR": 1,
+      "Blog": 1
+    },
+    "Service": {
+      "Service": 43,
+      "ERROR": 1
+    },
+    "Saas": {
+      "Saas": 36
+    },
+    "E-commerce": {
+      "E-commerce": 26,
+      "ERROR": 4
+    },
+    "Directory": {
+      "Directory": 29
+    },
+    "Blog": {
+      "Blog": 23,
+      "Saas": 1
+    },
+    "Small business": {
+      "E-commerce": 4,
+      "Small business": 13,
+      "ERROR": 13
+    }
+  },
+  "perClass": {
+    "Newspaper": {
+      "total": 46,
+      "correct": 44,
+      "errors": 1,
+      "predictedAs": {
+        "Newspaper": 44,
+        "ERROR": 1,
+        "Blog": 1
+      },
+      "recall": 95.7
+    },
+    "Service": {
+      "total": 44,
+      "correct": 43,
+      "errors": 1,
+      "predictedAs": {
+        "Service": 43,
+        "ERROR": 1
+      },
+      "recall": 97.7
+    },
+    "Saas": {
+      "total": 36,
+      "correct": 36,
+      "errors": 0,
+      "predictedAs": {
+        "Saas": 36
+      },
+      "recall": 100
+    },
+    "E-commerce": {
+      "total": 30,
+      "correct": 26,
+      "errors": 4,
+      "predictedAs": {
+        "E-commerce": 26,
+        "ERROR": 4
+      },
+      "recall": 86.7
+    },
+    "Directory": {
+      "total": 29,
+      "correct": 29,
+      "errors": 0,
+      "predictedAs": {
+        "Directory": 29
+      },
+      "recall": 100
+    },
+    "Blog": {
+      "total": 24,
+      "correct": 23,
+      "errors": 0,
+      "predictedAs": {
+        "Blog": 23,
+        "Saas": 1
+      },
+      "recall": 95.8
+    },
+    "Small business": {
+      "total": 30,
+      "correct": 13,
+      "errors": 13,
+      "predictedAs": {
+        "E-commerce": 4,
+        "Small business": 13,
+        "ERROR": 13
+      },
+      "recall": 43.3
+    }
+  },
+  "failureBuckets": {
+    "fetch_or_runtime_error": 19,
+    "newspaper_vs_blog": 1,
+    "other_misclassification": 1,
+    "small_business_vs_ecommerce": 4
+  },
+  "failures": [
+    {
+      "url": "https://thetimes.com/article/uk-election-2024",
+      "expected": "Newspaper",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "Both Cheerio and Playwright failed for https://thetimes.com/article/uk-election-2024: page.goto: net::ERR_CERT_COMMON_NAME_INVALID at https://thetimes.com/article/uk-election-2024\nCall log:\n\u001b[2m  - navigating to \"https://thetimes.com/article/uk-election-2024\", waiting until \"domcontentloaded\"\u001b[22m\n"
+    },
+    {
+      "url": "https://digitaltrends.com/cars/best-electric-cars",
+      "expected": "Newspaper",
+      "predicted": "Blog",
+      "confidence": "High",
+      "topScore": 17,
+      "secondScore": 14,
+      "scoreGap": 3,
+      "analyzedPages": [
+        "https://digitaltrends.com/cars/best-electric-cars"
+      ]
+    },
+    {
+      "url": "https://prudential.com/financial-wellness",
+      "expected": "Service",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "Both Cheerio and Playwright failed for https://prudential.com/financial-wellness: page.goto: Timeout 9000ms exceeded.\nCall log:\n\u001b[2m  - navigating to \"https://prudential.com/financial-wellness\", waiting until \"domcontentloaded\"\u001b[22m\n"
+    },
+    {
+      "url": "https://bestbuy.com/site/macbook-air/6543210.p",
+      "expected": "E-commerce",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "Both Cheerio and Playwright failed for https://bestbuy.com/site/macbook-air/6543210.p: page.goto: net::ERR_HTTP2_PROTOCOL_ERROR at https://bestbuy.com/site/macbook-air/6543210.p\nCall log:\n\u001b[2m  - navigating to \"https://bestbuy.com/site/macbook-air/6543210.p\", waiting until \"domcontentloaded\"\u001b[22m\n"
+    },
+    {
+      "url": "https://ikea.com/us/en/p/kallax-shelf-unit/",
+      "expected": "E-commerce",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "Both Cheerio and Playwright failed for https://ikea.com/us/en/p/kallax-shelf-unit/: page.goto: Timeout 9000ms exceeded.\nCall log:\n\u001b[2m  - navigating to \"https://ikea.com/us/en/p/kallax-shelf-unit/\", waiting until \"domcontentloaded\"\u001b[22m\n"
+    },
+    {
+      "url": "https://aliexpress.com/item/1005004567890.html",
+      "expected": "E-commerce",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "Both Cheerio and Playwright failed for https://aliexpress.com/item/1005004567890.html: page.goto: Timeout 9000ms exceeded.\nCall log:\n\u001b[2m  - navigating to \"https://aliexpress.com/item/1005004567890.html\", waiting until \"domcontentloaded\"\u001b[22m\n"
+    },
+    {
+      "url": "https://backmarket.com/en-us/p/iphone-13/12345",
+      "expected": "E-commerce",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "Both Cheerio and Playwright failed for https://backmarket.com/en-us/p/iphone-13/12345: page.evaluate: Execution context was destroyed, most likely because of a navigation"
+    },
+    {
+      "url": "https://semrush.com/blog/content-marketing-strategy",
+      "expected": "Blog",
+      "predicted": "Saas",
+      "confidence": "High",
+      "topScore": 39,
+      "secondScore": 28.2,
+      "scoreGap": 10.8,
+      "analyzedPages": [
+        "https://semrush.com/blog/content-marketing-strategy"
+      ]
+    },
+    {
+      "url": "https://joespizzanyc.com",
+      "expected": "Small business",
+      "predicted": "E-commerce",
+      "confidence": "High",
+      "topScore": 24.25,
+      "secondScore": 10.75,
+      "scoreGap": 13.5,
+      "analyzedPages": [
+        "https://joespizzanyc.com",
+        "https://joespizzanyc.com/locations",
+        "https://joespizzanyc.com/cart"
+      ]
+    },
+    {
+      "url": "https://benchmarkrestorations.com/services",
+      "expected": "Small business",
+      "predicted": "E-commerce",
+      "confidence": "High",
+      "topScore": 40.6,
+      "secondScore": 34,
+      "scoreGap": 6.600000000000001,
+      "analyzedPages": [
+        "https://benchmarkrestorations.com/services"
+      ]
+    },
+    {
+      "url": "https://missionpizzanaples.com/menu",
+      "expected": "Small business",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "Both Cheerio and Playwright failed for https://missionpizzanaples.com/menu: page.goto: net::ERR_NAME_NOT_RESOLVED at https://missionpizzanaples.com/menu\nCall log:\n\u001b[2m  - navigating to \"https://missionpizzanaples.com/menu\", waiting until \"domcontentloaded\"\u001b[22m\n"
+    },
+    {
+      "url": "https://portsmithlaw.com/practice-areas",
+      "expected": "Small business",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "Both Cheerio and Playwright failed for https://portsmithlaw.com/practice-areas: page.goto: net::ERR_NAME_NOT_RESOLVED at https://portsmithlaw.com/practice-areas\nCall log:\n\u001b[2m  - navigating to \"https://portsmithlaw.com/practice-areas\", waiting until \"domcontentloaded\"\u001b[22m\n"
+    },
+    {
+      "url": "https://austintileandstone.com/bathroom-remodeling",
+      "expected": "Small business",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "Both Cheerio and Playwright failed for https://austintileandstone.com/bathroom-remodeling: page.goto: net::ERR_NAME_NOT_RESOLVED at https://austintileandstone.com/bathroom-remodeling\nCall log:\n\u001b[2m  - navigating to \"https://austintileandstone.com/bathroom-remodeling\", waiting until \"domcontentloaded\"\u001b[22m\n"
+    },
+    {
+      "url": "https://mountainstatephysicaltherapy.com/services",
+      "expected": "Small business",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "Both Cheerio and Playwright failed for https://mountainstatephysicaltherapy.com/services: page.goto: net::ERR_NAME_NOT_RESOLVED at https://mountainstatephysicaltherapy.com/services\nCall log:\n\u001b[2m  - navigating to \"https://mountainstatephysicaltherapy.com/services\", waiting until \"domcontentloaded\"\u001b[22m\n"
+    },
+    {
+      "url": "https://sunrisedentalcare.net/teeth-whitening",
+      "expected": "Small business",
+      "predicted": "E-commerce",
+      "confidence": "Medium",
+      "topScore": 25.075000000000003,
+      "secondScore": 20,
+      "scoreGap": 5.075000000000003,
+      "analyzedPages": [
+        "https://sunrisedentalcare.net/teeth-whitening",
+        "https://sunrisedentalcare.net/",
+        "https://sunrisedentalcare.net/cart"
+      ]
+    },
+    {
+      "url": "https://atlantahandyman.com/home-repairs",
+      "expected": "Small business",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "Both Cheerio and Playwright failed for https://atlantahandyman.com/home-repairs: page.goto: Timeout 9000ms exceeded.\nCall log:\n\u001b[2m  - navigating to \"https://atlantahandyman.com/home-repairs\", waiting until \"domcontentloaded\"\u001b[22m\n"
+    },
+    {
+      "url": "https://boulderbrewingco.com/beers",
+      "expected": "Small business",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "Both Cheerio and Playwright failed for https://boulderbrewingco.com/beers: page.goto: net::ERR_NAME_NOT_RESOLVED at https://boulderbrewingco.com/beers\nCall log:\n\u001b[2m  - navigating to \"https://boulderbrewingco.com/beers\", waiting until \"domcontentloaded\"\u001b[22m\n"
+    },
+    {
+      "url": "https://charlestonfloraldesign.com/weddings",
+      "expected": "Small business",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "Both Cheerio and Playwright failed for https://charlestonfloraldesign.com/weddings: page.goto: net::ERR_NAME_NOT_RESOLVED at https://charlestonfloraldesign.com/weddings\nCall log:\n\u001b[2m  - navigating to \"https://charlestonfloraldesign.com/weddings\", waiting until \"domcontentloaded\"\u001b[22m\n"
+    },
+    {
+      "url": "https://downtownfitclub.com/membership",
+      "expected": "Small business",
+      "predicted": "E-commerce",
+      "confidence": "High",
+      "topScore": 21.6,
+      "secondScore": 13,
+      "scoreGap": 8.600000000000001,
+      "analyzedPages": [
+        "https://downtownfitclub.com/membership"
+      ]
+    },
+    {
+      "url": "https://harborsidespa.com/massages",
+      "expected": "Small business",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "Both Cheerio and Playwright failed for https://harborsidespa.com/massages: page.goto: net::ERR_NAME_NOT_RESOLVED at https://harborsidespa.com/massages\nCall log:\n\u001b[2m  - navigating to \"https://harborsidespa.com/massages\", waiting until \"domcontentloaded\"\u001b[22m\n"
+    },
+    {
+      "url": "https://richmondlandscapingco.com/lawn-care",
+      "expected": "Small business",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "Both Cheerio and Playwright failed for https://richmondlandscapingco.com/lawn-care: page.goto: net::ERR_NAME_NOT_RESOLVED at https://richmondlandscapingco.com/lawn-care\nCall log:\n\u001b[2m  - navigating to \"https://richmondlandscapingco.com/lawn-care\", waiting until \"domcontentloaded\"\u001b[22m\n"
+    },
+    {
+      "url": "https://brooklynbakehouse.com/custom-cakes",
+      "expected": "Small business",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "Both Cheerio and Playwright failed for https://brooklynbakehouse.com/custom-cakes: page.goto: Timeout 9000ms exceeded.\nCall log:\n\u001b[2m  - navigating to \"https://brooklynbakehouse.com/custom-cakes\", waiting until \"domcontentloaded\"\u001b[22m\n"
+    },
+    {
+      "url": "https://northwestelectrical.com/panel-upgrades",
+      "expected": "Small business",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "Both Cheerio and Playwright failed for https://northwestelectrical.com/panel-upgrades: page.goto: net::ERR_NAME_NOT_RESOLVED at https://northwestelectrical.com/panel-upgrades\nCall log:\n\u001b[2m  - navigating to \"https://northwestelectrical.com/panel-upgrades\", waiting until \"domcontentloaded\"\u001b[22m\n"
+    },
+    {
+      "url": "https://valleyoakaccounting.com/tax-preparation",
+      "expected": "Small business",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "Both Cheerio and Playwright failed for https://valleyoakaccounting.com/tax-preparation: page.goto: net::ERR_NAME_NOT_RESOLVED at https://valleyoakaccounting.com/tax-preparation\nCall log:\n\u001b[2m  - navigating to \"https://valleyoakaccounting.com/tax-preparation\", waiting until \"domcontentloaded\"\u001b[22m\n"
+    },
+    {
+      "url": "https://southernpinewoodworks.com/custom-furniture",
+      "expected": "Small business",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "Both Cheerio and Playwright failed for https://southernpinewoodworks.com/custom-furniture: page.goto: net::ERR_NAME_NOT_RESOLVED at https://southernpinewoodworks.com/custom-furniture\nCall log:\n\u001b[2m  - navigating to \"https://southernpinewoodworks.com/custom-furniture\", waiting until \"domcontentloaded\"\u001b[22m\n"
+    }
+  ]
+}

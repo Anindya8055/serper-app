@@ -1,0 +1,312 @@
+[
+  {
+    "domain": "hubspot.com",
+    "pathPattern": "^/(blog|resources|learn)(/|$)",
+    "siteType": "Blog"
+  },
+  {
+    "domain": "mailchimp.com",
+    "pathPattern": "^/(resources|content-studio|marketing-library)(/|$)",
+    "siteType": "Blog"
+  },
+  {
+    "domain": "ahrefs.com",
+    "pathPattern": "^/(blog|academy)(/|$)",
+    "siteType": "Blog"
+  },
+  {
+    "domain": "semrush.com",
+    "pathPattern": "^/(blog|kb|academy)(/|$)",
+    "siteType": "Blog"
+  },
+  {
+    "domain": "moz.com",
+    "pathPattern": "^/(blog|learn)(/|$)",
+    "siteType": "Blog"
+  },
+  {
+    "domain": "buffer.com",
+    "pathPattern": "^/(resources|library)(/|$)",
+    "siteType": "Blog"
+  },
+  {
+    "domain": "neilpatel.com",
+    "pathPattern": "^/(blog|guides?)(/|$)",
+    "siteType": "Blog"
+  },
+  {
+    "domain": "salesforce.com",
+    "pathPattern": "^/(blog|resources|plus)(/|$)",
+    "siteType": "Blog"
+  },
+  {
+    "domain": "zendesk.com",
+    "pathPattern": "^/(blog|resources)(/|$)",
+    "siteType": "Blog"
+  },
+  {
+    "domain": "atlassian.com",
+    "pathPattern": "^/(blog|agile|software|devops)(/|$)",
+    "siteType": "Blog"
+  },
+  {
+    "domain": "intercom.com",
+    "pathPattern": "^/(blog|resources)(/|$)",
+    "siteType": "Blog"
+  },
+  {
+    "domain": "stripe.com",
+    "pathPattern": "^/(resources|guides|newsroom)(/|$)",
+    "siteType": "Blog"
+  },
+  {
+    "domain": "cloudflare.com",
+    "pathPattern": "^/(blog|learning|the-net)(/|$)",
+    "siteType": "Blog"
+  },
+  {
+    "domain": "newrelic.com",
+    "pathPattern": "^/(blog|resources)(/|$)",
+    "siteType": "Blog"
+  },
+  {
+    "domain": "supabase.com",
+    "pathPattern": "^/(blog|docs|launch-week)(/|$)",
+    "siteType": "Blog"
+  },
+  {
+    "domain": "vercel.com",
+    "pathPattern": "^/(blog|docs|guides)(/|$)",
+    "siteType": "Blog"
+  },
+  {
+    "domain": "netlify.com",
+    "pathPattern": "^/(blog|resources)(/|$)",
+    "siteType": "Blog"
+  },
+  {
+    "domain": "webflow.com",
+    "pathPattern": "^/(blog|resources|templates)(/|$)",
+    "siteType": "Blog"
+  },
+  {
+    "domain": "wix.com",
+    "pathPattern": "^/(blog|seo|studio|templates)(/|$)",
+    "siteType": "Blog"
+  },
+  {
+    "domain": "shopify.com",
+    "pathPattern": "^/(blog|enterprise|partners|retail)(/|$)",
+    "siteType": "Blog"
+  },
+  {
+    "domain": "forbes.com",
+    "pathPattern": "^/advisor(/|$)",
+    "siteType": "Blog"
+  },
+  {
+    "domain": "fortune.com",
+    "pathPattern": "^/(recommends|education|well|shopping)(/|$)",
+    "siteType": "Blog"
+  },
+  {
+    "domain": "cnet.com",
+    "pathPattern": "^/(home|health|tech|personal-finance|roadshow)(/|$)",
+    "siteType": "Newspaper"
+  },
+  {
+    "domain": "consumerreports.org",
+    "pathPattern": "^/(cars|appliances|electronics|money|health)(/|$)",
+    "siteType": "Newspaper"
+  },
+  {
+    "domain": "investopedia.com",
+    "pathPattern": "^/(terms|simulator|academy|news)(/|$)",
+    "siteType": "Newspaper"
+  },
+  {
+    "domain": "morningstar.com",
+    "pathPattern": "^/(news|stocks|funds|etfs|markets)(/|$)",
+    "siteType": "Newspaper"
+  },
+  {
+    "domain": "schwab.com",
+    "pathPattern": "^/(learn|insights|market-commentary|resource-center)(/|$)",
+    "siteType": "Blog"
+  },
+  {
+    "domain": "fidelity.com",
+    "pathPattern": "^/(learning-center|insights|news|viewpoints)(/|$)",
+    "siteType": "Blog"
+  },
+  {
+    "domain": "vanguard.com",
+    "pathPattern": "^/(insights|advice|investor-resources)(/|$)",
+    "siteType": "Blog"
+  },
+  {
+    "domain": "jpmorgan.com",
+    "pathPattern": "^/(insights|research|market-data|news)(/|$)",
+    "siteType": "Blog"
+  },
+  {
+    "domain": "morganstanley.com",
+    "pathPattern": "^/(ideas|articles|research|insights)(/|$)",
+    "siteType": "Blog"
+  },
+  {
+    "domain": "goldmansachs.com",
+    "pathPattern": "^/(insights|intelligence|what-we-do|our-thinking)(/|$)",
+    "siteType": "Blog"
+  },
+  {
+    "domain": "blackrock.com",
+    "pathPattern": "^/(us/individual/insights|corporate/insights|institutions/en-us/insights)(/|$)",
+    "siteType": "Blog"
+  },
+  {
+    "domain": "bankofamerica.com",
+    "pathPattern": "^/(smallbusiness|preferred-rewards|financial-guidance|content)(/|$)",
+    "siteType": "Service"
+  },
+  {
+    "domain": "wellsfargo.com",
+    "pathPattern": "^/(financial-education|the-private-bank|commercial)(/|$)",
+    "siteType": "Service"
+  },
+  {
+    "domain": "chase.com",
+    "pathPattern": "^/(personal|business|digital|financial-goals)(/|$)",
+    "siteType": "Service"
+  },
+  {
+    "domain": "healthline.com",
+    "pathPattern": "^/(health|nutrition|wellness|reviews)(/|$)",
+    "siteType": "Service"
+  },
+  {
+    "domain": "drugs.com",
+    "pathPattern": "^/(drug-information|condition|support-group|mtm)(/|$)",
+    "siteType": "Service"
+  },
+  {
+    "domain": "clevelandclinic.org",
+    "pathPattern": "^/(health|departments|services)(/|$)",
+    "siteType": "Service"
+  },
+  {
+    "domain": "mayoclinic.org",
+    "pathPattern": "^/(diseases-conditions|drugs-supplements|tests-procedures|healthy-lifestyle)(/|$)",
+    "siteType": "Service"
+  },
+  {
+    "domain": "nih.gov",
+    "pathPattern": "^/(health-information|news-events|research-training)(/|$)",
+    "siteType": "Service"
+  },
+  {
+    "domain": "cdc.gov",
+    "pathPattern": "^/(diseases-conditions|healthy-living|vaccines|travel)(/|$)",
+    "siteType": "Service"
+  },
+  {
+    "domain": "coursera.org",
+    "pathPattern": "^/(learn|professional-certificates|articles|career-academy)(/|$)",
+    "siteType": "Service"
+  },
+  {
+    "domain": "edx.org",
+    "pathPattern": "^/(learn|boot-camps|resources)(/|$)",
+    "siteType": "Service"
+  },
+  {
+    "domain": "khanacademy.org",
+    "pathPattern": "^/(math|science|computing|college-careers-more)(/|$)",
+    "siteType": "Service"
+  },
+  {
+    "domain": "yelp.com",
+    "pathPattern": "^/(search|biz|biz_photos|biz_reviews)(/|$)",
+    "siteType": "Directory"
+  },
+  {
+    "domain": "tripadvisor.com",
+    "pathPattern": "^/(Restaurant_Review|Hotel_Review|Attraction_Review|Tourism-)(/|$)",
+    "siteType": "Directory"
+  },
+  {
+    "domain": "zillow.com",
+    "pathPattern": "^/(homedetails|homes|b|community|rental-manager)(/|$)",
+    "siteType": "Directory"
+  },
+  {
+    "domain": "realtor.com",
+    "pathPattern": "^/(realestateandhomes-search|realestateagents|advice)(/|$)",
+    "siteType": "Directory"
+  },
+  {
+    "domain": "booking.com",
+    "pathPattern": "^/(hotel|searchresults|attractions|flights)(/|$)",
+    "siteType": "Directory"
+  },
+  {
+    "domain": "airbnb.com",
+    "pathPattern": "^/(rooms|s|experiences|wishlists)(/|$)",
+    "siteType": "Directory"
+  },
+  {
+    "domain": "expedia.com",
+    "pathPattern": "^/(Hotel-Search|Flights-Search|Cars|Cruises|Things-To-Do)(/|$)",
+    "siteType": "Directory"
+  },
+  {
+    "domain": "kayak.com",
+    "pathPattern": "^/(flights|hotels|cars|stays|trips)(/|$)",
+    "siteType": "Directory"
+  },
+  {
+    "domain": "linkedin.com",
+    "pathPattern": "^/(jobs|company|school|posts|pulse)(/|$)",
+    "siteType": "Directory"
+  },
+  {
+    "domain": "glassdoor.com",
+    "pathPattern": "^/(Job|Reviews|Salary|Interview)(/|$)",
+    "siteType": "Directory"
+  },
+  {
+    "domain": "indeed.com",
+    "pathPattern": "^/(jobs|cmp|career-advice)(/|$)",
+    "siteType": "Directory"
+  },
+  {
+    "domain": "healthgrades.com",
+    "pathPattern": "^/(physician|dentist|group-directory|care)(/|$)",
+    "siteType": "Directory"
+  },
+  {
+    "domain": "zocdoc.com",
+    "pathPattern": "^/(doctor|dentist|practice|procedure)(/|$)",
+    "siteType": "Directory"
+  },
+  {
+    "domain": "avvo.com",
+    "pathPattern": "^/(attorneys|legal-guides|find-a-lawyer)(/|$)",
+    "siteType": "Directory"
+  },
+  {
+    "domain": "findlaw.com",
+    "pathPattern": "^/(attorneys|state|legalblogs|legalguides)(/|$)",
+    "siteType": "Directory"
+  },
+  {
+    "domain": "thumbtack.com",
+    "pathPattern": "^/(k|pro|services)(/|$)",
+    "siteType": "Directory"
+  },
+  {
+    "domain": "bbb.org",
+    "pathPattern": "^/(us|ca|search|all)(/|$)",
+    "siteType": "Directory"
+  }
+]

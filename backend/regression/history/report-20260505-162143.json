@@ -1,0 +1,1779 @@
+{
+  "runId": "20260505-162143",
+  "dataset": "test_dataset.csv",
+  "settings": {
+    "enableBrowserUpgrade": "0"
+  },
+  "summary": {
+    "total": 239,
+    "correct": 0,
+    "failed": 239,
+    "accuracy": 0
+  },
+  "confusionMatrix": {
+    "Newspaper": {
+      "ERROR": 46
+    },
+    "Service": {
+      "ERROR": 44
+    },
+    "Saas": {
+      "ERROR": 36
+    },
+    "E-commerce": {
+      "ERROR": 30
+    },
+    "Directory": {
+      "ERROR": 29
+    },
+    "Blog": {
+      "ERROR": 24
+    },
+    "Small business": {
+      "ERROR": 30
+    }
+  },
+  "perClass": {
+    "Newspaper": {
+      "total": 46,
+      "correct": 0,
+      "errors": 46,
+      "predictedAs": {
+        "ERROR": 46
+      },
+      "recall": 0
+    },
+    "Service": {
+      "total": 44,
+      "correct": 0,
+      "errors": 44,
+      "predictedAs": {
+        "ERROR": 44
+      },
+      "recall": 0
+    },
+    "Saas": {
+      "total": 36,
+      "correct": 0,
+      "errors": 36,
+      "predictedAs": {
+        "ERROR": 36
+      },
+      "recall": 0
+    },
+    "E-commerce": {
+      "total": 30,
+      "correct": 0,
+      "errors": 30,
+      "predictedAs": {
+        "ERROR": 30
+      },
+      "recall": 0
+    },
+    "Directory": {
+      "total": 29,
+      "correct": 0,
+      "errors": 29,
+      "predictedAs": {
+        "ERROR": 29
+      },
+      "recall": 0
+    },
+    "Blog": {
+      "total": 24,
+      "correct": 0,
+      "errors": 24,
+      "predictedAs": {
+        "ERROR": 24
+      },
+      "recall": 0
+    },
+    "Small business": {
+      "total": 30,
+      "correct": 0,
+      "errors": 30,
+      "predictedAs": {
+        "ERROR": 30
+      },
+      "recall": 0
+    }
+  },
+  "failureBuckets": {
+    "fetch_or_runtime_error": 239
+  },
+  "failures": [
+    {
+      "url": "https://wsj.com/articles/markets-rally-2024",
+      "expected": "Newspaper",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://bloomberg.com/news/articles/inflation-data",
+      "expected": "Newspaper",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://cnn.com/2024/01/01/politics/congress-vote",
+      "expected": "Newspaper",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://nytimes.com/2024/03/15/world/europe/ukraine.html",
+      "expected": "Newspaper",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://theguardian.com/world/2024/apr/01/climate-change",
+      "expected": "Newspaper",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://bbc.com/news/world-europe-12345678",
+      "expected": "Newspaper",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://reuters.com/markets/us/stocks-rise-2024",
+      "expected": "Newspaper",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://apnews.com/article/election-results-2024",
+      "expected": "Newspaper",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://forbes.com/sites/finance/2024/best-stocks",
+      "expected": "Newspaper",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://techcrunch.com/2024/04/openai-raises-funding",
+      "expected": "Newspaper",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://theverge.com/2024/3/apple-vision-pro-review",
+      "expected": "Newspaper",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://wired.com/story/ai-future-work-2024",
+      "expected": "Newspaper",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://cnbc.com/2024/03/fed-rate-decision",
+      "expected": "Newspaper",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://marketwatch.com/story/dow-jones-hits-record",
+      "expected": "Newspaper",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://businessinsider.com/best-credit-cards-2024",
+      "expected": "Newspaper",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://ft.com/content/global-economy-outlook",
+      "expected": "Newspaper",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://economist.com/finance-and-economics/2024",
+      "expected": "Newspaper",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://techradar.com/best/best-laptops",
+      "expected": "Newspaper",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://cnet.com/tech/mobile/best-smartphones-2024",
+      "expected": "Newspaper",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://engadget.com/2024/04/samsung-galaxy-review",
+      "expected": "Newspaper",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://arstechnica.com/science/2024/space-telescope-findings",
+      "expected": "Newspaper",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://zdnet.com/article/best-antivirus-software",
+      "expected": "Newspaper",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://thetimes.com/article/uk-election-2024",
+      "expected": "Newspaper",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://timeout.com/london/restaurants/best-restaurants",
+      "expected": "Newspaper",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://travelandleisure.com/best-hotels-in-paris",
+      "expected": "Newspaper",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://investopedia.com/terms/p/portfolio.asp",
+      "expected": "Newspaper",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://morningstar.com/stocks/best-value-stocks-2024",
+      "expected": "Newspaper",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://consumerreports.org/cars/best-cars-2024",
+      "expected": "Newspaper",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://newsweek.com/politics/trump-polls-2024",
+      "expected": "Newspaper",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://time.com/6345678/ai-revolution-2024",
+      "expected": "Newspaper",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://pcmag.com/reviews/dell-xps-15",
+      "expected": "Newspaper",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://tomsguide.com/best/best-gaming-laptops",
+      "expected": "Newspaper",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://digitaltrends.com/cars/best-electric-cars",
+      "expected": "Newspaper",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://androidauthority.com/best-android-phones-2024",
+      "expected": "Newspaper",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://fortune.com/2024/04/richest-people-world",
+      "expected": "Newspaper",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://inc.com/best-workplaces-2024",
+      "expected": "Newspaper",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://theatlantic.com/politics/archive/2024/america",
+      "expected": "Newspaper",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://usatoday.com/story/news/politics/2024/election",
+      "expected": "Newspaper",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://foxnews.com/politics/biden-immigration-policy",
+      "expected": "Newspaper",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://nbcnews.com/news/us-news/california-wildfire",
+      "expected": "Newspaper",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://politico.com/news/2024/senate-race-results",
+      "expected": "Newspaper",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://thehill.com/homenews/senate/2024-election",
+      "expected": "Newspaper",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://entrepreneur.com/starting-a-business/2024",
+      "expected": "Newspaper",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://hgtv.com/design/rooms/living-rooms/decorating-ideas",
+      "expected": "Newspaper",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://thespruce.com/best-indoor-plants-for-low-light",
+      "expected": "Newspaper",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://architecturaldigest.com/story/best-home-decor-2024",
+      "expected": "Newspaper",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://schwab.com/investing/retirement",
+      "expected": "Service",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://fidelity.com/retirement/iras",
+      "expected": "Service",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://vanguard.com/personal-investors",
+      "expected": "Service",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://jpmorgan.com/wealth-management",
+      "expected": "Service",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://goldmansachs.com/our-firm",
+      "expected": "Service",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://morganstanley.com/wealth-management",
+      "expected": "Service",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://edwardjones.com/us-en/financial-advisor",
+      "expected": "Service",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://northwesternmutual.com/life-insurance",
+      "expected": "Service",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://statefarm.com/insurance/auto",
+      "expected": "Service",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://truist.com/personal-banking",
+      "expected": "Service",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://americancentury.com/content/direct/en/invest",
+      "expected": "Service",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://wipfli.com/services/tax",
+      "expected": "Service",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://ml.com/planning/retirement-planning",
+      "expected": "Service",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://bankofamerica.com/checking-accounts",
+      "expected": "Service",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://wellsfargo.com/mortgage",
+      "expected": "Service",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://chase.com/personal/credit-cards",
+      "expected": "Service",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://citibank.com/us/savings-accounts",
+      "expected": "Service",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://capitalone.com/bank/savings-accounts",
+      "expected": "Service",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://ally.com/bank/high-yield-cd",
+      "expected": "Service",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://geico.com/auto-insurance",
+      "expected": "Service",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://allstate.com/homeowners-insurance",
+      "expected": "Service",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://progressive.com/auto/car-insurance",
+      "expected": "Service",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://aetna.com/health-insurance-plans",
+      "expected": "Service",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://cigna.com/individuals-families/health-insurance",
+      "expected": "Service",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://mayoclinic.org/diseases-conditions/diabetes",
+      "expected": "Service",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://clevelandclinic.org/health/diagnostics",
+      "expected": "Service",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://healthline.com/nutrition/how-to-lose-weight",
+      "expected": "Service",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://nih.gov/health-information/diabetes",
+      "expected": "Service",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://cancer.gov/about-cancer/treatment",
+      "expected": "Service",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://wikipedia.org/wiki/Machine_learning",
+      "expected": "Service",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://britannica.com/science/artificial-intelligence",
+      "expected": "Service",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://khanacademy.org/math/algebra",
+      "expected": "Service",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://coursera.org/learn/machine-learning",
+      "expected": "Service",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://edx.org/course/introduction-to-python",
+      "expected": "Service",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://nyse.com/listings/listing-standards",
+      "expected": "Service",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://blackrock.com/us/individual/investment-ideas",
+      "expected": "Service",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://fbi.gov/investigate/terrorism",
+      "expected": "Service",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://irs.gov/filing/how-to-file",
+      "expected": "Service",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://uscis.gov/green-card",
+      "expected": "Service",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://dea.gov/drug-information",
+      "expected": "Service",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://cdc.gov/flu/symptoms",
+      "expected": "Service",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://metlife.com/insurance/life-insurance",
+      "expected": "Service",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://nationwide.com/personal/insurance/auto",
+      "expected": "Service",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://prudential.com/financial-wellness",
+      "expected": "Service",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://github.com/features/actions",
+      "expected": "Saas",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://slack.com/features",
+      "expected": "Saas",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://notion.so/product",
+      "expected": "Saas",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://figma.com/pricing",
+      "expected": "Saas",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://vercel.com/docs/deployments",
+      "expected": "Saas",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://netlify.com/platform/build",
+      "expected": "Saas",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://salesforce.com/crm",
+      "expected": "Saas",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://hubspot.com/products/crm",
+      "expected": "Saas",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://zendesk.com/customer-service",
+      "expected": "Saas",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://stripe.com/payments",
+      "expected": "Saas",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://twilio.com/communications",
+      "expected": "Saas",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://datadog.com/product/apm",
+      "expected": "Saas",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://atlassian.com/software/jira",
+      "expected": "Saas",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://asana.com/product",
+      "expected": "Saas",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://monday.com/pricing",
+      "expected": "Saas",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://clickup.com/features",
+      "expected": "Saas",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://airtable.com/product/database",
+      "expected": "Saas",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://zapier.com/app/dashboard",
+      "expected": "Saas",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://intercom.com/customer-messaging",
+      "expected": "Saas",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://mailchimp.com/email-marketing",
+      "expected": "Saas",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://cloudflare.com/products/workers",
+      "expected": "Saas",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://newrelic.com/platform/full-stack-observability",
+      "expected": "Saas",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://supabase.com/database",
+      "expected": "Saas",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://linear.app/features",
+      "expected": "Saas",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://n8n.io/automation",
+      "expected": "Saas",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://make.com/en/pricing",
+      "expected": "Saas",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://gitlab.com/solutions/devops",
+      "expected": "Saas",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://render.com/docs/deploy-node-express-app",
+      "expected": "Saas",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://polymarket.com/event/us-election-2024",
+      "expected": "Saas",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://shopify.com/pricing",
+      "expected": "Saas",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://webflow.com/pricing",
+      "expected": "Saas",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://wix.com/upgrade/website",
+      "expected": "Saas",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://squarespace.com/pricing",
+      "expected": "Saas",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://heroku.com/pricing",
+      "expected": "Saas",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://dropbox.com/plans",
+      "expected": "Saas",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://box.com/pricing",
+      "expected": "Saas",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://amazon.com/dp/B09G9FPHY6",
+      "expected": "E-commerce",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://ebay.com/itm/apple-iphone-15/334567890",
+      "expected": "E-commerce",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://walmart.com/ip/Samsung-TV-55/123456",
+      "expected": "E-commerce",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://etsy.com/listing/123456/handmade-bracelet",
+      "expected": "E-commerce",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://target.com/p/sony-headphones/-/A-12345678",
+      "expected": "E-commerce",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://bestbuy.com/site/macbook-air/6543210.p",
+      "expected": "E-commerce",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://wayfair.com/furniture/pdp/sofa-W12345.html",
+      "expected": "E-commerce",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://ikea.com/us/en/p/kallax-shelf-unit/",
+      "expected": "E-commerce",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://newegg.com/rtx-4090/p/N82E16814137823",
+      "expected": "E-commerce",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://chewy.com/royal-canin-cat-food/dp/12345",
+      "expected": "E-commerce",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://sephora.com/product/fenty-beauty-foundation/P12345",
+      "expected": "E-commerce",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://nordstrom.com/s/nike-air-force-1/6789012",
+      "expected": "E-commerce",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://macys.com/shop/product/calvin-klein-dress/ID=12345",
+      "expected": "E-commerce",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://homedepot.com/p/Milwaukee-Drill/12345678",
+      "expected": "E-commerce",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://lowes.com/pd/Ryobi-Circular-Saw/12345",
+      "expected": "E-commerce",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://costco.com/kirkland-olive-oil.product.123456.html",
+      "expected": "E-commerce",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://overstock.com/Office/Ergonomic-Chair/12345/product.html",
+      "expected": "E-commerce",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://zappos.com/product/9123456/color/12345",
+      "expected": "E-commerce",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://petco.com/shop/en/petcostore/product/dog-food/12345",
+      "expected": "E-commerce",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://ulta.com/p/olay-moisturizer/xlsImpprod12345",
+      "expected": "E-commerce",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://aliexpress.com/item/1005004567890.html",
+      "expected": "E-commerce",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://flipkart.com/apple-iphone-15/p/itm12345",
+      "expected": "E-commerce",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://backmarket.com/en-us/p/iphone-13/12345",
+      "expected": "E-commerce",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://swappa.com/listing/view/12345",
+      "expected": "E-commerce",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://castlery.com/products/oslo-sofa",
+      "expected": "E-commerce",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://society6.com/product/abstract-art_print",
+      "expected": "E-commerce",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://greatbigcanvas.com/view/van-gogh-starry-night/12345",
+      "expected": "E-commerce",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://amazon.com/s?k=wireless+headphones",
+      "expected": "E-commerce",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://walmart.com/browse/electronics/tvs/3944_1060825_447913",
+      "expected": "E-commerce",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://etsy.com/shop/HandmadeJewelry",
+      "expected": "E-commerce",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://yelp.com/biz/joes-pizza-new-york",
+      "expected": "Directory",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://tripadvisor.com/Hotel_Review-g60763-d12345.html",
+      "expected": "Directory",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://yellowpages.com/search?search_terms=plumber&geo=Chicago",
+      "expected": "Directory",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://angi.com/companylist/us/il/chicago/plumbing.htm",
+      "expected": "Directory",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://zillow.com/homes/for_sale/New-York,-NY",
+      "expected": "Directory",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://realtor.com/realestateandhomes-search/Los-Angeles_CA",
+      "expected": "Directory",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://cars.com/research/toyota-camry-2024",
+      "expected": "Directory",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://autotrader.com/cars-for-sale/new-cars/toyota",
+      "expected": "Directory",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://booking.com/hotel/us/marriott-downtown.html",
+      "expected": "Directory",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://airbnb.com/s/Paris--France/homes",
+      "expected": "Directory",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://expedia.com/Hotel-Search?destination=Miami",
+      "expected": "Directory",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://kayak.com/flights/NYC-LAX/2024-06-01",
+      "expected": "Directory",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://houzz.com/professionals/interior-designers/chicago",
+      "expected": "Directory",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://healthgrades.com/find-a-doctor/illinois/chicago",
+      "expected": "Directory",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://zocdoc.com/find/doctor/new-york/internist",
+      "expected": "Directory",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://avvo.com/find-a-lawyer/illinois/chicago",
+      "expected": "Directory",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://glassdoor.com/Reviews/Google-Reviews-E9079.htm",
+      "expected": "Directory",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://indeed.com/jobs?q=software+engineer&l=San+Francisco",
+      "expected": "Directory",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://thumbtack.com/k/house-cleaners/near-me",
+      "expected": "Directory",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://bbb.org/search?find_text=electrician&find_loc=Dallas+TX",
+      "expected": "Directory",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://homeadvisor.com/task/plumbing",
+      "expected": "Directory",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://vitals.com/find/cardiologist/chicago-il",
+      "expected": "Directory",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://turo.com/us/en/search?location=Los+Angeles",
+      "expected": "Directory",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://hotels.com/search/stays?destination=Las+Vegas",
+      "expected": "Directory",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://linkedin.com/jobs/search/?keywords=marketing&location=NYC",
+      "expected": "Directory",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://findlaw.com/lawyer/criminal-defense/illinois.html",
+      "expected": "Directory",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://kbb.com/car-values/used-car-values/direct",
+      "expected": "Directory",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://orbitz.com/Hotels-in-New-York",
+      "expected": "Directory",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://carrentals.com/?destination=Miami+Airport",
+      "expected": "Directory",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://neilpatel.com/blog/seo-tips-2024",
+      "expected": "Blog",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://moz.com/blog/google-algorithm-update",
+      "expected": "Blog",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://backlinko.com/seo-techniques",
+      "expected": "Blog",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://ahrefs.com/blog/keyword-research",
+      "expected": "Blog",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://semrush.com/blog/content-marketing-strategy",
+      "expected": "Blog",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://hubspot.com/blog/marketing/social-media-tips",
+      "expected": "Blog",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://buffer.com/resources/social-media-marketing",
+      "expected": "Blog",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://copyblogger.com/content-marketing-2024",
+      "expected": "Blog",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://medium.com/@johnsmith/my-year-in-review-2024",
+      "expected": "Blog",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://substack.com/p/the-future-of-ai-writing",
+      "expected": "Blog",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://dev.to/john/building-a-rest-api-with-node",
+      "expected": "Blog",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://css-tricks.com/a-complete-guide-to-flexbox",
+      "expected": "Blog",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://smashingmagazine.com/2024/01/best-css-techniques",
+      "expected": "Blog",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://alistapart.com/article/responsive-web-design",
+      "expected": "Blog",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://markmanson.net/not-giving-a-f-ck",
+      "expected": "Blog",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://waitbutwhy.com/2024/01/the-big-picture",
+      "expected": "Blog",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://paulgraham.com/essays/startups.html",
+      "expected": "Blog",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://simonwillison.net/2024/llm-security",
+      "expected": "Blog",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://jvns.ca/blog/2024/debugging-tips",
+      "expected": "Blog",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://overreacted.io/why-do-hooks-exist",
+      "expected": "Blog",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://kentcdodds.com/blog/testing-react-apps",
+      "expected": "Blog",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://rachelandrew.co.uk/archives/2024/grid-layout",
+      "expected": "Blog",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://healthyblog.com/post/intermittent-fasting-guide",
+      "expected": "Blog",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://mybookreviews.net/author/best-fantasy-2024",
+      "expected": "Blog",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://joespizzanyc.com",
+      "expected": "Small business",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://acmeplumbing.net/contact",
+      "expected": "Small business",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://downtown-dental.com/appointments",
+      "expected": "Small business",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://harborviewhotels.com/rooms",
+      "expected": "Small business",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://blueskytaxservices.com/individual-tax",
+      "expected": "Small business",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://elitepainting.co/residential",
+      "expected": "Small business",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://highlandsphotography.com/wedding-photos",
+      "expected": "Small business",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://benchmarkrestorations.com/services",
+      "expected": "Small business",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://missionpizzanaples.com/menu",
+      "expected": "Small business",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://portsmithlaw.com/practice-areas",
+      "expected": "Small business",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://greatlakesroofing.com/services",
+      "expected": "Small business",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://austintileandstone.com/bathroom-remodeling",
+      "expected": "Small business",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://mountainstatephysicaltherapy.com/services",
+      "expected": "Small business",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://goldenstateplumbing.com/drain-cleaning",
+      "expected": "Small business",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://sunrisedentalcare.net/teeth-whitening",
+      "expected": "Small business",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://lakefronteyecare.com/contact-lenses",
+      "expected": "Small business",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://atlantahandyman.com/home-repairs",
+      "expected": "Small business",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://boulderbrewingco.com/beers",
+      "expected": "Small business",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://mariposayoga.com/classes",
+      "expected": "Small business",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://charlestonfloraldesign.com/weddings",
+      "expected": "Small business",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://cascaderoofing.net/residential",
+      "expected": "Small business",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://downtownfitclub.com/membership",
+      "expected": "Small business",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://harborsidespa.com/massages",
+      "expected": "Small business",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://texastacotruck.com/catering",
+      "expected": "Small business",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://richmondlandscapingco.com/lawn-care",
+      "expected": "Small business",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://brooklynbakehouse.com/custom-cakes",
+      "expected": "Small business",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://northwestelectrical.com/panel-upgrades",
+      "expected": "Small business",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://valleyoakaccounting.com/tax-preparation",
+      "expected": "Small business",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://southernpinewoodworks.com/custom-furniture",
+      "expected": "Small business",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    },
+    {
+      "url": "https://highdesertautobody.com/collision-repair",
+      "expected": "Small business",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "analyzeDomain is not a function"
+    }
+  ]
+}

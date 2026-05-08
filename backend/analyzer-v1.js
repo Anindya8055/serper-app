@@ -1,25 +1,25 @@
 const axios = require("axios");
 const cheerio = require("cheerio");
-const { getPooledPage, releasePage } = require("./browser");
-const { pickImportantLinks, getBaseDomain, runPool } = require("./utils");
-const { scoreSignals, getTopScore } = require("./classifier");
+const { getPooledPage, releasePage } = require("./browser-v1");
+const { pickImportantLinks, getBaseDomain } = require("./utils");
+const { scoreSignals } = require("./classifier");
 
+// Timeouts tuned for speed
 const FETCH_TIMEOUT = 6000;
 const PLAYWRIGHT_TIMEOUT = 9000;
 
+// Text/links limits
 const MAX_BODY_TEXT = 8000;
 const MAX_LINKS = 80;
 const MAX_LINKS_TEXT = 3500;
 const MAX_AGGREGATE_TEXT = 18000;
 const MAX_AGGREGATE_LINKS_TEXT = 8000;
 
+// Domain analysis limits
 const DOMAIN_INTERNAL_PAGES = 2;
 const INTERNAL_PAGE_CONCURRENCY = 2;
 
-const EVAL_FAST_MODE = process.env.EVAL_FAST_MODE === "1";
-const ENABLE_BROWSER_UPGRADE = process.env.ENABLE_BROWSER_UPGRADE !== "0";
-const INTERNAL_PAGES_LIMIT = EVAL_FAST_MODE ? 0 : DOMAIN_INTERNAL_PAGES;
-
+// When classification is already strong on homepage, skip extra pages
 const EARLY_EXIT_CONFIDENCE = "High";
 
 const FETCH_HEADERS = {
@@ -28,8 +28,23 @@ const FETCH_HEADERS = {
     "(KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
   "Accept-Language": "en-US,en;q=0.9",
   Accept:
-    "text/html,application/xhtml+xml,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "text/html,application/xhtml+xml,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
 };
+
+async function runPool(items, concurrency, worker) {
+  let index = 0;
+
+  async function runner() {
+    while (index < items.length) {
+      const currentIndex = index++;
+      await worker(items[currentIndex], currentIndex);
+    }
+  }
+
+  await Promise.all(
+    Array.from({ length: Math.min(concurrency, items.length) }, () => runner())
+  );
+}
 
 function compactText(text = "", limit = MAX_BODY_TEXT) {
   return String(text).replace(/\s+/g, " ").trim().slice(0, limit);
@@ -37,7 +52,6 @@ function compactText(text = "", limit = MAX_BODY_TEXT) {
 
 function absolutizeLinks(baseUrl, hrefs = []) {
   const out = [];
-
   for (const href of hrefs) {
     if (!href) continue;
     if (href.startsWith("#")) continue;
@@ -47,28 +61,23 @@ function absolutizeLinks(baseUrl, hrefs = []) {
       out.push(new URL(href, baseUrl).toString());
     } catch {}
   }
-
   return [...new Set(out)];
 }
 
-function shouldFallbackToPlaywright({
-  html = "",
-  title = "",
-  bodyText = "",
-  linksText = "",
-  schemaText = "",
-}) {
+/**
+ * Decide if we *really* need Playwright.
+ * We keep it for:
+ *  - obvious bot blocks
+ *  - JS shells with almost no visible body
+ *  - extremely thin content on domains where classification matters
+ */
+function shouldFallbackToPlaywright({ html = "", title = "", bodyText = "" }) {
   const h = String(html || "").toLowerCase();
   const t = String(title || "").toLowerCase();
   const b = String(bodyText || "").toLowerCase();
-  const l = String(linksText || "").toLowerCase();
-  const s = String(schemaText || "").toLowerCase();
 
   const visible = compactText(bodyText, 400);
-  const tooThin = visible.length < 80;
-  const weakTitle = t.trim().length < 8;
-  const weakLinks = l.trim().length < 40;
-  const weakSchema = s.trim().length < 40;
+  const tooThin = visible.length < 80; // slightly more aggressive
 
   const botBlocked =
     /just a moment|access denied|attention required|enable javascript|checking your browser|verify you are human|request blocked|cf challenge|cloudflare|akamai|perimeterx|incapsula/i.test(
@@ -80,13 +89,7 @@ function shouldFallbackToPlaywright({
       h
     ) && visible.length < 160;
 
-  return (
-    botBlocked ||
-    jsShell ||
-    tooThin ||
-    (weakTitle && weakLinks) ||
-    (weakSchema && visible.length < 120)
-  );
+  return botBlocked || jsShell || tooThin;
 }
 
 function extractSchemaTextFromCheerio($) {
@@ -180,88 +183,18 @@ function buildPageData(
     hasAddress,
     hasBusinessListingSchema,
     hasProductSchema,
-    hasArticleSchema,
+    hasArticleSchema
   };
 }
 
-function buildClassifierSignals(page) {
-  return {
-    hasCart: !!page.hasCart,
-    hasPhone: !!page.hasPhone,
-    hasAddress: !!page.hasAddress,
-    hasMap: !!page.hasMap,
-    hasSearchAndFilter: !!page.hasSearchAndFilter,
-    hasReviews: !!page.hasReviews,
-    hasBusinessListingSchema: !!page.hasBusinessListingSchema,
-    hasProductSchema: !!page.hasProductSchema,
-    hasArticleSchema: !!page.hasArticleSchema,
-  };
-}
-
-function classifySinglePage(page) {
-  const aggregateText = `${page.title} ${page.metaDescription} ${page.bodyText} ${page.schemaText}`.slice(
-    0,
-    MAX_AGGREGATE_TEXT
-  );
-
-  return scoreSignals(
-    aggregateText,
-    page.linksText.slice(0, MAX_AGGREGATE_LINKS_TEXT),
-    buildClassifierSignals(page),
-    page.url
-  );
-}
-
-function createEmptyScores() {
-  return {
-    Blog: 0,
-    "E-commerce": 0,
-    "Small business": 0,
-    Newspaper: 0,
-    Saas: 0,
-    Directory: 0,
-    Service: 0,
-  };
-}
-
-function aggregateWeightedScores(weightedResults) {
-  const totals = createEmptyScores();
-
-  for (const item of weightedResults) {
-    const scores = item?.scores || {};
-    const weight = Number(item?.weight || 0);
-
-    for (const key of Object.keys(totals)) {
-      totals[key] += (scores[key] || 0) * weight;
-    }
-  }
-
-  return totals;
-}
-
-function summarizeWeightedClassification(weightedResults) {
-  const scores = aggregateWeightedScores(weightedResults);
-  const top = getTopScore(scores);
-  const classifierVersion =
-    weightedResults.find((r) => r?.classifierVersion)?.classifierVersion || null;
-
-  return {
-    siteType: top.siteType,
-    confidence: top.confidence,
-    classifierVersion,
-    scores,
-    topScore: top.topScore,
-    secondScore: top.secondScore,
-    scoreGap: (top.topScore || 0) - (top.secondScore || 0),
-  };
-}
+// ─── Cheerio scraper ──────────────────────────────────────────────────────────
 
 async function fetchWithCheerio(url) {
   const response = await axios.get(url, {
     headers: FETCH_HEADERS,
     timeout: FETCH_TIMEOUT,
     maxRedirects: 5,
-    validateStatus: (s) => s >= 200 && s < 500,
+    validateStatus: (s) => s >= 200 && s < 500
   });
 
   const html = typeof response.data === "string" ? response.data : "";
@@ -312,12 +245,12 @@ async function fetchWithCheerio(url) {
     _needsBrowser: shouldFallbackToPlaywright({
       html,
       title,
-      bodyText,
-      linksText,
-      schemaText,
-    }),
+      bodyText
+    })
   };
 }
+
+// ─── Playwright scraper ───────────────────────────────────────────────────────
 
 async function fetchWithPlaywright(url) {
   let page = null;
@@ -327,11 +260,11 @@ async function fetchWithPlaywright(url) {
 
     await page.goto(url, {
       waitUntil: "domcontentloaded",
-      timeout: PLAYWRIGHT_TIMEOUT,
+      timeout: PLAYWRIGHT_TIMEOUT
     });
 
     try {
-      await page.waitForTimeout(800);
+      await page.waitForLoadState("networkidle", { timeout: 2500 });
     } catch {}
 
     const data = await page.evaluate(
@@ -365,15 +298,7 @@ async function fetchWithPlaywright(url) {
 
         const html = document.documentElement?.outerHTML || "";
 
-        return {
-          title,
-          metaDescription,
-          bodyText,
-          links,
-          linksText,
-          schemaText,
-          html,
-        };
+        return { title, metaDescription, bodyText, links, linksText, schemaText, html };
       },
       { maxLinks: MAX_LINKS, maxBodyText: MAX_BODY_TEXT }
     );
@@ -390,23 +315,27 @@ async function fetchWithPlaywright(url) {
         data.schemaText || data.html
       ),
       _source: "playwright",
-      _needsBrowser: false,
+      _needsBrowser: false
     };
   } finally {
     if (page) await releasePage(page).catch(() => {});
   }
 }
 
+// ─── Main extractor ───────────────────────────────────────────────────────────
+
 async function extractPageData(_ctx, url) {
+  // Try Cheerio first (fast path)
   try {
     const cheerioResult = await fetchWithCheerio(url);
 
-    if (EVAL_FAST_MODE || !ENABLE_BROWSER_UPGRADE || !cheerioResult._needsBrowser) {
+    if (!cheerioResult._needsBrowser) {
       delete cheerioResult._needsBrowser;
       delete cheerioResult._source;
       return cheerioResult;
     }
 
+    // Only use Playwright when clearly needed
     try {
       const browserResult = await fetchWithPlaywright(url);
       delete browserResult._needsBrowser;
@@ -417,11 +346,8 @@ async function extractPageData(_ctx, url) {
       delete cheerioResult._source;
       return cheerioResult;
     }
-  } catch (cheerioError) {
-    if (EVAL_FAST_MODE || !ENABLE_BROWSER_UPGRADE) {
-      throw cheerioError;
-    }
-
+  } catch (_cheerioError) {
+    // Cheerio failed hard, try Playwright once
     try {
       const browserResult = await fetchWithPlaywright(url);
       delete browserResult._needsBrowser;
@@ -435,122 +361,57 @@ async function extractPageData(_ctx, url) {
   }
 }
 
-async function maybeUpgradePageWithBrowser(page) {
-  if (!ENABLE_BROWSER_UPGRADE || EVAL_FAST_MODE) {
-    return {
-      page,
-      classification: classifySinglePage(page),
-      upgraded: false,
-    };
-  }
-
-  const initialClassification = classifySinglePage(page);
-
-  const shouldRetry =
-    initialClassification.confidence === "Low" &&
-    shouldFallbackToPlaywright({
-      html: "",
-      title: page.title,
-      bodyText: page.bodyText,
-      linksText: page.linksText,
-      schemaText: page.schemaText,
-    });
-
-  if (!shouldRetry) {
-    return {
-      page,
-      classification: initialClassification,
-      upgraded: false,
-    };
-  }
-
-  try {
-    const browserPage = await fetchWithPlaywright(page.url);
-    const browserClassification = classifySinglePage(browserPage);
-
-    const oldGap =
-      (initialClassification.topScore || 0) -
-      (initialClassification.secondScore || 0);
-    const newGap =
-      (browserClassification.topScore || 0) -
-      (browserClassification.secondScore || 0);
-
-    if (
-      browserClassification.confidence === "High" ||
-      newGap > oldGap ||
-      browserClassification.siteType !== initialClassification.siteType
-    ) {
-      return {
-        page: browserPage,
-        classification: browserClassification,
-        upgraded: true,
-      };
-    }
-
-    return {
-      page,
-      classification: initialClassification,
-      upgraded: false,
-    };
-  } catch {
-    return {
-      page,
-      classification: initialClassification,
-      upgraded: false,
-    };
-  }
-}
+// ─── Domain analysis ──────────────────────────────────────────────────────────
 
 async function analyzeDomain(homepageUrl) {
-  const homepageRaw = await extractPageData(null, homepageUrl);
-  const homepageResolved = await maybeUpgradePageWithBrowser(homepageRaw);
-  const homepage = homepageResolved.page;
-  const homepageClassification = homepageResolved.classification;
+  const homepage = await extractPageData(null, homepageUrl);
 
-  if (homepageClassification.confidence === EARLY_EXIT_CONFIDENCE) {
+  const initialAggregateText = `${homepage.title} ${homepage.metaDescription} ${homepage.bodyText}`.slice(
+    0,
+    MAX_AGGREGATE_TEXT
+  );
+  const initialLinksText = homepage.linksText.slice(0, MAX_AGGREGATE_LINKS_TEXT);
+
+  const initialSignals = {
+    hasCart: !!homepage.hasCart,
+    hasPhone: !!homepage.hasPhone,
+    hasAddress: !!homepage.hasAddress,
+    hasMap: !!homepage.hasMap,
+    hasSearchAndFilter: !!homepage.hasSearchAndFilter,
+    hasReviews: !!homepage.hasReviews,
+    hasBusinessListingSchema: !!homepage.hasBusinessListingSchema,
+    hasProductSchema: !!homepage.hasProductSchema,
+    hasArticleSchema: !!homepage.hasArticleSchema
+  };
+
+  const initialClassification = scoreSignals(
+    initialAggregateText,
+    initialLinksText,
+    initialSignals,
+    homepageUrl
+  );
+
+  if (initialClassification.confidence === EARLY_EXIT_CONFIDENCE) {
     return {
       domain: getBaseDomain(homepageUrl),
       homepageUrl,
-      classifierVersion: homepageClassification.classifierVersion || null,
       analyzedPages: [homepage.url],
       pageTitles: [homepage.title].filter(Boolean),
-      pageClassifications: [
-        {
-          url: homepage.url,
-          role: "homepage",
-          weight: 1,
-          siteType: homepageClassification.siteType,
-          confidence: homepageClassification.confidence,
-          classifierVersion: homepageClassification.classifierVersion || null,
-          scores: homepageClassification.scores,
-          upgradedToBrowser: !!homepageResolved.upgraded,
-        },
-      ],
-      matchedSignals: homepageClassification.matchedSignals || [],
-      ...homepageClassification,
-      scoreGap:
-        (homepageClassification.topScore || 0) -
-        (homepageClassification.secondScore || 0),
+      ...initialClassification
     };
   }
 
   const importantLinks = pickImportantLinks(homepage.links, homepageUrl).slice(
     0,
-    INTERNAL_PAGES_LIMIT
+    DOMAIN_INTERNAL_PAGES
   );
 
   const extraPages = [];
 
   await runPool(importantLinks, INTERNAL_PAGE_CONCURRENCY, async (link) => {
     try {
-      const rawPage = await extractPageData(null, link);
-      const resolved = await maybeUpgradePageWithBrowser(rawPage);
-
-      extraPages.push({
-        ...resolved.page,
-        _classification: resolved.classification,
-        _upgraded: resolved.upgraded,
-      });
+      const page = await extractPageData(null, link);
+      extraPages.push(page);
     } catch (error) {
       console.error(`Failed analyzing internal page ${link}:`, error.message);
     }
@@ -558,59 +419,41 @@ async function analyzeDomain(homepageUrl) {
 
   const allPages = [homepage, ...extraPages];
 
-  const weightedResults = allPages.map((page, index) => {
-    const classification =
-      index === 0
-        ? homepageClassification
-        : page._classification || classifySinglePage(page);
+  const aggregateText = allPages
+    .map((p) => `${p.title} ${p.metaDescription} ${p.bodyText}`)
+    .join(" ")
+    .slice(0, MAX_AGGREGATE_TEXT);
 
-    let weight = 0.25;
-    if (index === 0) weight = 0.5;
-    else if (index === 1) weight = 0.25;
-    else if (index === 2) weight = 0.25;
+  const linksText = allPages
+    .map((p) => p.linksText)
+    .join(" ")
+    .slice(0, MAX_AGGREGATE_LINKS_TEXT);
 
-    return {
-      url: page.url,
-      title: page.title,
-      role: index === 0 ? "homepage" : "internal",
-      weight,
-      siteType: classification.siteType,
-      confidence: classification.confidence,
-      classifierVersion: classification.classifierVersion || null,
-      scores: classification.scores,
-      matchedSignals: classification.matchedSignals || [],
-      upgradedToBrowser: !!page._upgraded,
-    };
-  });
+  const combinedSignals = {
+    hasCart: allPages.some((p) => p.hasCart),
+    hasPhone: allPages.some((p) => p.hasPhone),
+    hasAddress: allPages.some((p) => p.hasAddress),
+    hasMap: allPages.some((p) => p.hasMap),
+    hasSearchAndFilter: allPages.some((p) => p.hasSearchAndFilter),
+    hasReviews: allPages.some((p) => p.hasReviews),
+    hasBusinessListingSchema: allPages.some((p) => p.hasBusinessListingSchema),
+    hasProductSchema: allPages.some((p) => p.hasProductSchema),
+    hasArticleSchema: allPages.some((p) => p.hasArticleSchema)
+  };
 
-  const finalClassification = summarizeWeightedClassification(weightedResults);
-
-  const matchedSignals = weightedResults.flatMap((p) =>
-    (p.matchedSignals || []).map((signal) => ({
-      ...signal,
-      url: p.url,
-      weight: p.weight,
-    }))
+  const classification = scoreSignals(
+    aggregateText,
+    linksText,
+    combinedSignals,
+    homepageUrl
   );
 
   return {
     domain: getBaseDomain(homepageUrl),
     homepageUrl,
-    classifierVersion: finalClassification.classifierVersion || null,
     analyzedPages: allPages.map((p) => p.url),
     pageTitles: allPages.map((p) => p.title).filter(Boolean),
-    pageClassifications: weightedResults.map((p) => ({
-      url: p.url,
-      title: p.title,
-      role: p.role,
-      weight: p.weight,
-      siteType: p.siteType,
-      confidence: p.confidence,
-      classifierVersion: p.classifierVersion || null,
-      upgradedToBrowser: !!p.upgradedToBrowser,
-    })),
-    matchedSignals,
-    ...finalClassification,
+    ...classification
   };
 }
 

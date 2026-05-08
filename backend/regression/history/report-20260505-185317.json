@@ -1,0 +1,249 @@
+{
+  "runId": "20260505-185317",
+  "dataset": "test_dataset.csv",
+  "settings": {
+    "enableBrowserUpgrade": "0"
+  },
+  "summary": {
+    "total": 239,
+    "correct": 226,
+    "failed": 13,
+    "accuracy": 94.6
+  },
+  "confusionMatrix": {
+    "Newspaper": {
+      "Newspaper": 45,
+      "Blog": 1
+    },
+    "Service": {
+      "Service": 43,
+      "ERROR": 1
+    },
+    "Saas": {
+      "Saas": 36
+    },
+    "E-commerce": {
+      "E-commerce": 29,
+      "ERROR": 1
+    },
+    "Directory": {
+      "Directory": 29
+    },
+    "Blog": {
+      "Blog": 23,
+      "Saas": 1
+    },
+    "Small business": {
+      "Small business": 21,
+      "Service": 2,
+      "E-commerce": 3,
+      "ERROR": 4
+    }
+  },
+  "perClass": {
+    "Newspaper": {
+      "total": 46,
+      "correct": 45,
+      "errors": 0,
+      "predictedAs": {
+        "Newspaper": 45,
+        "Blog": 1
+      },
+      "recall": 97.8
+    },
+    "Service": {
+      "total": 44,
+      "correct": 43,
+      "errors": 1,
+      "predictedAs": {
+        "Service": 43,
+        "ERROR": 1
+      },
+      "recall": 97.7
+    },
+    "Saas": {
+      "total": 36,
+      "correct": 36,
+      "errors": 0,
+      "predictedAs": {
+        "Saas": 36
+      },
+      "recall": 100
+    },
+    "E-commerce": {
+      "total": 30,
+      "correct": 29,
+      "errors": 1,
+      "predictedAs": {
+        "E-commerce": 29,
+        "ERROR": 1
+      },
+      "recall": 96.7
+    },
+    "Directory": {
+      "total": 29,
+      "correct": 29,
+      "errors": 0,
+      "predictedAs": {
+        "Directory": 29
+      },
+      "recall": 100
+    },
+    "Blog": {
+      "total": 24,
+      "correct": 23,
+      "errors": 0,
+      "predictedAs": {
+        "Blog": 23,
+        "Saas": 1
+      },
+      "recall": 95.8
+    },
+    "Small business": {
+      "total": 30,
+      "correct": 21,
+      "errors": 4,
+      "predictedAs": {
+        "Small business": 21,
+        "Service": 2,
+        "E-commerce": 3,
+        "ERROR": 4
+      },
+      "recall": 70
+    }
+  },
+  "failureBuckets": {
+    "newspaper_vs_blog": 1,
+    "fetch_or_runtime_error": 6,
+    "other_misclassification": 3,
+    "small_business_vs_ecommerce": 3
+  },
+  "failures": [
+    {
+      "url": "https://digitaltrends.com/cars/best-electric-cars",
+      "expected": "Newspaper",
+      "predicted": "Blog",
+      "confidence": "High",
+      "topScore": 25,
+      "secondScore": 21.5,
+      "scoreGap": 3.5,
+      "analyzedPages": [
+        "https://digitaltrends.com/cars/best-electric-cars"
+      ]
+    },
+    {
+      "url": "https://prudential.com/financial-wellness",
+      "expected": "Service",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "Both Cheerio and Playwright failed for https://prudential.com/financial-wellness: page.goto: Timeout 9000ms exceeded.\nCall log:\n\u001b[2m  - navigating to \"https://prudential.com/financial-wellness\", waiting until \"domcontentloaded\"\u001b[22m\n"
+    },
+    {
+      "url": "https://bestbuy.com/site/macbook-air/6543210.p",
+      "expected": "E-commerce",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "Both Cheerio and Playwright failed for https://bestbuy.com/site/macbook-air/6543210.p: page.goto: net::ERR_HTTP2_PROTOCOL_ERROR at https://bestbuy.com/site/macbook-air/6543210.p\nCall log:\n\u001b[2m  - navigating to \"https://bestbuy.com/site/macbook-air/6543210.p\", waiting until \"domcontentloaded\"\u001b[22m\n"
+    },
+    {
+      "url": "https://semrush.com/blog/content-marketing-strategy",
+      "expected": "Blog",
+      "predicted": "Saas",
+      "confidence": "High",
+      "topScore": 39,
+      "secondScore": 28.2,
+      "scoreGap": 10.8,
+      "analyzedPages": [
+        "https://semrush.com/blog/content-marketing-strategy"
+      ]
+    },
+    {
+      "url": "https://blueskytaxservices.com/individual-tax",
+      "expected": "Small business",
+      "predicted": "Service",
+      "confidence": "Low",
+      "topScore": 4.8999999999999995,
+      "secondScore": 2.8,
+      "scoreGap": 2.0999999999999996,
+      "analyzedPages": [
+        "https://blueskytaxservices.com/individual-tax"
+      ]
+    },
+    {
+      "url": "https://benchmarkrestorations.com/services",
+      "expected": "Small business",
+      "predicted": "E-commerce",
+      "confidence": "High",
+      "topScore": 40.6,
+      "secondScore": 34,
+      "scoreGap": 6.600000000000001,
+      "analyzedPages": [
+        "https://benchmarkrestorations.com/services"
+      ]
+    },
+    {
+      "url": "https://classictile.com/bathroom-remodeling",
+      "expected": "Small business",
+      "predicted": "E-commerce",
+      "confidence": "High",
+      "topScore": 26.6,
+      "secondScore": 19,
+      "scoreGap": 7.600000000000001,
+      "analyzedPages": [
+        "https://classictile.com/bathroom-remodeling"
+      ]
+    },
+    {
+      "url": "https://atlantahandyman.com/home-repairs",
+      "expected": "Small business",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "Both Cheerio and Playwright failed for https://atlantahandyman.com/home-repairs: page.goto: Timeout 9000ms exceeded.\nCall log:\n\u001b[2m  - navigating to \"https://atlantahandyman.com/home-repairs\", waiting until \"domcontentloaded\"\u001b[22m\n"
+    },
+    {
+      "url": "https://englishgardenflowers.com/weddings",
+      "expected": "Small business",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "Both Cheerio and Playwright failed for https://englishgardenflowers.com/weddings: page.goto: net::ERR_NAME_NOT_RESOLVED at https://englishgardenflowers.com/weddings\nCall log:\n\u001b[2m  - navigating to \"https://englishgardenflowers.com/weddings\", waiting until \"domcontentloaded\"\u001b[22m\n"
+    },
+    {
+      "url": "https://zensationalspa.com/services",
+      "expected": "Small business",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "Both Cheerio and Playwright failed for https://zensationalspa.com/services: page.goto: net::ERR_NAME_NOT_RESOLVED at https://zensationalspa.com/services\nCall log:\n\u001b[2m  - navigating to \"https://zensationalspa.com/services\", waiting until \"domcontentloaded\"\u001b[22m\n"
+    },
+    {
+      "url": "https://yardmasterslandscape.com/services",
+      "expected": "Small business",
+      "predicted": "ERROR",
+      "confidence": "N/A",
+      "error": "Both Cheerio and Playwright failed for https://yardmasterslandscape.com/services: page.goto: net::ERR_NAME_NOT_RESOLVED at https://yardmasterslandscape.com/services\nCall log:\n\u001b[2m  - navigating to \"https://yardmasterslandscape.com/services\", waiting until \"domcontentloaded\"\u001b[22m\n"
+    },
+    {
+      "url": "https://mrelectric.com/services/electrical-panel-upgrades",
+      "expected": "Small business",
+      "predicted": "Service",
+      "confidence": "Low",
+      "topScore": 4.8999999999999995,
+      "secondScore": 0,
+      "scoreGap": 4.8999999999999995,
+      "analyzedPages": [
+        "https://mrelectric.com/services/electrical-panel-upgrades"
+      ]
+    },
+    {
+      "url": "https://taxprogroup.com/tax-preparation",
+      "expected": "Small business",
+      "predicted": "E-commerce",
+      "confidence": "High",
+      "topScore": 40.6,
+      "secondScore": 34,
+      "scoreGap": 6.600000000000001,
+      "analyzedPages": [
+        "https://taxprogroup.com/tax-preparation"
+      ]
+    }
+  ]
+}
