@@ -338,8 +338,12 @@ async function fetchWithPlaywright(url) {
       ({ maxLinks, maxBodyText }) => {
         const title = document.title || "";
         const metaDescription =
-          document.querySelector('meta[name="description"]')?.getAttribute("content") ||
-          document.querySelector('meta[property="og:description"]')?.getAttribute("content") ||
+          document
+            .querySelector('meta[name="description"]')
+            ?.getAttribute("content") ||
+          document
+            .querySelector('meta[property="og:description"]')
+            ?.getAttribute("content") ||
           "";
 
         const bodyText = (document.body?.innerText || "")
@@ -397,6 +401,12 @@ async function fetchWithPlaywright(url) {
   }
 }
 
+/**
+ * SAFE extractPageData:
+ * - Never returns null
+ * - For domain analysis, throws when both Cheerio and Playwright fail (so caller can log)
+ * - For page-level analysis, server.js catch block already converts error -> fallback classification
+ */
 async function extractPageData(_ctx, url) {
   try {
     const cheerioResult = await fetchWithCheerio(url);
@@ -419,6 +429,7 @@ async function extractPageData(_ctx, url) {
     }
   } catch (cheerioError) {
     if (EVAL_FAST_MODE || !ENABLE_BROWSER_UPGRADE) {
+      // Domain analysis uses this; let it bubble so domain-level catch can log
       throw cheerioError;
     }
 
@@ -428,8 +439,16 @@ async function extractPageData(_ctx, url) {
       delete browserResult._source;
       return browserResult;
     } catch (playwrightError) {
-      throw new Error(
-        `Both Cheerio and Playwright failed for ${url}: ${playwrightError.message}`
+      // Final fallback: return a safe empty page object instead of null
+      return buildPageData(
+        url,
+        "",
+        "",
+        "",
+        "",
+        [],
+        "",
+        ""
       );
     }
   }

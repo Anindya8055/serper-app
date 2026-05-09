@@ -136,9 +136,12 @@ function shouldDoDeepPageAnalysis(item, knownPrior) {
   }
 
   if (knownPrior === "E-commerce") {
-    return /product|products|shop|store|collections?|categories?|dp|gp|buy/i.test(
-      url
-    );
+    const listingPattern =
+      /product|products|shop|store|collections?|categories?|dp|gp|buy|\/s\?|\/c\/kp\/|\/site\/shop\/|\/b\//i;
+    if (listingPattern.test(url)) {
+      return false;
+    }
+    return true;
   }
 
   if (knownPrior === "Saas") {
@@ -242,6 +245,10 @@ async function analyzeSingleResult(item, domainMap, deepIndex = 0) {
 
   try {
     const pageData = await extractPageData(null, item.url);
+
+    if (!pageData) {
+      throw new Error("extractPageData returned null (site likely blocked headless browser)");
+    }
 
     const pageResult = inferTypeFromSignals(
       item.url,
@@ -427,7 +434,7 @@ async function runAnalysisInBackground(keyword, country) {
           if (prevStatus === "done") {
             nextStatus = "done";
           } else if (domainFailed) {
-            nextStatus = "error";
+            nextStatus = "processing";
           } else {
             nextStatus = "processing";
           }
@@ -455,7 +462,6 @@ async function runAnalysisInBackground(keyword, country) {
       let completed = 0;
       let deepCounter = 0;
 
-      // ✅ FIX: wrapped in try/catch/finally so no item can stay "processing"
       await runPool(results, PAGE_CONCURRENCY, async (item, index) => {
         try {
           const knownPrior = getDomainPrior(item.domain);
@@ -529,19 +535,41 @@ async function runAnalysisInBackground(keyword, country) {
             analyzedPages: analyzedItem.analyzedPages || [],
           });
         } catch (err) {
-          // ✅ FIX: any uncaught error forces "error" — never left as "processing"
           console.error(`Page analysis failed for ${item?.url}:`, err.message);
 
+          const knownPrior = (() => {
+            try { return getDomainPrior(item?.domain); } catch { return null; }
+          })();
+          const domainAnalysis = domainMap.get(item?.domain);
+          const effectiveType = knownPrior || domainAnalysis?.siteType || null;
+
+          const fallbackSiteType = normalizeType(effectiveType || "Small business");
+          const fallbackContentType = normalizeType(
+            (() => {
+              try {
+                return classifyContentType(item?.url || "", null, effectiveType);
+              } catch {
+                return effectiveType || "Small business";
+              }
+            })()
+          );
+
           results[index] = {
-            ...item,
-            analysisStatus: "error",
-            matchedSignals: [
-              ...(Array.isArray(item.matchedSignals) ? item.matchedSignals : []),
-              `Page analysis failed: ${err.message}`,
-            ],
+            url: item?.url || "",
+            domain: item?.domain || "",
+            siteType: fallbackSiteType,
+            contentType: fallbackContentType,
+            confidence: knownPrior ? "High" : "Low",
+            classifierVersion: CLASSIFIER_VERSION,
+            analyzedPages: domainAnalysis?.analyzedPages || [],
+            analysisStatus: "done",
+            matchedSignals: mergeMatchedSignals(
+              knownPrior ? [`Known domain prior: ${knownPrior}`] : [],
+              domainAnalysis?.matchedSignals || [],
+              [`Outer fallback: page analysis threw (${err.message})`]
+            ),
           };
         } finally {
-          // ✅ FIX: counter and snapshot update moved here so they always run
           completed++;
           if (completed % SNAPSHOT_BATCH_SIZE === 0 || completed === results.length) {
             await updateSearchSnapshot(keyword, country, results);
@@ -627,7 +655,6 @@ app.get("/api/search-status", async (req, res) => {
     const processingCount = results.filter((r) => r.analysisStatus === "processing").length;
     const pendingCount = results.filter((r) => r.analysisStatus === "pending").length;
 
-    // ✅ FIX: analyzed = true when nothing is still in-flight (errors count as terminal)
     return res.json({
       keyword,
       country,
@@ -661,44 +688,7 @@ app.post("/api/search", async (req, res) => {
   keyword = keyword.toLowerCase().trim();
 
   try {
-    const existing = await prisma.search.findUnique({
-      where: {
-        keyword_country: { keyword, country },
-      },
-    });
-
-    if (existing?.resultsSnapshot?.length) {
-      const needsResume = existing.resultsSnapshot.some(
-        (item) =>
-          item.analysisStatus === "pending" ||
-          item.analysisStatus === "processing"
-      );
-
-      if (needsResume) {
-        void runAnalysisInBackground(keyword, country).catch((err) =>
-          console.error("Background analysis restart failed:", err.message)
-        );
-      }
-
-      // ✅ FIX: "error" is also a terminal state — treated as analyzed
-      const analyzed = existing.resultsSnapshot.every(
-        (item) =>
-          item.analysisStatus === "done" || item.analysisStatus === "error"
-      );
-
-      return res.json({
-        source: "cache",
-        keyword,
-        country,
-        total: existing.resultsSnapshot.length,
-        analyzed,
-        results: existing.resultsSnapshot,
-        statusUrl: `/api/search-status?keyword=${encodeURIComponent(
-          keyword
-        )}&country=${country}`,
-      });
-    }
-
+    // Always fetch live from Serper, ignore cached snapshot for the response
     let allUrls = [];
     let page = 1;
 
