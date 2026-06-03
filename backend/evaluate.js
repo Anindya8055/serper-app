@@ -1,75 +1,105 @@
-// const { inferTypeFromSignals } = require("./classifier.js");
-const { inferTypeFromSignals } = require("./classifier");
 const fs = require("fs");
+const path = require("path");
+const {
+  inferTypeFromSignals,
+  classifyContentType,
+  normalizeType,
+  classifyWithFastText,
+} = require("./classifier");
 
-// Load CSV (expects: url,expectedType with header row)
-const rawLines = fs
-  .readFileSync("test_dataset.csv", "utf8")
-  .trim()
-  .split("\n")
-  .slice(1); // skip header
+const DATASET_PATH = path.join(__dirname, "test_dataset_corrected.csv");
 
-let correct = 0;
-let total = 0;
-const confusionMap = {};
-const failures = [];
+function parseCsvLine(line) {
+  const parts = [];
+  let current = "";
+  let inQuotes = false;
 
-for (const line of rawLines) {
-  // Find last comma: everything before = URL, after = expected type
-  const lastComma = line.lastIndexOf(",");
-  if (lastComma === -1) continue;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
 
-  const url = line.slice(0, lastComma).trim().replace(/^"|"$/g, "");
-  const expected = line.slice(lastComma + 1).trim().replace(/^"|"$/g, "");
+    if (ch === '"') {
+      inQuotes = !inQuotes;
+      continue;
+    }
 
-  if (!url || !expected) continue;
+    if (ch === "," && !inQuotes) {
+      parts.push(current);
+      current = "";
+      continue;
+    }
 
-  // Call classifier with URL only; all other page signals empty
-  const result = inferTypeFromSignals(
-    url,   // url
-    "",    // title
-    "",    // metaDescription
-    "",    // bodyText
-    "",    // linksText
-    "",    // schemaText
-    {},    // signals
-    null   // siteTypeHint
-  );
-
-  const predicted = result.siteType;
-
-  // Build confusion matrix
-  if (!confusionMap[expected]) confusionMap[expected] = {};
-  confusionMap[expected][predicted] =
-    (confusionMap[expected][predicted] || 0) + 1;
-
-  if (predicted === expected) {
-    correct += 1;
-  } else {
-    failures.push({ url, expected, predicted });
+    current += ch;
   }
 
-  total += 1;
+  parts.push(current);
+  return parts.map((x) => x.trim());
 }
 
-// Summary
-const accuracy = total > 0 ? ((correct / total) * 100).toFixed(1) : "0.0";
-console.log(
-  `\nAccuracy: ${accuracy}% (${correct}/${total})\n`
-);
+const rawLines = fs
+  .readFileSync(DATASET_PATH, "utf8")
+  .trim()
+  .split("\n")
+  .slice(1);
 
-// Confusion matrix
-console.log("Confusion matrix:");
-console.table(confusionMap);
+let contentCorrect = 0;
+let siteCorrect = 0;
+let total = 0;
+const failures = [];
 
-// Failures
-if (failures.length) {
-  console.log("\nFailed predictions:");
-  failures.forEach((f) => {
-    console.log(
-      `${f.expected.padEnd(16)} → ${f.predicted.padEnd(16)}  ${f.url}`
+(async () => {
+  for (const line of rawLines) {
+    const [url, expectedContentType, expectedSiteType] = parseCsvLine(line);
+    if (!url || !expectedContentType || !expectedSiteType) continue;
+
+    const ruleSite = inferTypeFromSignals(url, "", "", "", "", "", {}, null);
+    const predictedSite = normalizeType(ruleSite.siteType);
+
+    const predictedContent = normalizeType(
+      classifyContentType(url, null, predictedSite)
     );
-  });
-} else {
-  console.log("\nNo failed predictions 🎉");
-}
+
+    const fastText = await classifyWithFastText(url, {});
+    const fastTextSite = normalizeType(fastText?.sitePrediction?.siteType || "");
+    const fastTextContent = normalizeType(fastText?.contentPrediction?.contentType || "");
+
+    const finalSite = predictedSite || fastTextSite;
+    const finalContent = predictedContent || fastTextContent || finalSite;
+
+    if (finalSite === expectedSiteType) siteCorrect++;
+    if (finalContent === expectedContentType) contentCorrect++;
+
+    if (finalSite !== expectedSiteType || finalContent !== expectedContentType) {
+      failures.push({
+        url,
+        expectedSiteType,
+        finalSite,
+        expectedContentType,
+        finalContent,
+        fastTextSite,
+        fastTextContent,
+      });
+    }
+
+    total++;
+  }
+
+  const siteAccuracy = total ? ((siteCorrect / total) * 100).toFixed(1) : "0.0";
+  const contentAccuracy = total ? ((contentCorrect / total) * 100).toFixed(1) : "0.0";
+
+  console.log(`\nSite accuracy: ${siteAccuracy}% (${siteCorrect}/${total})`);
+  console.log(`Content accuracy: ${contentAccuracy}% (${contentCorrect}/${total})`);
+
+  if (failures.length) {
+    console.log(`\nFailures (${failures.length}):`);
+    for (const f of failures) {
+      console.log(
+        `[site ${f.expectedSiteType} -> ${f.finalSite}] [content ${f.expectedContentType} -> ${f.finalContent}] ${f.url}`
+      );
+    }
+  } else {
+    console.log("\nNo failed predictions 🎉");
+  }
+})().catch((err) => {
+  console.error("Evaluation failed:", err);
+  process.exit(1);
+});

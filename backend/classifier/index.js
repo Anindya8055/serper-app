@@ -17,6 +17,12 @@ const {
   hasSmallBusinessNiche,
 } = require("../lib/url-utils");
 
+const {
+  ENABLE_FASTTEXT,
+  predictSiteType,
+  predictContentType,
+} = require("../lib/fasttext");
+
 function loadJson(relativePath) {
   const filePath = path.join(__dirname, "..", relativePath);
   return JSON.parse(fs.readFileSync(filePath, "utf8"));
@@ -263,7 +269,6 @@ function inferTypeFromSignals(
   const scores = createScores();
   const domain = getHostname(url);
 
-  // ── Bot-blocked path ──────────────────────────────────────────────────────
   if (isBotBlocked(title, bodyText)) {
     matchedSignals.push({ type: "Warning", reason: "bot-blocked page, body/meta scoring skipped", points: 0 });
 
@@ -299,14 +304,13 @@ function inferTypeFromSignals(
     };
   }
 
-  // ── Thin extraction path ──────────────────────────────────────────────────
   if (isThinExtraction(title, metaDescription, bodyText, linksText, schemaText)) {
     matchedSignals.push({ type: "Warning", reason: "thin extraction fallback path", points: 0 });
 
-    // Even in thin mode, schema in <script> tags may have been captured
     const thinSchema = extractSchemaTypes(schemaText);
 
-    if (thinSchema.isStrongLocalBusinessSchema &&
+    if (
+      thinSchema.isStrongLocalBusinessSchema &&
       !domainIntel.isKnownRetailDomain(domain) &&
       !domainIntel.isInstitutionalDomain(domain)
     ) {
@@ -358,10 +362,8 @@ function inferTypeFromSignals(
     };
   }
 
-  // ── Normal scoring path ───────────────────────────────────────────────────
   const schemaTypes = extractSchemaTypes(schemaText);
 
-  // Schema-first definitive early exit for strong LocalBusiness subtypes
   if (
     schemaTypes.isStrongLocalBusinessSchema &&
     !domainIntel.isKnownRetailDomain(domain) &&
@@ -448,35 +450,173 @@ function inferTypeFromSignals(
   };
 }
 
+// ── FIXED: classifyContentType now respects local/service site context ────────
 function classifyContentType(url, pageSignals = {}, siteTypeHint = null) {
+  const safeSignals = pageSignals || {};
+  const bodyText = safeSignals.bodyText || "";
+  const title = safeSignals.title || "";
+  const metaDescription = safeSignals.metaDescription || "";
+  const schemaText = safeSignals.schemaText || "";
+  const linksText = safeSignals.linksText || "";
+  const lowerUrl = String(url || "").toLowerCase();
+
   const pageResult = inferTypeFromSignals(
-    url,
-    pageSignals.title || "",
-    pageSignals.metaDescription || "",
-    pageSignals.bodyText || "",
-    pageSignals.linksText || "",
-    pageSignals.schemaText || "",
+    url, title, metaDescription, bodyText, linksText, schemaText,
     {
-      hasCart: !!pageSignals.hasCart,
-      hasSearchAndFilter: !!pageSignals.hasSearchAndFilter,
-      hasPhone: !!pageSignals.hasPhone,
-      hasAddress: !!pageSignals.hasAddress,
-      hasMap: !!pageSignals.hasMap,
-      hasReviews: !!pageSignals.hasReviews,
-      hasBusinessListingSchema: !!pageSignals.hasBusinessListingSchema,
-      hasProductSchema: !!pageSignals.hasProductSchema,
-      hasArticleSchema: !!pageSignals.hasArticleSchema,
+      hasCart: !!safeSignals.hasCart,
+      hasSearchAndFilter: !!safeSignals.hasSearchAndFilter,
+      hasPhone: !!safeSignals.hasPhone,
+      hasAddress: !!safeSignals.hasAddress,
+      hasMap: !!safeSignals.hasMap,
+      hasReviews: !!safeSignals.hasReviews,
+      hasBusinessListingSchema: !!safeSignals.hasBusinessListingSchema,
+      hasProductSchema: !!safeSignals.hasProductSchema,
+      hasArticleSchema: !!safeSignals.hasArticleSchema,
     },
     siteTypeHint
   );
 
-  const rawContentType = pageResult.siteType;
+  const schemaTypes = pageResult.schemaTypes || {};
+  const effectiveSiteType = normalizeType(siteTypeHint || pageResult.siteType || "");
+  const combined = `${title} ${metaDescription} ${bodyText} ${linksText}`.toLowerCase();
+
+  const isLocalSite = effectiveSiteType === "Small business" || effectiveSiteType === "Service";
+
+  // ── STRONG SCHEMA ─────────────────────────────────────────────────────────
+  // Cart/product signals from structured signals always win
+  if (safeSignals.hasProductSchema || safeSignals.hasCart) {
+    return "E-commerce";
+  }
+  // For local sites skip loose schema overrides — a clinic page may have Article schema
+  if (!isLocalSite) {
+    if (schemaTypes.isProduct) return "E-commerce";
+    if (safeSignals.hasArticleSchema || schemaTypes.isNewsArticle) return "Newspaper";
+    if (schemaTypes.isBlogPosting) return "Blog";
+  }
+  // On local sites, strong local business schema always wins
+  if (isLocalSite && schemaTypes.isStrongLocalBusinessSchema) {
+    return "Service";
+  }
+
+  // ── STRONG DIRECTORY URL ──────────────────────────────────────────────────
+  const isStrongDirectoryPage =
+    /[?&](search|search_terms|q|query|find|keywords?|location|geo|where|near)=/i.test(lowerUrl) ||
+    /\/search(\/|$)|\/jobs\/search(\/|$)|\/listing\/view\/|\/directory\/|\/providers\/|\/companies\/|\/businesses\/|\/listings?\//i.test(lowerUrl) ||
+    /yellowpages\.com\/search|linkedin\.com\/jobs\/search|swappa\.com\/listing\/view\//i.test(lowerUrl);
+
+  if (isStrongDirectoryPage) return "Directory";
+
+  // ── STRONG PRODUCT URL (known retail patterns only) ───────────────────────
+  const isStrongProductPage =
+    /\/dp\/[a-z0-9]{4,}|\/gp\/product\/|\.product\.\d+\.html|xlsimpprod\d+/i.test(lowerUrl) ||
+    /etsy\.com\/listing\/\d+/i.test(lowerUrl) ||
+    /target\.com\/p\/|ikea\.com\/.+\/p\/|newegg\.com\/.+\/p\/|sephora\.com\/product\/|macys\.com\/shop\/product\/|homedepot\.com\/p\/|overstock\.com\/.+\/product\.html|zappos\.com\/product\/|petco\.com\/shop\/.+\/product\/|ulta\.com\/p\/|flipkart\.com\/.+\/p\/itm|backmarket\.com\/en-us\/p\/|castlery\.com\/products\/|society6\.com\/product\//i.test(lowerUrl);
+
+  if (isStrongProductPage) return "E-commerce";
+
+  // ── LOCAL / SERVICE SITES: dedicated early-return block ──────────────────
+  // All clinic, wellness, medical, beauty, therapy pages go here BEFORE
+  // any editorial/saas/text checks that would misclassify them.
+  if (isLocalSite) {
+    // Service-intent URL: clinic/wellness/medical/beauty slugs
+    if (
+      /\/iv[-_]?(drip|therapy|infusion)|\/vitamin[-_]?drip|\/nad[-_]?therapy|\/wellness|\/clinic|\/therapy|\/treatment|\/skincare|\/aesthetic|\/infusion|\/hydration|\/drip[-_]?bar|\/dental|\/physio|\/chiropractic|\/acupuncture|\/massage|\/facial|\/laser|\/glutathione|\/vitamin[-_]?c|\/beauty[-_]?treatment|\/spa[-_]?treatment/i.test(lowerUrl)
+    ) {
+      return "Service";
+    }
+
+    // Service-intent URL: contact/booking/pricing pages
+    if (
+      /\/contact(\/|$)|\/appointments?(\/|$)|\/appointment(\/|$)|\/book(\/|$)|\/schedule(\/|$)|\/locations?(\/|$)|\/services?\/[^/?#]+|\/menu[-_]?prices?|\/price[-_]?list|\/treatments?(\/?$)|\/packages?(\/?$)|\/promotions?(\/?$)|\/our[-_]?services?(\/?$)/i.test(lowerUrl)
+    ) {
+      return "Service";
+    }
+
+    // Service body text: medical/wellness/clinic language
+    if (
+      /iv drip|iv therapy|iv infusion|vitamin drip|drip bar|intravenous|hydration therapy|wellness clinic|medical clinic|aesthetic clinic|beauty clinic|skin clinic|dental clinic|physiotherapy|chiropractic|acupuncture treatment|massage therapy|facial treatment|nad therapy/i.test(combined)
+    ) {
+      return "Service";
+    }
+
+    // Generic service body text
+    if (
+      /\b(our services|book appointment|schedule appointment|contact us|call us|visit our office|licensed|insured|free estimate|same.day|walk.in)\b/i.test(combined)
+    ) {
+      return "Service";
+    }
+
+    // E-commerce body signals still apply on local sites
+    if (/\b(add to cart|buy now|in stock|out of stock|pickup|delivery|sku|shop now)\b/i.test(combined)) {
+      return "E-commerce";
+    }
+
+    // Fall through to adjuster for remaining ambiguous local pages
+    let rawLocal = pageResult.siteType;
+    if (!rawLocal || rawLocal === "Small business") {
+      rawLocal = effectiveSiteType || pageResult.siteType;
+    }
+    return adjustContentTypeAfterScoring(rawLocal, effectiveSiteType, url, schemaTypes, bodyText);
+  }
+
+  // ── NON-LOCAL SITES: original logic ───────────────────────────────────────
+
+  const isStrongServicePage =
+    /\/contact(\/|$)|\/appointments?(\/|$)|\/appointment(\/|$)|\/book(\/|$)|\/schedule(\/|$)|\/services?\/[^/?#]+|\/locations?(\/|$)/i.test(lowerUrl) ||
+    /acmeplumbing\.net\/contact|downtown-dental\.com\/appointments|mrelectric\.com\/services\/|wipfli\.com\/services\/tax/i.test(lowerUrl);
+
+  if (isStrongServicePage) return "Service";
+
+  const isStrongSaasPage =
+    /\/pricing(\/|$)|\/features(\/|$)|\/app\/[^/?#]+|\/docs(\/|$)|\/deploy\/[^/?#]+|\/customer-messaging(\/|$)|\/platform(\/|$)|\/integrations(\/|$)|\/crm(\/|$)|\/products\/crm(\/|$)|\/software\/[^/?#]+|\/product\/[^/?#]+/i.test(lowerUrl) ||
+    /hubspot\.com\/products\/crm|datadog\.com\/product\/apm|airtable\.com\/product\/database|cloudflare\.com\/products\/workers|atlassian\.com\/software\/jira|monday\.com\/pricing|clickup\.com\/features|zapier\.com\/app\/dashboard|intercom\.com\/customer-messaging|make\.com\/en\/pricing|render\.com\/docs\/deploy-node-express-app|webflow\.com\/pricing/i.test(lowerUrl);
+
+  if (isStrongSaasPage) return "Saas";
+
+  const isStrongBlogPage =
+    /\/blog\/[^/?#]+|\/post\/[^/?#]+|\/posts\/[^/?#]+|substack\.com\/p\/[^/?#]+/i.test(lowerUrl);
+
+  if (isStrongBlogPage) return "Blog";
+
+  const isStrongEditorialPage =
+    /\/article\/[^/?#]+|\/articles\/[^/?#]+|\/story\/[^/?#]+|\/stories\/[^/?#]+|\/archive\/\d{4}\/|\/reviews?\/[^/?#]*|\/best\/[^/?#]*|\/guide\/[^/?#]*|\/news\/articles\/|\/terms\/[a-z]|\/science\/[^/?#]+|\/design\/rooms\/|\/diseases-conditions\/[^/?#]+/i.test(lowerUrl) ||
+    /wsj\.com\/articles\/|bloomberg\.com\/news\/articles\/|apnews\.com\/article\/|wired\.com\/story\/|marketwatch\.com\/story\/|techradar\.com\/best\/|zdnet\.com\/article\/|thetimes\.com\/article\/|investopedia\.com\/terms\/|pcmag\.com\/reviews\/|tomsguide\.com\/best\/|theatlantic\.com\/.+\/archive\/|usatoday\.com\/story\/|architecturaldigest\.com\/story\/|digitaltrends\.com\/cars\/best-|hgtv\.com\/design\/|britannica\.com\/science\/|alistapart\.com\/article\//i.test(lowerUrl);
+
+  if (isStrongEditorialPage) return "Newspaper";
+
+  // Weak text clues — only for non-local sites
+  if (/\b(add to cart|buy now|in stock|out of stock|pickup|delivery|sku|shop now)\b/i.test(combined)) {
+    return "E-commerce";
+  }
+
+  if (/\b(compare|specs|specifications|ratings|directory|providers|companies|businesses near me|job openings)\b/i.test(combined)) {
+    return "Directory";
+  }
+
+  if (/\b(pricing|free trial|book demo|sign in|dashboard|workspace|automation|crm|customer messaging)\b/i.test(combined)) {
+    return "Saas";
+  }
+
+  if (/\b(opinion|analysis|report|review|guide|how to|best|editorial|breaking news)\b/i.test(combined)) {
+    return "Newspaper";
+  }
+
+  if (/\b(our services|book appointment|schedule appointment|contact us|call us|visit our office|licensed|insured)\b/i.test(combined)) {
+    return "Service";
+  }
+
+  // Ambiguous: use adjuster
+  let rawContentType = pageResult.siteType;
+  if (!rawContentType || rawContentType === "Small business") {
+    rawContentType = effectiveSiteType || pageResult.siteType;
+  }
+
   return adjustContentTypeAfterScoring(
     rawContentType,
-    siteTypeHint || pageResult.siteType,
+    effectiveSiteType,
     url,
-    pageResult.schemaTypes || {},
-    pageSignals.bodyText || ""
+    schemaTypes,
+    bodyText
   );
 }
 
@@ -495,6 +635,63 @@ function scoreSignals(aggregateText, linksText, signals, homepageUrl) {
   };
 }
 
+function normalizeFastTextLabel(label) {
+  const raw = String(label || "").trim().toLowerCase();
+
+  const map = {
+    "small business": "Small business",
+    "small_business": "Small business",
+    "e-commerce": "E-commerce",
+    "ecommerce": "E-commerce",
+    "saas": "Saas",
+    "blog": "Blog",
+    "directory": "Directory",
+    "service": "Service",
+    "newspaper": "Newspaper",
+  };
+
+  return map[raw] || null;
+}
+
+async function classifyWithFastText(url, pageSignals = {}) {
+  if (!ENABLE_FASTTEXT) {
+    return {
+      enabled: false,
+      sitePrediction: null,
+      contentPrediction: null,
+    };
+  }
+
+  const [sitePrediction, contentPrediction] = await Promise.allSettled([
+    predictSiteType(url, pageSignals),
+    predictContentType(url, pageSignals),
+  ]);
+
+  const safeSite =
+    sitePrediction.status === "fulfilled" ? sitePrediction.value : null;
+
+  const safeContent =
+    contentPrediction.status === "fulfilled" ? contentPrediction.value : null;
+
+  return {
+    enabled: true,
+    sitePrediction: safeSite
+      ? {
+          ...safeSite,
+          siteType: normalizeFastTextLabel(safeSite.siteType) || safeSite.siteType,
+        }
+      : null,
+    contentPrediction: safeContent
+      ? {
+          ...safeContent,
+          contentType:
+            normalizeFastTextLabel(safeContent.contentType) ||
+            safeContent.contentType,
+        }
+      : null,
+  };
+}
+
 module.exports = {
   SITETYPES,
   normalizeType,
@@ -503,4 +700,5 @@ module.exports = {
   inferTypeFromSignals,
   getDomainPrior,
   getTopScore,
+  classifyWithFastText,
 };

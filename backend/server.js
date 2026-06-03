@@ -11,6 +11,7 @@ const {
   inferTypeFromSignals,
   normalizeType,
   getDomainPrior,
+  classifyWithFastText,
 } = require("./classifier");
 const {
   cleanUrls,
@@ -271,15 +272,37 @@ async function analyzeSingleResult(item, domainMap, deepIndex = 0) {
       knownPrior || domainAnalysis?.siteType || null
     );
 
-    const resolvedSiteType = normalizeType(
+    const fastTextResult = await classifyWithFastText(item.url, pageData);
+
+    const ruleBasedSiteType = normalizeType(
       knownPrior ||
         domainAnalysis?.siteType ||
         pageResult.siteType ||
         "Small business"
     );
 
-    const resolvedContentType = normalizeType(
+    const fastTextSiteType = normalizeType(
+      fastTextResult?.sitePrediction?.siteType || ""
+    );
+
+    const resolvedSiteType = normalizeType(
+      ruleBasedSiteType ||
+      fastTextSiteType ||
+      "Small business"
+    );
+
+    const ruleBasedContentType = normalizeType(
       classifyContentType(item.url, pageData, resolvedSiteType)
+    );
+
+    const fastTextContentType = normalizeType(
+      fastTextResult?.contentPrediction?.contentType || ""
+    );
+
+    const resolvedContentType = normalizeType(
+      ruleBasedContentType ||
+      fastTextContentType ||
+      resolvedSiteType
     );
 
     return {
@@ -296,6 +319,20 @@ async function analyzeSingleResult(item, domainMap, deepIndex = 0) {
         knownPrior ? [`Known domain prior: ${knownPrior}`] : [],
         domainAnalysis?.matchedSignals || [],
         pageResult.matchedSignals || [],
+        fastTextResult?.sitePrediction
+          ? [
+              `fastText siteType: ${fastTextResult.sitePrediction.siteType} (${(
+                (fastTextResult.sitePrediction.probability || 0) * 100
+              ).toFixed(1)}%)`,
+            ]
+          : [],
+        fastTextResult?.contentPrediction
+          ? [
+              `fastText contentType: ${fastTextResult.contentPrediction.contentType} (${(
+                (fastTextResult.contentPrediction.probability || 0) * 100
+              ).toFixed(1)}%)`,
+            ]
+          : [],
         [`Content analyzed from page: ${pageData.title || item.url}`]
       ),
       analyzedPages: [
@@ -304,6 +341,7 @@ async function analyzeSingleResult(item, domainMap, deepIndex = 0) {
       analysisStatus: "done",
       _pageData: pageData,
       _pageResult: pageResult,
+      _fastTextResult: fastTextResult,
     };
   } catch (error) {
     const effectiveType = knownPrior || domainAnalysis?.siteType || null;
@@ -525,9 +563,11 @@ async function runAnalysisInBackground(keyword, country) {
                     ? analyzedItem._pageData.links.length
                     : 0,
                   pageError: analyzedItem._pageError || null,
+                  fastText: analyzedItem._fastTextResult || null,
                 }
               : {
                   pageError: analyzedItem._pageError || null,
+                  fastText: analyzedItem._fastTextResult || null,
                 },
             scores: analyzedItem._pageResult?.scores ?? undefined,
             matchedSignals: analyzedItem.matchedSignals || [],
@@ -655,6 +695,8 @@ app.get("/api/search-status", async (req, res) => {
     const processingCount = results.filter((r) => r.analysisStatus === "processing").length;
     const pendingCount = results.filter((r) => r.analysisStatus === "pending").length;
 
+    const debug = req.query.debug === "true";
+
     return res.json({
       keyword,
       country,
@@ -664,7 +706,11 @@ app.get("/api/search-status", async (req, res) => {
       errorCount,
       processingCount,
       pendingCount,
-      results,
+      results: results.map((r) => {
+        if (debug) return r;
+        const { matchedSignals, analyzedPages, ...clean } = r;
+        return clean;
+      }),
     });
   } catch (error) {
     console.error("Status route error:", error.message);
@@ -688,7 +734,6 @@ app.post("/api/search", async (req, res) => {
   keyword = keyword.toLowerCase().trim();
 
   try {
-    // Always fetch live from Serper, ignore cached snapshot for the response
     let allUrls = [];
     let page = 1;
 
@@ -734,13 +779,19 @@ app.post("/api/search", async (req, res) => {
       console.error("Background analysis failed:", err.message)
     );
 
+    const debug = req.body?.debug === true;
+
     return res.status(202).json({
       source: "api",
       keyword,
       country,
       total: quickResults.length,
       analyzed: false,
-      results: quickResults,
+      results: quickResults.map((r) => {
+        if (debug) return r;
+        const { matchedSignals, analyzedPages, ...clean } = r;
+        return clean;
+      }),
       statusUrl: `/api/search-status?keyword=${encodeURIComponent(
         keyword
       )}&country=${country}`,

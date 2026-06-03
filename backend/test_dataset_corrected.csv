@@ -1,0 +1,240 @@
+url,expected_content_type,expected_site_type
+https://wsj.com/articles/markets-rally-2024,Blog,Newspaper
+https://bloomberg.com/news/articles/inflation-data,Blog,Newspaper
+https://cnn.com/2024/01/01/politics/congress-vote,Newspaper,Newspaper
+https://nytimes.com/2024/03/15/world/europe/ukraine.html,Newspaper,Newspaper
+https://theguardian.com/world/2024/apr/01/climate-change,Newspaper,Newspaper
+https://bbc.com/news/world-europe-12345678,Newspaper,Newspaper
+https://reuters.com/markets/us/stocks-rise-2024,Newspaper,Newspaper
+https://apnews.com/article/election-results-2024,Blog,Newspaper
+https://forbes.com/sites/finance/2024/best-stocks,Newspaper,Newspaper
+https://techcrunch.com/2024/04/openai-raises-funding,Newspaper,Newspaper
+https://theverge.com/2024/3/apple-vision-pro-review,Newspaper,Newspaper
+https://wired.com/story/ai-future-work-2024,Blog,Newspaper
+https://cnbc.com/2024/03/fed-rate-decision,Newspaper,Newspaper
+https://marketwatch.com/story/dow-jones-hits-record,Blog,Newspaper
+https://businessinsider.com/best-credit-cards-2024,Newspaper,Newspaper
+https://ft.com/content/global-economy-outlook,Newspaper,Newspaper
+https://economist.com/finance-and-economics/2024,Newspaper,Newspaper
+https://techradar.com/best/best-laptops,Blog,Newspaper
+https://cnet.com/tech/mobile/best-smartphones-2024,Newspaper,Newspaper
+https://engadget.com/2024/04/samsung-galaxy-review,Newspaper,Newspaper
+https://arstechnica.com/science/2024/space-telescope-findings,Newspaper,Newspaper
+https://zdnet.com/article/best-antivirus-software,Blog,Newspaper
+https://thetimes.com/article/uk-election-2024,Blog,Newspaper
+https://timeout.com/london/restaurants/best-restaurants,Newspaper,Newspaper
+https://travelandleisure.com/best-hotels-in-paris,Newspaper,Newspaper
+https://investopedia.com/terms/p/portfolio.asp,Blog,Newspaper
+https://morningstar.com/stocks/best-value-stocks-2024,Newspaper,Newspaper
+https://consumerreports.org/cars/best-cars-2024,Newspaper,Newspaper
+https://newsweek.com/politics/trump-polls-2024,Newspaper,Newspaper
+https://time.com/6345678/ai-revolution-2024,Newspaper,Newspaper
+https://pcmag.com/reviews/dell-xps-15,Blog,Newspaper
+https://tomsguide.com/best/best-gaming-laptops,Blog,Newspaper
+https://digitaltrends.com/cars/best-electric-cars,Newspaper,Newspaper
+https://androidauthority.com/best-android-phones-2024,Newspaper,Newspaper
+https://fortune.com/2024/04/richest-people-world,Newspaper,Newspaper
+https://inc.com/best-workplaces-2024,Newspaper,Newspaper
+https://theatlantic.com/politics/archive/2024/america,Blog,Newspaper
+https://usatoday.com/story/news/politics/2024/election,Blog,Newspaper
+https://foxnews.com/politics/biden-immigration-policy,Newspaper,Newspaper
+https://nbcnews.com/news/us-news/california-wildfire,Newspaper,Newspaper
+https://politico.com/news/2024/senate-race-results,Newspaper,Newspaper
+https://thehill.com/homenews/senate/2024-election,Newspaper,Newspaper
+https://entrepreneur.com/starting-a-business/2024,Newspaper,Newspaper
+https://hgtv.com/design/rooms/living-rooms/decorating-ideas,Small business,Newspaper
+https://thespruce.com/best-indoor-plants-for-low-light,Newspaper,Newspaper
+https://architecturaldigest.com/story/best-home-decor-2024,Blog,Newspaper
+https://schwab.com/investing/retirement,Service,Service
+https://fidelity.com/retirement/iras,Service,Service
+https://vanguard.com/personal-investors,Service,Service
+https://jpmorgan.com/wealth-management,Service,Service
+https://goldmansachs.com/our-firm,Service,Service
+https://morganstanley.com/wealth-management,Service,Service
+https://edwardjones.com/us-en/financial-advisor,Service,Service
+https://northwesternmutual.com/life-insurance,Service,Service
+https://statefarm.com/insurance/auto,Service,Service
+https://truist.com/personal-banking,Service,Service
+https://americancentury.com/content/direct/en/invest,Service,Service
+https://wipfli.com/services/tax,Small business,Service
+https://ml.com/planning/retirement-planning,Service,Service
+https://bankofamerica.com/checking-accounts,Service,Service
+https://wellsfargo.com/mortgage,Service,Service
+https://chase.com/personal/credit-cards,Service,Service
+https://citibank.com/us/savings-accounts,Service,Service
+https://capitalone.com/bank/savings-accounts,Service,Service
+https://ally.com/bank/high-yield-cd,Service,Service
+https://geico.com/auto-insurance,Service,Service
+https://allstate.com/homeowners-insurance,Service,Service
+https://progressive.com/auto/car-insurance,Service,Service
+https://aetna.com/health-insurance-plans,Service,Service
+https://cigna.com/individuals-families/health-insurance,Service,Service
+https://mayoclinic.org/diseases-conditions/diabetes,Service,Service
+https://clevelandclinic.org/health/diagnostics,Service,Service
+https://healthline.com/nutrition/how-to-lose-weight,Service,Service
+https://nih.gov/health-information/diabetes,Service,Service
+https://cancer.gov/about-cancer/treatment,Service,Service
+https://wikipedia.org/wiki/Machine_learning,Service,Service
+https://britannica.com/science/artificial-intelligence,Newspaper,Service
+https://khanacademy.org/math/algebra,Service,Service
+https://coursera.org/learn/machine-learning,Service,Service
+https://edx.org/course/introduction-to-python,Service,Service
+https://nyse.com/listings/listing-standards,Service,Service
+https://blackrock.com/us/individual/investment-ideas,Service,Service
+https://fbi.gov/investigate/terrorism,Service,Service
+https://irs.gov/filing/how-to-file,Service,Service
+https://uscis.gov/green-card,Service,Service
+https://dea.gov/drug-information,Service,Service
+https://cdc.gov/flu/symptoms,Service,Service
+https://metlife.com/insurance/life-insurance,Service,Service
+https://nationwide.com/personal/insurance/auto,Service,Service
+https://prudential.com/financial-wellness,Service,Service
+https://github.com/features/actions,Saas,Saas
+https://slack.com/features,Saas,Saas
+https://notion.so/product,Saas,Saas
+https://figma.com/pricing,Saas,Saas
+https://vercel.com/docs/deployments,Saas,Saas
+https://netlify.com/platform/build,Saas,Saas
+https://salesforce.com/crm,Saas,Saas
+https://hubspot.com/products/crm,Saas,Saas
+https://zendesk.com/customer-service,Saas,Saas
+https://stripe.com/payments,Saas,Saas
+https://twilio.com/communications,Saas,Saas
+https://datadog.com/product/apm,Saas,Saas
+https://atlassian.com/software/jira,Saas,Saas
+https://asana.com/product,Saas,Saas
+https://monday.com/pricing,Saas,Saas
+https://clickup.com/features,Saas,Saas
+https://airtable.com/product/database,Saas,Saas
+https://zapier.com/app/dashboard,Saas,Saas
+https://intercom.com/customer-messaging,Small business,Saas
+https://mailchimp.com/email-marketing,Saas,Saas
+https://cloudflare.com/products/workers,Saas,Saas
+https://newrelic.com/platform/full-stack-observability,Saas,Saas
+https://supabase.com/database,Saas,Saas
+https://linear.app/features,Saas,Saas
+https://n8n.io/automation,Saas,Saas
+https://make.com/en/pricing,Saas,Saas
+https://gitlab.com/solutions/devops,Saas,Saas
+https://render.com/docs/deploy-node-express-app,Saas,Saas
+https://polymarket.com/event/us-election-2024,Saas,Saas
+https://shopify.com/pricing,Saas,Saas
+https://webflow.com/pricing,Saas,Saas
+https://wix.com/upgrade/website,Saas,Saas
+https://squarespace.com/pricing,Saas,Saas
+https://heroku.com/pricing,Saas,Saas
+https://dropbox.com/plans,Saas,Saas
+https://box.com/pricing,Saas,Saas
+https://amazon.com/dp/B09G9FPHY6,E-commerce,E-commerce
+https://ebay.com/itm/apple-iphone-15/334567890,E-commerce,E-commerce
+https://walmart.com/ip/Samsung-TV-55/123456,E-commerce,E-commerce
+https://etsy.com/listing/123456/handmade-bracelet,E-commerce,E-commerce
+https://target.com/p/sony-headphones/-/A-12345678,Blog,E-commerce
+https://bestbuy.com/site/macbook-air/6543210.p,E-commerce,E-commerce
+https://wayfair.com/furniture/pdp/sofa-W12345.html,E-commerce,E-commerce
+https://ikea.com/us/en/p/kallax-shelf-unit/,Blog,E-commerce
+https://newegg.com/rtx-4090/p/N82E16814137823,Blog,E-commerce
+https://chewy.com/royal-canin-cat-food/dp/12345,E-commerce,E-commerce
+https://sephora.com/product/fenty-beauty-foundation/P12345,Saas,E-commerce
+https://nordstrom.com/s/nike-air-force-1/6789012,E-commerce,E-commerce
+https://macys.com/shop/product/calvin-klein-dress/ID=12345,Saas,E-commerce
+https://homedepot.com/p/Milwaukee-Drill/12345678,Blog,E-commerce
+https://lowes.com/pd/Ryobi-Circular-Saw/12345,E-commerce,E-commerce
+https://costco.com/kirkland-olive-oil.product.123456.html,E-commerce,E-commerce
+https://overstock.com/Office/Ergonomic-Chair/12345/product.html,Saas,E-commerce
+https://zappos.com/product/9123456/color/12345,Saas,E-commerce
+https://petco.com/shop/en/petcostore/product/dog-food/12345,Saas,E-commerce
+https://ulta.com/p/olay-moisturizer/xlsImpprod12345,Blog,E-commerce
+https://aliexpress.com/item/1005004567890.html,E-commerce,E-commerce
+https://flipkart.com/apple-iphone-15/p/itm12345,Blog,E-commerce
+https://backmarket.com/en-us/p/iphone-13/12345,Blog,E-commerce
+https://swappa.com/listing/view/12345,E-commerce,Directory
+https://castlery.com/products/oslo-sofa,Saas,E-commerce
+https://society6.com/product/abstract-art_print,Saas,E-commerce
+https://greatbigcanvas.com/view/van-gogh-starry-night/12345,E-commerce,E-commerce
+https://amazon.com/s?k=wireless+headphones,E-commerce,E-commerce
+https://walmart.com/browse/electronics/tvs/3944_1060825_447913,E-commerce,E-commerce
+https://etsy.com/shop/HandmadeJewelry,E-commerce,E-commerce
+https://yelp.com/biz/joes-pizza-new-york,Directory,Directory
+https://tripadvisor.com/Hotel_Review-g60763-d12345.html,Directory,Directory
+https://yellowpages.com/search?search_terms=plumber&geo=Chicago,E-commerce,Directory
+https://angi.com/companylist/us/il/chicago/plumbing.htm,Directory,Directory
+https://zillow.com/homes/for_sale/New-York--NY,Directory,Directory
+https://realtor.com/realestateandhomes-search/Los-Angeles_CA,Directory,Directory
+https://cars.com/research/toyota-camry-2024,Directory,Directory
+https://autotrader.com/cars-for-sale/new-cars/toyota,Directory,Directory
+https://booking.com/hotel/us/marriott-downtown.html,Directory,Directory
+https://airbnb.com/s/Paris--France/homes,Directory,Directory
+https://expedia.com/Hotel-Search?destination=Miami,Directory,Directory
+https://kayak.com/flights/NYC-LAX/2024-06-01,Directory,Directory
+https://houzz.com/professionals/interior-designers/chicago,Directory,Directory
+https://healthgrades.com/find-a-doctor/illinois/chicago,Directory,Directory
+https://zocdoc.com/find/doctor/new-york/internist,Directory,Directory
+https://avvo.com/find-a-lawyer/illinois/chicago,Directory,Directory
+https://glassdoor.com/Reviews/Google-Reviews-E9079.htm,Blog,Directory
+https://indeed.com/jobs?q=software+engineer&l=San+Francisco,Directory,Directory
+https://thumbtack.com/k/house-cleaners/near-me,Directory,Directory
+https://bbb.org/search?find_text=electrician&find_loc=Dallas+TX,Directory,Directory
+https://homeadvisor.com/task/plumbing,Directory,Directory
+https://vitals.com/find/cardiologist/chicago-il,Directory,Directory
+https://turo.com/us/en/search?location=Los+Angeles,Directory,Directory
+https://hotels.com/search/stays?destination=Las+Vegas,Directory,Directory
+https://linkedin.com/jobs/search/?keywords=marketing&location=NYC,E-commerce,Directory
+https://findlaw.com/lawyer/criminal-defense/illinois.html,Directory,Directory
+https://kbb.com/car-values/used-car-values/direct,Directory,Directory
+https://orbitz.com/Hotels-in-New-York,Directory,Directory
+https://carrentals.com/?destination=Miami+Airport,Directory,Directory
+https://neilpatel.com/blog/seo-tips-2024,Blog,Blog
+https://moz.com/blog/google-algorithm-update,Blog,Blog
+https://backlinko.com/seo-techniques,Blog,Blog
+https://ahrefs.com/blog/keyword-research,Blog,Blog
+https://semrush.com/blog/content-marketing-strategy,Blog,Blog
+https://hubspot.com/blog/marketing/social-media-tips,Blog,Saas
+https://buffer.com/resources/social-media-marketing,Blog,Blog
+https://copyblogger.com/content-marketing-2024,Blog,Blog
+https://medium.com/@johnsmith/my-year-in-review-2024,Blog,Blog
+https://substack.com/p/the-future-of-ai-writing,Blog,Blog
+https://dev.to/john/building-a-rest-api-with-node,Blog,Blog
+https://css-tricks.com/a-complete-guide-to-flexbox,Blog,Blog
+https://smashingmagazine.com/2024/01/best-css-techniques,Blog,Blog
+https://alistapart.com/article/responsive-web-design,Blog,Blog
+https://markmanson.net/not-giving-a-f-ck,Blog,Blog
+https://waitbutwhy.com/2024/01/the-big-picture,Blog,Blog
+https://paulgraham.com/essays/startups.html,Blog,Blog
+https://simonwillison.net/2024/llm-security,Blog,Blog
+https://jvns.ca/blog/2024/debugging-tips,Blog,Blog
+https://overreacted.io/why-do-hooks-exist,Blog,Blog
+https://kentcdodds.com/blog/testing-react-apps,Blog,Blog
+https://rachelandrew.co.uk/archives/2024/grid-layout,Blog,Blog
+https://healthyblog.com/post/intermittent-fasting-guide,Blog,Blog
+https://mybookreviews.net/author/best-fantasy-2024,Blog,Blog
+https://joespizzanyc.com,Small business,Small business
+https://acmeplumbing.net/contact,Small business,Small business
+https://downtown-dental.com/appointments,Small business,Small business
+https://harborviewhotels.com/rooms,Small business,Small business
+https://blueskytaxservices.com/individual-tax,Small business,Small business
+https://elitepainting.co/residential,Small business,Small business
+https://highlandsphotography.com/wedding-photos,Small business,Small business
+https://benchmarkrestorations.com/services,Small business,Small business
+https://grimaldis.com/menu,Small business,Small business
+https://protomannilaw.com/practice-areas,Small business,Small business
+https://greatlakesroofing.com/services,Small business,Small business
+https://classictile.com/bathroom-remodeling,Small business,Small business
+https://atipt.com/services,Small business,Small business
+https://goldenstateplumbing.com/drain-cleaning,Small business,Small business
+https://sunrisedentalcare.net/teeth-whitening,Small business,Small business
+https://lakefronteyecare.com/contact-lenses,Small business,Small business
+https://atlantahandyman.com/home-repairs,Small business,Small business
+https://boulderbeerfest.com,Small business,Small business
+https://mariposayoga.com/classes,Small business,Small business
+https://englishgardenflowers.com/weddings,Small business,Small business
+https://cascaderoofing.net/residential,Small business,Small business
+https://downtownfitclub.com/membership,Small business,Small business
+https://zensationalspa.com/services,Small business,Small business
+https://texastacotruck.com/catering,Small business,Small business
+https://yardmasterslandscape.com/services,Small business,Small business
+https://thecakabakery.com/custom-cakes,Small business,Small business
+https://mrelectric.com/services/electrical-panel-upgrades,Small business,Small business
+https://taxprogroup.com/tax-preparation,Small business,Small business
+https://woodthumb.com/custom,Small business,Small business
+https://highdesertautobody.com/collision-repair,Small business,Small business

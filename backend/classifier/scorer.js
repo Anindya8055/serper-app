@@ -1,4 +1,3 @@
-// backend/classifier/scorer.js
 const {
   addScore,
   subtractScore,
@@ -13,8 +12,6 @@ const {
   isStrongSmallBusinessPath,
   hasSmallBusinessNiche,
 } = require("../lib/url-utils");
-
-// scorer.js is pure — domainIntel always comes through context arguments.
 
 function isPublisherEditorialDomain(domain = "") {
   const d = String(domain || "").toLowerCase();
@@ -65,6 +62,7 @@ function isPublisherEditorialDomain(domain = "") {
     "entrepreneur.com",
     "inc.com",
     "theatlantic.com",
+    "wikipedia.org",
   ];
 
   return domains.some((base) => d === base || d.endsWith(`.${base}`));
@@ -83,11 +81,9 @@ function isCommunityBlogPlatform(domain = "") {
   return domains.some((base) => d === base || d.endsWith(`.${base}`));
 }
 
-// Extra patterns for strong directory detection (lawyers/dentists, etc.)
 const STRONG_DIRECTORY_PATH_RE =
   /\/(lawyers|attorneys|all-lawyers|find-a-lawyer|find-a-dentist|find-a-doctor|directory|search\/?|search\?|results|professionals?|providers?|near-me|listing|listings)(\/|$|\?)/i;
 
-// Location/clinic patterns to help avoid SaaS misclassification
 const LOCATION_OR_CLINIC_PATH_RE =
   /\/(locations?|location\/|dental-clinic|dental-care|dental-center|dentistry|clinic|clinics?|offices?|our-locations?)(\/|$)/i;
 
@@ -108,12 +104,12 @@ function scoreUrlPath(url, matchedSignals) {
   }
 
   if (
-    /article|articles|story|stories|guide|guides|review|reviews|analysis|how-?to|features?|learn|insights|research|commentary|columns?|recipe/i.test(
+    /article|articles|story|stories|guide|guides|review|reviews|analysis|how-?to|features?|learn|insights|research|commentary|columns?|recipe|hands-?on|preview/i.test(
       u
     )
   ) {
-    addScore(scores, matchedSignals, "Blog", 5, "article URL path");
-    addScore(scores, matchedSignals, "Newspaper", 4, "article URL path");
+    addScore(scores, matchedSignals, "Blog", 6, "article/review URL path");
+    addScore(scores, matchedSignals, "Newspaper", 4, "article/review URL path");
   }
 
   if (
@@ -125,7 +121,7 @@ function scoreUrlPath(url, matchedSignals) {
   }
 
   if (
-    /pricing|demo|free-trial|trial|signup|sign-up|login|sign-in|\bapp\b|platform|software|dashboard|workspace|integrations|features|docs/i.test(
+    /pricing|demo|free-trial|trial|signup|sign-up|login|sign-in|\bapp\b|software|dashboard|workspace|integrations|platform\/app|api\/|developers\//i.test(
       u
     )
   ) {
@@ -133,14 +129,13 @@ function scoreUrlPath(url, matchedSignals) {
   }
 
   if (
-    /directory|listing|listings|companies|businesses|vendors|near-me|providers?|places|jobs\/search|hotel-search|find-a-|for_sale|realestateandhomes-search|\/search\?/i.test(
+    /directory|listing|listings|companies|businesses|vendors|near-me|providers?|places|jobs\/search|hotel-search|find-a-|for_sale|realestateandhomes-search|\/search\?|\/compare\/|\/specs?\//i.test(
       u
     )
   ) {
     addScore(scores, matchedSignals, "Directory", 8, "directory listing URL path");
   }
 
-  // Extra boost for strong “finder” paths (lawyers/dentists, etc.)
   if (STRONG_DIRECTORY_PATH_RE.test(u)) {
     addScore(scores, matchedSignals, "Directory", 6, "strong directory/finder URL path");
   }
@@ -228,6 +223,7 @@ function scoreSchema(schemaTypes, matchedSignals, context = {}) {
 
   if (schemaTypes.isReview && !schemaTypes.isProduct) {
     addScore(scores, matchedSignals, "Directory", 4, "Review/AggregateRating schema");
+    addScore(scores, matchedSignals, "Blog", 2, "review schema supports editorial content");
   }
 
   return scores;
@@ -255,7 +251,7 @@ function scoreTitle(title, matchedSignals, url, domain = "") {
   }
 
   if (
-    /best|top|how to|guide to|tips for|vs\.?|comparison|review|hands.?on|i tested|my experience|outlook|forecast|prediction|analysis|recipe/i.test(
+    /best|top|how to|guide to|tips for|vs\.?|comparison|review|hands.?on|i tested|my experience|outlook|forecast|prediction|analysis|recipe|preview/i.test(
       t
     )
   ) {
@@ -289,7 +285,7 @@ function scoreTitle(title, matchedSignals, url, domain = "") {
   }
 
   if (
-    /pricing|free trial|request demo|book a demo|software|platform|api|crm|automation|workspace|dashboard|features/i.test(
+    /pricing|free trial|request demo|book a demo|software|api|crm|automation|workspace|dashboard|sign in|log in/i.test(
       t
     )
   ) {
@@ -297,7 +293,7 @@ function scoreTitle(title, matchedSignals, url, domain = "") {
   }
 
   if (
-    /find|search|near me|top .* in|best .* near|directory|listings?|compare/i.test(t) &&
+    /find|search|near me|top .* in|best .* near|directory|listings?|compare|specs?/i.test(t) &&
     !/shop|buy|sale|deals|cart|checkout/i.test(t)
   ) {
     addScore(scores, matchedSignals, "Directory", 6, "directory/search title");
@@ -339,7 +335,7 @@ function scoreMetaDescription(meta, matchedSignals, url, domain, domainIntel) {
   }
 
   if (
-    /blog|tips|insights|tutorials?|guides?|how-to|in-depth|my take|personal|outlook|forecast|prediction|analysis|recipe/i.test(
+    /blog|tips|insights|tutorials?|guides?|how-to|in-depth|my take|personal|outlook|forecast|prediction|analysis|recipe|hands-on|review/i.test(
       t
     )
   ) {
@@ -366,7 +362,7 @@ function scoreMetaDescription(meta, matchedSignals, url, domain, domainIntel) {
   }
 
   if (
-    /free trial|all-in-one platform|software for|automate your|api for|manage your|your workspace|start for free|no credit card|features|productivity platform/i.test(
+    /free trial|all-in-one software|software for|automate your|api for|manage your|your workspace|start for free|no credit card|sign in|log in|integrations?/i.test(
       t
     )
   ) {
@@ -374,7 +370,7 @@ function scoreMetaDescription(meta, matchedSignals, url, domain, domainIntel) {
   }
 
   if (
-    /find local|browse listings|compare .* near|read reviews|business hours|top-rated .* near|businesses|companies|providers in/i.test(
+    /find local|browse listings|compare .* near|read reviews|business hours|top-rated .* near|businesses|companies|providers in|specifications|compare/i.test(
       t
     ) &&
     !/shop|buy|cart|checkout/i.test(t)
@@ -484,8 +480,9 @@ function scoreBodyText(bodyText, matchedSignals, url, domain, domainIntel) {
     subtractScore(scores, matchedSignals, "Small business", 6, "community platform is not a local business");
   }
 
-  if (isPublisher && /review|reviews|best|guide|hands.?on|tested|analysis/i.test(t)) {
+  if (isPublisher && /review|reviews|best|guide|hands.?on|tested|analysis|preview/i.test(t)) {
     addScore(scores, matchedSignals, "Newspaper", 5, "publisher editorial review body");
+    addScore(scores, matchedSignals, "Blog", 2, "review-style editorial body");
   }
 
   const hasHardCommerceTerms =
@@ -514,7 +511,7 @@ function scoreBodyText(bodyText, matchedSignals, url, domain, domainIntel) {
   }
 
   if (
-    /start your ?free trial|no credit card (required|needed)|cancel anytime|upgrade your plan|your workspace|team workspace|all-in-one platform|connect your ?apps?|api documentation|api key|software pricing|plans?|integrations? with|available|docs|deployment|automation|communications|customer messaging|observability|payments infrastructure|communications api|customer messaging platform/i.test(
+    /start your ?free trial|no credit card (required|needed)|cancel anytime|upgrade your plan|your workspace|team workspace|all-in-one software|connect your ?apps?|api documentation|api key|software pricing|plans?|integrations? with|developers?|automation|communications api|customer messaging platform/i.test(
       t
     )
   ) {
@@ -538,17 +535,17 @@ function scoreBodyText(bodyText, matchedSignals, url, domain, domainIntel) {
   }
 
   const hasListingSubjectTerms =
-    /restaurants?|doctors?|dentists?|lawyers?|attorneys?|plumbers?|electricians?|contractors?|salons?|gyms?|hotels?|clinics?|pharmacies?|service providers?|local businesses?|companies nearby|businesses in|providers? in|professionals? in|jobs|flights|hotel|homes for sale/i.test(
+    /restaurants?|doctors?|dentists?|lawyers?|attorneys?|plumbers?|electricians?|contractors?|salons?|gyms?|hotels?|clinics?|pharmacies?|service providers?|local businesses?|companies nearby|businesses in|providers? in|professionals? in|jobs|flights|hotel|homes for sale|phones|smartphones/i.test(
       t
     );
 
   const hasListingActionTerms =
-    /write a review|read all ?reviews|open now|closed now|get directions|claimed|unclaimed|hours of operation|find near|nearby|browse nearby|search results/i.test(
+    /write a review|read all ?reviews|open now|closed now|get directions|claimed|unclaimed|hours of operation|find near|nearby|browse nearby|search results|compare|full specs|specifications/i.test(
       t
     );
 
   const hasListingMetaTerms =
-    /business details|reviews?|rated .*stars? out of|average rating|verified listing|listed on/i.test(
+    /business details|reviews?|rated .*stars? out of|average rating|verified listing|listed on|spec score|user rating/i.test(
       t
     );
 
@@ -596,7 +593,7 @@ function scoreBodyText(bodyText, matchedSignals, url, domain, domainIntel) {
   }
 
   if (
-    /family.?owned and operated|locally owned|proudly serving|our small ?business|visit us|our store|in-store pickup|come see|stop in|established in \d{4}/i.test(
+    /family.?owned and operated|locally owned|our small ?business|visit us|our store|in-store pickup|come see|stop in|established in \d{4}/i.test(
       t
     )
   ) {
@@ -647,7 +644,7 @@ function scoreLinksText(linksText, matchedSignals, domain, domainIntel) {
     addScore(scores, matchedSignals, "Blog", 5, "blog nav links");
   }
 
-  if (isPublisher && /news|reviews|features|opinion|guides|analysis/i.test(t)) {
+  if (isPublisher && /news|reviews|features|opinion|guides|analysis|specs/i.test(t)) {
     addScore(scores, matchedSignals, "Newspaper", 5, "publisher editorial nav");
   }
 
@@ -666,7 +663,7 @@ function scoreLinksText(linksText, matchedSignals, domain, domainIntel) {
   }
 
   if (
-    /pricing|features?|start free|free trial|demo|sign in|login|integrations?|api|documentation|changelog|roadmap|product|developers?/i.test(
+    /pricing|features?|start free|free trial|demo|sign in|login|integrations?|api|documentation|changelog|roadmap|developers?/i.test(
       t
     )
   ) {
@@ -674,7 +671,7 @@ function scoreLinksText(linksText, matchedSignals, domain, domainIntel) {
   }
 
   if (
-    /directory|listings?|browse all|near me|compare|top-rated|categories?|jobs|hotels|flights|homes|find a/i.test(
+    /directory|listings?|browse all|near me|compare|top-rated|categories?|jobs|hotels|flights|homes|find a|specs?/i.test(
       t
     ) &&
     !/shop|cart|checkout|sale|products?|collections?/i.test(t)
@@ -752,7 +749,6 @@ function scoreStructuredSignals(signals, matchedSignals, context = {}) {
   const hasHardCommerce =
     hasConfirmedStorefront || (signals.hasCart && !hasLocalBizSupport);
 
-  // Cart
   if (signals.hasCart) {
     if (isEditorial || isPublisher || isCommunity) {
       addScore(scores, matchedSignals, "E-commerce", 1, "cart on editorial/community page");
@@ -897,7 +893,6 @@ function scoreStructuredSignals(signals, matchedSignals, context = {}) {
     );
   }
 
-  // Extra: if URL path looks like a clinic/location, dampen SaaS influence later
   const isLocationOrClinicPath = LOCATION_OR_CLINIC_PATH_RE.test(url);
   if (isLocationOrClinicPath && !hasHardCommerce && isInstitutional) {
     subtractScore(

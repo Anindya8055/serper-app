@@ -6,7 +6,10 @@
     "dev": "node server.js",
     "start": "node server.js",
     "migrate": "prisma migrate dev",
-    "generate": "prisma generate"
+    "generate": "prisma generate",
+    "eval:url-only": "node evaluate.js",
+    "eval:full": "node evaluate-full.js",
+    "dev:fasttext": "ENABLE_FASTTEXT=true node server.js"
   },
   "engines": {
     "node": "22.x"
@@ -23,6 +26,7 @@
     "tldts": "^6.1.86"
   },
   "devDependencies": {
+    "csv-parse": "^6.2.1",
     "prisma": "^6.0.0"
   }
 }

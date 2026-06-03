@@ -1,4 +1,3 @@
-// backend/classifier/interaction-rules.js
 const {
   addScore,
   subtractScore,
@@ -13,21 +12,15 @@ const {
   hasSmallBusinessNiche,
 } = require("../lib/url-utils");
 
-// ─── Path helpers ─────────────────────────────────────────────────────────────
-
-// Legal-directory path patterns (lawyers, attorneys, etc.)
 const LEGAL_DIRECTORY_PATH_RE =
   /\/(lawyers|attorneys|all-lawyers|find-a-lawyer|find-a-attorney|legal-directory)(\/|$|\?)/i;
 
-// Health-system / clinic location path patterns
 const HEALTH_LOCATION_PATH_RE =
   /\/(locations?|dental-clinic|dental-care|dental-center|dentistry|clinic|clinics?|offices?|our-locations?|profile)(\/|$)/i;
 
-// Generic strong-directory path (provider / professional finders)
 const STRONG_DIRECTORY_PATH_RE =
   /\/(directory|listing|listings|find-a-|near-me|search\?|providers?|professionals?|results)(\/|$|\?)/i;
 
-// Known legal-directory domains (redundant safety net here too)
 const LEGAL_DIRECTORY_DOMAINS = new Set([
   "avvo.com",
   "justia.com",
@@ -48,7 +41,6 @@ const LEGAL_DIRECTORY_DOMAINS = new Set([
   "thervo.com",
 ]);
 
-// Known health-system domains
 const HEALTH_SYSTEM_DOMAINS = new Set([
   "sanfordhealth.org",
   "centracare.com",
@@ -108,15 +100,14 @@ function applyInteractionRules(scores, matchedSignals, context = {}) {
   const isInstitutional = domainIntel.isInstitutionalDomain(domain);
   const isLargeFI = domainIntel.isLargeFinancialInstitutionDomain(domain);
 
-  const blogScore    = scores["Blog"]           || 0;
-  const newsScore    = scores["Newspaper"]       || 0;
-  const ecomScore    = scores["E-commerce"]      || 0;
-  const saasScore    = scores["Saas"]            || 0;
-  const sbScore      = scores["Small business"]  || 0;
-  const serviceScore = scores["Service"]         || 0;
-  const dirScore     = scores["Directory"]       || 0;
+  const blogScore = scores["Blog"] || 0;
+  const newsScore = scores["Newspaper"] || 0;
+  const ecomScore = scores["E-commerce"] || 0;
+  const saasScore = scores["Saas"] || 0;
+  const sbScore = scores["Small business"] || 0;
+  const serviceScore = scores["Service"] || 0;
+  const dirScore = scores["Directory"] || 0;
 
-  // ── FIX 1: Legal directory domains → hard Directory, skip all interaction rules ──
   if (LEGAL_DIRECTORY_DOMAINS.has(domain)) {
     const boost = Math.max(0, 15 - dirScore);
     if (boost > 0) {
@@ -136,10 +127,9 @@ function applyInteractionRules(scores, matchedSignals, context = {}) {
       Math.min(8, scores["Service"] || 0),
       "legal directory domain suppresses Service"
     );
-    return; // no further rules needed
+    return;
   }
 
-  // ── FIX 2: Health system domains → hard Service ───────────────────────────
   if (HEALTH_SYSTEM_DOMAINS.has(domain)) {
     const boost = Math.max(0, 15 - serviceScore);
     if (boost > 0) {
@@ -159,10 +149,9 @@ function applyInteractionRules(scores, matchedSignals, context = {}) {
       scores["Saas"] || 0,
       "health system domain removes SaaS"
     );
-    return; // no further rules needed
+    return;
   }
 
-  // ── FIX 3: Health .org/.edu domains not in the set but clearly institutional ──
   const isHealthOrgOrEdu =
     /\.(org|edu)$/.test(domain) &&
     /health|medical|clinic|dental|hospital|care|hospice|rehab|therapy|pharma|medicine/i.test(
@@ -188,7 +177,6 @@ function applyInteractionRules(scores, matchedSignals, context = {}) {
     }
   }
 
-  // ── FIX 4: Suppress SaaS on clinic/location paths ────────────────────────
   if (HEALTH_LOCATION_PATH_RE.test(pathname) && saasScore > 0) {
     subtractScore(
       scores,
@@ -197,7 +185,6 @@ function applyInteractionRules(scores, matchedSignals, context = {}) {
       saasScore,
       "clinic/location path suppresses SaaS"
     );
-    // and boost Service if institutional or health-looking domain
     if (isInstitutional || isHealthOrgOrEdu) {
       addScore(
         scores,
@@ -209,7 +196,6 @@ function applyInteractionRules(scores, matchedSignals, context = {}) {
     }
   }
 
-  // ── FIX 5: Legal-directory URL paths → boost Directory ────────────────────
   if (LEGAL_DIRECTORY_PATH_RE.test(pathname) || STRONG_DIRECTORY_PATH_RE.test(pathname)) {
     if (dirScore < sbScore || dirScore < serviceScore) {
       addScore(
@@ -228,10 +214,6 @@ function applyInteractionRules(scores, matchedSignals, context = {}) {
       );
     }
   }
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // All existing rules below — unchanged
-  // ─────────────────────────────────────────────────────────────────────────
 
   const hasSingleLocationSignals =
     (signals.hasPhone && signals.hasAddress) ||
@@ -290,7 +272,6 @@ function applyInteractionRules(scores, matchedSignals, context = {}) {
       `${title} ${metaDescription} ${t} ${nav}`
     );
 
-  // Blog vs Newspaper disambiguation
   if (blogScore > 0 && newsScore > 0 && Math.abs(blogScore - newsScore) <= 6) {
     if (/reuters|ap news|associated press|bloomberg|afp/i.test(t)) {
       addScore(scores, matchedSignals, "Newspaper", 8, "wire service attribution");
@@ -309,12 +290,27 @@ function applyInteractionRules(scores, matchedSignals, context = {}) {
     }
   }
 
-  // Editorial pages should usually suppress storefront behavior
   if (isEditorial && blogScore + newsScore >= 8 && ecomScore > 0) {
     subtractScore(scores, matchedSignals, "E-commerce", 8, "editorial suppresses E-commerce");
   }
 
-  // Strong SaaS pages should suppress false E-commerce drift
+  if (
+    (isEditorial || blogScore >= 8 || newsScore >= 8) &&
+    saasScore > 0 &&
+    !signals.hasProductSchema &&
+    !/free trial|request demo|book a demo|start free|api key|softwareapplication/i.test(
+      `${title} ${metaDescription} ${t} ${nav} ${url}`
+    )
+  ) {
+    subtractScore(
+      scores,
+      matchedSignals,
+      "Saas",
+      Math.min(saasScore, 8),
+      "editorial/review page suppresses false SaaS"
+    );
+  }
+
   if (saasScore >= 10 && ecomScore > 0) {
     subtractScore(
       scores,
@@ -325,7 +321,6 @@ function applyInteractionRules(scores, matchedSignals, context = {}) {
     );
   }
 
-  // Narrow local-business correction
   if (
     isLikelyLocal &&
     hasSingleLocationSignals &&
@@ -370,7 +365,6 @@ function applyInteractionRules(scores, matchedSignals, context = {}) {
     }
   }
 
-  // Strong local small-business rescue
   if (
     !isInstitutional &&
     !isLargeFI &&
@@ -399,7 +393,6 @@ function applyInteractionRules(scores, matchedSignals, context = {}) {
     }
   }
 
-  // Small business vs Service
   if (sbScore > 0 && serviceScore > 0) {
     const hasServiceWorkflow =
       /schedule an? ?(appointment|consultation|call|service)|book an? ?(appointment|service|session)|request a ?quote|get a ?free ?estimate|emergency service|repair call|report a crime|submit a tip|victim assistance|public safety|investigation|banking|insurance|mortgage|retirement/i.test(
@@ -419,7 +412,6 @@ function applyInteractionRules(scores, matchedSignals, context = {}) {
     }
   }
 
-  // Directory vs single-business page
   if (dirScore > 0 && serviceScore > 0) {
     const isMultiListingPage =
       /browse all|view all listings|compare .* providers|find .* near|search results|showing results|businesses|jobs|flights|hotels/i.test(
@@ -432,7 +424,6 @@ function applyInteractionRules(scores, matchedSignals, context = {}) {
     }
   }
 
-  // Directory vs E-commerce
   if ((scores["Directory"] || 0) > 0 && (scores["E-commerce"] || 0) > 0) {
     const isMultiListingPage =
       /browse all|view all listings|compare .* providers|find .* near|search results|showing results|businesses|top .* near|jobs|flights|hotels/i.test(
@@ -449,7 +440,6 @@ function applyInteractionRules(scores, matchedSignals, context = {}) {
     }
   }
 
-  // Blog vs Service
   if ((scores["Blog"] || 0) > 0 && (scores["Service"] || 0) > 0) {
     const isPureHowToOrGuide =
       /guide|how to|tutorial|explained|in-depth|step by step|recipe/i.test(t) &&
@@ -460,7 +450,6 @@ function applyInteractionRules(scores, matchedSignals, context = {}) {
     }
   }
 
-  // Institutional suppression
   if (isInstitutional) {
     const hasHardStorefront =
       !!signals.hasCart ||
@@ -489,7 +478,6 @@ function applyInteractionRules(scores, matchedSignals, context = {}) {
     }
   }
 
-  // Large financial institutions
   if (isLargeFI) {
     if (isEditorial) {
       addScore(scores, matchedSignals, "Service", 6, "financial editorial section");
@@ -516,7 +504,6 @@ function applyInteractionRules(scores, matchedSignals, context = {}) {
     }
   }
 
-  // Special-case platform
   if (domain === "polymarket.com" || domain.endsWith(".polymarket.com")) {
     addScore(scores, matchedSignals, "Saas", 8, "prediction market platform");
     subtractScore(
@@ -528,7 +515,6 @@ function applyInteractionRules(scores, matchedSignals, context = {}) {
     );
   }
 
-  // Narrow branded/single-location small business rescue
   const looksLikeLocalBusinessDomain =
     domainIntel.isLikelyLocalBusinessDomain(domain) &&
     !domainIntel.getDomainPrior(domain) &&
@@ -563,7 +549,6 @@ function applyInteractionRules(scores, matchedSignals, context = {}) {
     }
   }
 
-  // Branded local business preference
   if (
     typeof context.isStrongBrandedLocalBusiness === "function" &&
     context.isStrongBrandedLocalBusiness(
