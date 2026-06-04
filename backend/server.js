@@ -29,6 +29,7 @@ const allowedOrigins = new Set([
   "http://localhost:5173",
   "http://localhost:3000",
   "https://serper-app-3wyy.vercel.app",
+  "https://serper-app-txvf.vercel.app",
 ]);
 
 function isOriginAllowed(origin) {
@@ -36,7 +37,8 @@ function isOriginAllowed(origin) {
   if (allowedOrigins.has(origin)) return true;
   return (
     origin.endsWith(".vercel.app") &&
-    origin.includes("anindyac708-6432s-projects")
+    origin.includes("anindyac708-6432s-projects")||
+     origin.includes("serper-app") // ← add this
   );
 }
 
