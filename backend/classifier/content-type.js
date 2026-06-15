@@ -20,14 +20,25 @@ function adjustContentTypeAfterScoring(contentType, siteType, url, schemaTypes, 
   let serviceScore = 0;
 
   // ─── STRONG SCHEMA OVERRIDES ───────────────────────────────────────────────
-  // Skip for Small business / Service to avoid clinic pages being forced to Newspaper/E-commerce
 
   if (hasProduct && siteType !== "Small business" && siteType !== "Service") return "E-commerce";
+  if (hasProduct && siteType === "E-commerce") return "E-commerce";
   if (hasNewsArticle && siteType !== "Small business" && siteType !== "Service") return "Newspaper";
   if (hasBlogPosting && siteType !== "Small business" && siteType !== "Service") return "Blog";
 
-  // Still allow product schema override on confirmed ecommerce sites
-  if (hasProduct && siteType === "E-commerce") return "E-commerce";
+  // FIX: On local sites, allow BlogPosting/Article schema to win IF the URL
+  // also has a clear editorial slug — prevents clinic homepages being forced
+  // to Blog, but allows novodentbd.com/best-10-dentist-in-dhaka → Blog.
+  const hasEditorialSlug =
+    /\/blog\/|\/blogs\/|\/article\/|\/articles\/|\/post\/|\/posts\/|\/news\/|\/why-|\/what-|\/how-|\/best-|\/top-|\/guide-|\/tips-|\/benefits-|\/cost-|\/vs-/i.test(lowerUrl);
+
+  if (
+    (siteType === "Small business" || siteType === "Service") &&
+    (hasBlogPosting || hasNewsArticle || hasArticle) &&
+    hasEditorialSlug
+  ) {
+    return hasBlogPosting ? "Blog" : hasNewsArticle ? "Newspaper" : "Blog";
+  }
 
   // ─── HARD URL OVERRIDES (known domains) ────────────────────────────────────
 
@@ -61,9 +72,7 @@ function adjustContentTypeAfterScoring(contentType, siteType, url, schemaTypes, 
     return "Service";
   }
 
-  // ─── EARLY RETURN: Small business / Service + service-intent URL ────────────
-  // Clinic, wellness, medical, beauty, therapy pages on local business sites
-  // should always be Service regardless of URL slug shape
+  // ─── EARLY RETURN: Small business / Service + service-intent URL ───────────
 
   if (
     (siteType === "Small business" || siteType === "Service") &&
@@ -114,7 +123,6 @@ function adjustContentTypeAfterScoring(contentType, siteType, url, schemaTypes, 
   }
 
   if (/\/p\/[a-z0-9_-]{4,}/i.test(lowerUrl)) {
-    // Only boost ecommerce for /p/ paths on non-service/small-business sites
     if (siteType !== "Small business" && siteType !== "Service") {
       ecommerceScore += 5;
     }
@@ -132,7 +140,6 @@ function adjustContentTypeAfterScoring(contentType, siteType, url, schemaTypes, 
     ecommerceScore += 3;
   }
 
-  // Only treat /product and /products as ecommerce when site is not SaaS/Service/Small business
   if (/\/product\/|\/products\//i.test(lowerUrl)) {
     if (siteType === "Saas") {
       saasScore += 4;
@@ -196,12 +203,10 @@ function adjustContentTypeAfterScoring(contentType, siteType, url, schemaTypes, 
     serviceScore += 6;
   }
 
-  // Medical / wellness / beauty service URL patterns
   if (/\/iv[-_]?(drip|therapy|infusion)|\/vitamin[-_]?drip|\/wellness|\/clinic|\/therapy|\/treatment|\/skincare|\/aesthetic|\/infusion|\/hydration|\/drip[-_]?bar|\/nad[-_]?therapy|\/vitamin[-_]?c|\/glutathione|\/beauty|\/spa/i.test(lowerUrl)) {
     serviceScore += 5;
   }
 
-  // Pricing / menu pages
   if (/\/menu[-_]?prices?|\/price[-_]?list|\/treatments?(\/?$)|\/packages?(\/?$)|\/promotions?(\/?$)/i.test(lowerUrl)) {
     serviceScore += 4;
   }
@@ -224,7 +229,6 @@ function adjustContentTypeAfterScoring(contentType, siteType, url, schemaTypes, 
 
   // ─── BODY TEXT SIGNALS ─────────────────────────────────────────────────────
 
-  // Only add news/blog score from generic words if site is not local/service
   if (/review|reviews|hands-on|first look|impressions|tested|my experience|guide|how to|tips|best|top|vs\.?|comparison|recipe/i.test(text)) {
     if (siteType !== "Small business" && siteType !== "Service") {
       blogScore += 3;
@@ -254,7 +258,6 @@ function adjustContentTypeAfterScoring(contentType, siteType, url, schemaTypes, 
     serviceScore += 4;
   }
 
-  // Medical / wellness / clinic body text
   if (/iv drip|iv therapy|iv infusion|vitamin drip|drip bar|intravenous|hydration therapy|wellness clinic|medical clinic|aesthetic clinic|beauty clinic|skin clinic|dental clinic|physiotherapy|chiropractic|acupuncture treatment|massage therapy|facial treatment/i.test(text)) {
     serviceScore += 5;
   }

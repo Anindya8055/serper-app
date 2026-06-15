@@ -12,6 +12,7 @@ const {
   normalizeType,
   getDomainPrior,
   classifyWithFastText,
+  mergeRuleBasedWithFastText,
 } = require("./classifier");
 const {
   cleanUrls,
@@ -22,7 +23,6 @@ const {
 const { closeBrowser, warmupPagePool } = require("./browser");
 
 const CLASSIFIER_VERSION = "classifier_v1";
-
 const app = express();
 
 const allowedOrigins = new Set([
@@ -36,9 +36,9 @@ function isOriginAllowed(origin) {
   if (!origin) return true;
   if (allowedOrigins.has(origin)) return true;
   return (
-    origin.endsWith(".vercel.app") &&
-    origin.includes("anindyac708-6432s-projects")||
-     origin.includes("serper-app") // ← add this
+    origin.endsWith(".vercel.app") ||
+    origin.includes("anindyac708-6432s-projects") ||
+    origin.includes("serper-app")
   );
 }
 
@@ -57,27 +57,23 @@ app.options("*", cors(corsOptions));
 app.use(cors(corsOptions));
 app.use(express.json());
 
-const API_KEY = process.env.SERPER_API_KEY;
-const PORT = process.env.PORT || 5000;
-
-const TARGET_URL_COUNT = 20;
-const MAX_PAGES = 10;
-const SERPER_TIMEOUT_MS = 12000;
-
-const DOMAIN_CONCURRENCY = 4;
-const PAGE_CONCURRENCY = 5;
-const SNAPSHOT_BATCH_SIZE = 5;
-
-const SKIP_DOMAIN_ANALYSIS_FOR_KNOWN_PRIORS = true;
-const SKIP_PAGE_FETCH_FOR_KNOWN_PRIORS = false;
-const MAX_DEEP_PAGE_ANALYSIS = 20;
-
-const activeJobs = new Map();
-
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.path} - Origin: ${req.headers.origin || "none"}`);
   next();
 });
+
+const API_KEY = process.env.SERPER_API_KEY;
+const PORT = process.env.PORT || 5000;
+const TARGET_URL_COUNT = 20;
+const MAX_PAGES = 10;
+const SERPER_TIMEOUT_MS = 12000;
+const DOMAIN_CONCURRENCY = 4;
+const PAGE_CONCURRENCY = 5;
+const SNAPSHOT_BATCH_SIZE = 5;
+const SKIP_DOMAIN_ANALYSIS_FOR_KNOWN_PRIORS = true;
+const SKIP_PAGE_FETCH_FOR_KNOWN_PRIORS = true;
+const MAX_DEEP_PAGE_ANALYSIS = 20;
+const activeJobs = new Map();
 
 async function updateSearchSnapshot(keyword, country, resultsSnapshot) {
   await prisma.search.update({
@@ -87,7 +83,16 @@ async function updateSearchSnapshot(keyword, country, resultsSnapshot) {
 }
 
 function mergeMatchedSignals(...signalGroups) {
-  return [...new Set(signalGroups.flat().filter(Boolean))];
+  const seen = new Set();
+  const result = [];
+  for (const item of signalGroups.flat().filter(Boolean)) {
+    const key = typeof item === "string" ? item : JSON.stringify(item);
+    if (!seen.has(key)) {
+      seen.add(key);
+      result.push(item);
+    }
+  }
+  return result;
 }
 
 function buildPendingResult(url) {
@@ -133,24 +138,18 @@ function shouldDoDeepPageAnalysis(item, knownPrior) {
   const url = item.url.toLowerCase();
 
   if (knownPrior === "Directory") {
-    return /listing|listings|directory|search|results|near-me|companies|businesses|providers|locations?/i.test(
-      url
-    );
+    return /listing|listings|directory|search|results|near-me|companies|businesses|providers|locations?/i.test(url);
   }
 
   if (knownPrior === "E-commerce") {
     const listingPattern =
       /product|products|shop|store|collections?|categories?|dp|gp|buy|\/s\?|\/c\/kp\/|\/site\/shop\/|\/b\//i;
-    if (listingPattern.test(url)) {
-      return false;
-    }
+    if (listingPattern.test(url)) return false;
     return true;
   }
 
   if (knownPrior === "Saas") {
-    return /pricing|features|integrations|docs|documentation|api|product|platform/i.test(
-      url
-    );
+    return /pricing|features|integrations|docs|documentation|api|product|platform/i.test(url);
   }
 
   return false;
@@ -166,7 +165,7 @@ function quickClassifyWithoutFetch(item, domainAnalysis, knownPrior) {
     ...item,
     siteType: normalizeType(effectiveType || "Small business"),
     contentType,
-    confidence: knownPrior ? "High" : domainAnalysis?.confidence || "Low",
+    confidence: knownPrior ? "High" : (domainAnalysis?.confidence || "Low"),
     classifierVersion:
       domainAnalysis?.classifierVersion ||
       item.classifierVersion ||
@@ -200,15 +199,16 @@ async function saveSiteAnalysis(record) {
       contentType: record.contentType || null,
       confidence: record.confidence || null,
       topScore: typeof record.topScore === "number" ? record.topScore : null,
-      secondScore:
-        typeof record.secondScore === "number" ? record.secondScore : null,
+      secondScore: typeof record.secondScore === "number" ? record.secondScore : null,
       scoreGap: typeof record.scoreGap === "number" ? record.scoreGap : null,
       needsReview: !!record.needsReview,
       pageSignals: safeJson(record.pageSignals, {}),
-      pageResults: record.pageResults ?? undefined,
+      ...(record.pageResults !== undefined ? { pageResults: record.pageResults } : {}),
       scores: record.scores ?? undefined,
       matchedSignals: safeJson(record.matchedSignals, []),
-      pageClassifications: record.pageClassifications ?? undefined,
+      ...(record.pageClassifications !== undefined
+        ? { pageClassifications: record.pageClassifications }
+        : {}),
       analyzedPages: safeJson(record.analyzedPages, []),
     },
     update: {
@@ -220,15 +220,16 @@ async function saveSiteAnalysis(record) {
       contentType: record.contentType || null,
       confidence: record.confidence || null,
       topScore: typeof record.topScore === "number" ? record.topScore : null,
-      secondScore:
-        typeof record.secondScore === "number" ? record.secondScore : null,
+      secondScore: typeof record.secondScore === "number" ? record.secondScore : null,
       scoreGap: typeof record.scoreGap === "number" ? record.scoreGap : null,
       needsReview: !!record.needsReview,
       pageSignals: safeJson(record.pageSignals, {}),
-      pageResults: record.pageResults ?? undefined,
+      ...(record.pageResults !== undefined ? { pageResults: record.pageResults } : {}),
       scores: record.scores ?? undefined,
       matchedSignals: safeJson(record.matchedSignals, []),
-      pageClassifications: record.pageClassifications ?? undefined,
+      ...(record.pageClassifications !== undefined
+        ? { pageClassifications: record.pageClassifications }
+        : {}),
       analyzedPages: safeJson(record.analyzedPages, []),
     },
   });
@@ -248,18 +249,17 @@ async function analyzeSingleResult(item, domainMap, deepIndex = 0) {
 
   try {
     const pageData = await extractPageData(null, item.url);
-
     if (!pageData) {
-      throw new Error("extractPageData returned null (site likely blocked headless browser)");
+      throw new Error("extractPageData returned null — site likely blocked headless browser");
     }
 
-    const pageResult = inferTypeFromSignals(
+    const rulePageResult = inferTypeFromSignals(
       item.url,
-      pageData.title || "",
-      pageData.metaDescription || "",
-      pageData.bodyText || "",
-      pageData.linksText || "",
-      pageData.schemaText || "",
+      pageData.title ?? "",
+      pageData.metaDescription ?? "",
+      pageData.bodyText ?? "",
+      pageData.linksText ?? "",
+      pageData.schemaText ?? "",
       {
         hasCart: !!pageData.hasCart,
         hasSearchAndFilter: !!pageData.hasSearchAndFilter,
@@ -275,75 +275,98 @@ async function analyzeSingleResult(item, domainMap, deepIndex = 0) {
     );
 
     const fastTextResult = await classifyWithFastText(item.url, pageData);
+    const mergedPageResult = mergeRuleBasedWithFastText(rulePageResult, fastTextResult);
 
-    const ruleBasedSiteType = normalizeType(
-      knownPrior ||
-        domainAnalysis?.siteType ||
-        pageResult.siteType ||
-        "Small business"
+    let resolvedSiteType = normalizeType(
+      knownPrior || domainAnalysis?.siteType || mergedPageResult.siteType || "Small business"
     );
 
-    const fastTextSiteType = normalizeType(
-      fastTextResult?.sitePrediction?.siteType || ""
-    );
-
-    const resolvedSiteType = normalizeType(
-      ruleBasedSiteType ||
-      fastTextSiteType ||
-      "Small business"
-    );
+    const lowerUrl = String(item.url || "").toLowerCase();
+    const isHomepage = /^https?:\/\/[^/]+\/?$/.test(lowerUrl);
+    const isLikelyEditorialUrl =
+      /\/blog\/|\/post\/|\/posts\/|\/article\/|\/articles\/|\/story\/|\/stories\/|\/news\/|\/guide\/|\/best\/|\/reviews?\//i.test(
+        lowerUrl
+      );
+    const isLocalSite =
+      resolvedSiteType === "Small business" || resolvedSiteType === "Service";
 
     const ruleBasedContentType = normalizeType(
       classifyContentType(item.url, pageData, resolvedSiteType)
     );
 
-    const fastTextContentType = normalizeType(
-      fastTextResult?.contentPrediction?.contentType || ""
-    );
+    let resolvedContentType = ruleBasedContentType;
 
-    const resolvedContentType = normalizeType(
-      ruleBasedContentType ||
-      fastTextContentType ||
-      resolvedSiteType
-    );
+    const mergedScoreGap =
+      typeof mergedPageResult.scoreGap === "number" ? mergedPageResult.scoreGap : 999;
+    const ruleUncertain =
+      mergedPageResult.confidence === "Low" || mergedScoreGap < 6;
+
+    if (
+      mergedPageResult.usedFastTextForContent &&
+      mergedPageResult.fastTextContentType
+    ) {
+      const contentFellBackToSiteType = ruleBasedContentType === resolvedSiteType;
+      const allowLocalHomepageOverride = !isLocalSite || !isHomepage || isLikelyEditorialUrl;
+
+      if (
+        (ruleUncertain && allowLocalHomepageOverride) ||
+        (contentFellBackToSiteType && allowLocalHomepageOverride)
+      ) {
+        resolvedContentType = mergedPageResult.fastTextContentType;
+      }
+    }
+
+    resolvedContentType = normalizeType(resolvedContentType || resolvedSiteType);
+
+    const fastTextSignals = [];
+    if (fastTextResult?.sitePrediction) {
+      const ftSiteProb = Number(fastTextResult.sitePrediction.probability || 0);
+      fastTextSignals.push(
+        `fastText siteType: ${fastTextResult.sitePrediction.siteType} @ ${(ftSiteProb * 100).toFixed(1)}%`
+      );
+    }
+    if (fastTextResult?.contentPrediction) {
+      const ftContentProb = Number(fastTextResult.contentPrediction.probability || 0);
+      fastTextSignals.push(
+        `fastText contentType: ${fastTextResult.contentPrediction.contentType} @ ${(ftContentProb * 100).toFixed(1)}%`
+      );
+    }
+
+    const mergeSignals = [];
+    if (mergedPageResult.usedFastTextForSite) {
+      mergeSignals.push(`fastText applied to siteType due to uncertain rule result`);
+    }
+    if (
+      mergedPageResult.usedFastTextForContent &&
+      mergedPageResult.fastTextContentType &&
+      resolvedContentType === mergedPageResult.fastTextContentType
+    ) {
+      mergeSignals.push(`fastText applied to contentType due to uncertain rule result`);
+    }
 
     return {
       ...item,
       siteType: resolvedSiteType,
       contentType: resolvedContentType,
-      confidence: pageResult.confidence || domainAnalysis?.confidence || "Low",
+      confidence: mergedPageResult.confidence || domainAnalysis?.confidence || "Low",
       classifierVersion:
-        pageResult.classifierVersion ||
+        mergedPageResult.classifierVersion ||
         domainAnalysis?.classifierVersion ||
         item.classifierVersion ||
         CLASSIFIER_VERSION,
       matchedSignals: mergeMatchedSignals(
         knownPrior ? [`Known domain prior: ${knownPrior}`] : [],
         domainAnalysis?.matchedSignals || [],
-        pageResult.matchedSignals || [],
-        fastTextResult?.sitePrediction
-          ? [
-              `fastText siteType: ${fastTextResult.sitePrediction.siteType} (${(
-                (fastTextResult.sitePrediction.probability || 0) * 100
-              ).toFixed(1)}%)`,
-            ]
-          : [],
-        fastTextResult?.contentPrediction
-          ? [
-              `fastText contentType: ${fastTextResult.contentPrediction.contentType} (${(
-                (fastTextResult.contentPrediction.probability || 0) * 100
-              ).toFixed(1)}%)`,
-            ]
-          : [],
-        [`Content analyzed from page: ${pageData.title || item.url}`]
+        mergedPageResult.matchedSignals || [],
+        fastTextSignals,
+        mergeSignals,
+        [`Content analyzed from page: ${pageData.title || ""} — ${item.url}`]
       ),
-      analyzedPages: [
-        ...new Set([...(domainAnalysis?.analyzedPages || []), item.url]),
-      ],
+      analyzedPages: [...new Set([...(domainAnalysis?.analyzedPages || []), item.url])],
       analysisStatus: "done",
-      _pageData: pageData,
-      _pageResult: pageResult,
-      _fastTextResult: fastTextResult,
+      pageData,
+      pageResult: mergedPageResult,
+      fastTextResult,
     };
   } catch (error) {
     const effectiveType = knownPrior || domainAnalysis?.siteType || null;
@@ -355,7 +378,7 @@ async function analyzeSingleResult(item, domainMap, deepIndex = 0) {
       ...item,
       siteType: normalizeType(effectiveType || "Small business"),
       contentType: fallbackContentType,
-      confidence: knownPrior ? "High" : domainAnalysis?.confidence || "Low",
+      confidence: knownPrior ? "High" : (domainAnalysis?.confidence || "Low"),
       classifierVersion:
         domainAnalysis?.classifierVersion ||
         item.classifierVersion ||
@@ -363,17 +386,17 @@ async function analyzeSingleResult(item, domainMap, deepIndex = 0) {
       matchedSignals: mergeMatchedSignals(
         knownPrior ? [`Known domain prior: ${knownPrior}`] : [],
         domainAnalysis?.matchedSignals || [],
-        [`Fallback: unable to fetch page (${error.message})`]
+        [`Fallback — unable to fetch page: ${error.message}`]
       ),
       analyzedPages: domainAnalysis?.analyzedPages || item.analyzedPages || [],
       analysisStatus: "done",
-      _pageError: error.message,
+      pageError: error.message,
     };
   }
 }
 
 async function runAnalysisInBackground(keyword, country) {
-  const jobKey = `${keyword}::${country}`;
+  const jobKey = `${keyword}|${country}`;
   if (activeJobs.has(jobKey)) return;
 
   const jobPromise = (async () => {
@@ -385,22 +408,18 @@ async function runAnalysisInBackground(keyword, country) {
       if (!existing?.resultsSnapshot?.length) return;
 
       const results = [...existing.resultsSnapshot];
-      const uniqueDomains = [
-        ...new Set(results.map((item) => item.domain).filter(Boolean)),
-      ];
+      const uniqueDomains = [...new Set(results.map((item) => item.domain).filter(Boolean))];
       const domainMap = new Map();
 
       await runPool(uniqueDomains, DOMAIN_CONCURRENCY, async (domain) => {
         const homepageUrl = buildHomepageUrl(domain);
         const knownPrior = getDomainPrior(domain);
-        let domainFailed = false;
 
         try {
           if (knownPrior && SKIP_DOMAIN_ANALYSIS_FOR_KNOWN_PRIORS) {
             domainMap.set(domain, buildKnownPriorDomainAnalysis(domain, knownPrior));
           } else {
             const analysis = await analyzeDomain(homepageUrl);
-
             domainMap.set(domain, {
               ...analysis,
               siteType: knownPrior || analysis.siteType,
@@ -413,18 +432,17 @@ async function runAnalysisInBackground(keyword, country) {
             });
           }
         } catch (error) {
-          console.error(`Failed to analyze domain ${domain}:`, error.message);
-          domainFailed = true;
-
+          console.error(`Failed to analyze domain: ${domain}`, error.message);
           domainMap.set(domain, {
             domain,
             homepageUrl,
             siteType: knownPrior || "Small business",
             confidence: knownPrior ? "High" : "Low",
             classifierVersion: CLASSIFIER_VERSION,
-            matchedSignals: knownPrior
-              ? [`Known domain prior: ${knownPrior}`]
-              : [`Fallback: unable to analyze domain (${error.message})`],
+            matchedSignals: [
+              ...(knownPrior ? [`Known domain prior: ${knownPrior}`] : []),
+              `Fallback — unable to analyze domain: ${error.message}`,
+            ],
             analyzedPages: [],
             pageClassifications: [],
             scores: null,
@@ -437,6 +455,10 @@ async function runAnalysisInBackground(keyword, country) {
 
         const da = domainMap.get(domain);
 
+        const domainLevelContentType = normalizeType(
+          classifyContentType(buildHomepageUrl(domain), null, da?.siteType || null)
+        ) || null;
+
         await saveSiteAnalysis({
           url: homepageUrl,
           domain,
@@ -444,21 +466,17 @@ async function runAnalysisInBackground(keyword, country) {
           classifierVersion: da?.classifierVersion || CLASSIFIER_VERSION,
           fetchMethod:
             knownPrior && SKIP_DOMAIN_ANALYSIS_FOR_KNOWN_PRIORS
-              ? "known_prior"
-              : "domain_analysis",
+              ? "known-prior"
+              : "domain-analysis",
           siteType: normalizeType(da?.siteType || "Small business"),
-          contentType: null,
+          contentType: domainLevelContentType,
           confidence: da?.confidence || "Low",
           topScore: typeof da?.topScore === "number" ? da.topScore : null,
           secondScore: typeof da?.secondScore === "number" ? da.secondScore : null,
           scoreGap: typeof da?.scoreGap === "number" ? da.scoreGap : null,
-          needsReview: (da?.confidence || "Low") === "Low",
+          needsReview: da?.confidence === "Low",
           pageSignals: {},
-          pageResults: {
-            domain,
-            homepageUrl,
-            pageTitles: da?.pageTitles || [],
-          },
+          pageResults: { domain, homepageUrl, pageTitles: da?.pageTitles || [] },
           scores: da?.scores ?? undefined,
           matchedSignals: da?.matchedSignals || [],
           pageClassifications: da?.pageClassifications || [],
@@ -468,36 +486,34 @@ async function runAnalysisInBackground(keyword, country) {
         for (let i = 0; i < results.length; i++) {
           if (results[i].domain !== domain) continue;
 
-          const prevStatus = results[i].analysisStatus || "pending";
-          let nextStatus;
+          const prevStatus = results[i].analysisStatus;
+          const nextStatus = prevStatus === "done" ? "done" : "processing";
 
-          if (prevStatus === "done") {
-            nextStatus = "done";
-          } else if (domainFailed) {
-            nextStatus = "processing";
-          } else {
-            nextStatus = "processing";
-          }
+          const intermediateContentType =
+            results[i].contentType ||
+            normalizeType(
+              classifyContentType(results[i].url, null, da?.siteType || null)
+            ) ||
+            null;
 
           results[i] = {
             ...results[i],
             siteType: normalizeType(da?.siteType || "Small business"),
             confidence: da?.confidence || results[i].confidence || "Low",
             classifierVersion:
-              da?.classifierVersion ||
-              results[i].classifierVersion ||
-              CLASSIFIER_VERSION,
+              da?.classifierVersion || results[i].classifierVersion || CLASSIFIER_VERSION,
             matchedSignals: mergeMatchedSignals(
               da?.matchedSignals || [],
               results[i].matchedSignals || []
             ),
             analyzedPages: da?.analyzedPages || [],
             analysisStatus: nextStatus,
+            contentType: intermediateContentType,
           };
         }
-      });
 
-      await updateSearchSnapshot(keyword, country, results);
+        await updateSearchSnapshot(keyword, country, results);
+      });
 
       let completed = 0;
       let deepCounter = 0;
@@ -506,7 +522,6 @@ async function runAnalysisInBackground(keyword, country) {
         try {
           const knownPrior = getDomainPrior(item.domain);
           const myDeepIndex = knownPrior ? MAX_DEEP_PAGE_ANALYSIS : deepCounter++;
-
           const analyzedItem = await analyzeSingleResult(item, domainMap, myDeepIndex);
 
           results[index] = {
@@ -526,52 +541,51 @@ async function runAnalysisInBackground(keyword, country) {
             domain: analyzedItem.domain,
             homepageUrl: buildHomepageUrl(analyzedItem.domain),
             classifierVersion: analyzedItem.classifierVersion || CLASSIFIER_VERSION,
-            fetchMethod: analyzedItem._pageData ? "page_extract" : "fallback",
+            fetchMethod: analyzedItem.pageData ? "page-extract" : "fallback",
             siteType: analyzedItem.siteType || null,
             contentType: analyzedItem.contentType || null,
             confidence: analyzedItem.confidence || "Low",
             topScore:
-              typeof analyzedItem._pageResult?.topScore === "number"
-                ? analyzedItem._pageResult.topScore
+              typeof analyzedItem.pageResult?.topScore === "number"
+                ? analyzedItem.pageResult.topScore
                 : null,
             secondScore:
-              typeof analyzedItem._pageResult?.secondScore === "number"
-                ? analyzedItem._pageResult.secondScore
+              typeof analyzedItem.pageResult?.secondScore === "number"
+                ? analyzedItem.pageResult.secondScore
                 : null,
             scoreGap:
-              typeof analyzedItem._pageResult?.scoreGap === "number"
-                ? analyzedItem._pageResult.scoreGap
+              typeof analyzedItem.pageResult?.scoreGap === "number"
+                ? analyzedItem.pageResult.scoreGap
                 : null,
-            needsReview: (analyzedItem.confidence || "Low") === "Low",
-            pageSignals: analyzedItem._pageData
+            needsReview: analyzedItem.confidence === "Low",
+            pageSignals: analyzedItem.pageData
               ? {
-                  hasCart: !!analyzedItem._pageData.hasCart,
-                  hasSearchAndFilter: !!analyzedItem._pageData.hasSearchAndFilter,
-                  hasPhone: !!analyzedItem._pageData.hasPhone,
-                  hasAddress: !!analyzedItem._pageData.hasAddress,
-                  hasMap: !!analyzedItem._pageData.hasMap,
-                  hasReviews: !!analyzedItem._pageData.hasReviews,
-                  hasBusinessListingSchema:
-                    !!analyzedItem._pageData.hasBusinessListingSchema,
-                  hasProductSchema: !!analyzedItem._pageData.hasProductSchema,
-                  hasArticleSchema: !!analyzedItem._pageData.hasArticleSchema,
+                  hasCart: !!analyzedItem.pageData.hasCart,
+                  hasSearchAndFilter: !!analyzedItem.pageData.hasSearchAndFilter,
+                  hasPhone: !!analyzedItem.pageData.hasPhone,
+                  hasAddress: !!analyzedItem.pageData.hasAddress,
+                  hasMap: !!analyzedItem.pageData.hasMap,
+                  hasReviews: !!analyzedItem.pageData.hasReviews,
+                  hasBusinessListingSchema: !!analyzedItem.pageData.hasBusinessListingSchema,
+                  hasProductSchema: !!analyzedItem.pageData.hasProductSchema,
+                  hasArticleSchema: !!analyzedItem.pageData.hasArticleSchema,
                 }
               : {},
-            pageResults: analyzedItem._pageData
+            pageResults: analyzedItem.pageData
               ? {
-                  title: analyzedItem._pageData.title || "",
-                  metaDescription: analyzedItem._pageData.metaDescription || "",
-                  linksCount: Array.isArray(analyzedItem._pageData.links)
-                    ? analyzedItem._pageData.links.length
+                  title: analyzedItem.pageData.title || "",
+                  metaDescription: analyzedItem.pageData.metaDescription || "",
+                  linksCount: Array.isArray(analyzedItem.pageData.links)
+                    ? analyzedItem.pageData.links.length
                     : 0,
-                  pageError: analyzedItem._pageError || null,
-                  fastText: analyzedItem._fastTextResult || null,
+                  pageError: analyzedItem.pageError || null,
+                  fastText: analyzedItem.fastTextResult || null,
                 }
               : {
-                  pageError: analyzedItem._pageError || null,
-                  fastText: analyzedItem._fastTextResult || null,
+                  pageError: analyzedItem.pageError || null,
+                  fastText: analyzedItem.fastTextResult || null,
                 },
-            scores: analyzedItem._pageResult?.scores ?? undefined,
+            scores: analyzedItem.pageResult?.scores ?? undefined,
             matchedSignals: analyzedItem.matchedSignals || [],
             pageClassifications: undefined,
             analyzedPages: analyzedItem.analyzedPages || [],
@@ -580,11 +594,15 @@ async function runAnalysisInBackground(keyword, country) {
           console.error(`Page analysis failed for ${item?.url}:`, err.message);
 
           const knownPrior = (() => {
-            try { return getDomainPrior(item?.domain); } catch { return null; }
+            try {
+              return getDomainPrior(item?.domain);
+            } catch {
+              return null;
+            }
           })();
+
           const domainAnalysis = domainMap.get(item?.domain);
           const effectiveType = knownPrior || domainAnalysis?.siteType || null;
-
           const fallbackSiteType = normalizeType(effectiveType || "Small business");
           const fallbackContentType = normalizeType(
             (() => {
@@ -608,7 +626,7 @@ async function runAnalysisInBackground(keyword, country) {
             matchedSignals: mergeMatchedSignals(
               knownPrior ? [`Known domain prior: ${knownPrior}`] : [],
               domainAnalysis?.matchedSignals || [],
-              [`Outer fallback: page analysis threw (${err.message})`]
+              [`Outer fallback — page analysis threw: ${err.message}`]
             ),
           };
         } finally {
@@ -661,7 +679,6 @@ app.get("/api/history", async (req, res) => {
         updatedAt: true,
       },
     });
-
     return res.json(searches);
   } catch (error) {
     console.error("History route error:", error.message);
@@ -682,9 +699,7 @@ app.get("/api/search-status", async (req, res) => {
 
   try {
     const search = await prisma.search.findUnique({
-      where: {
-        keyword_country: { keyword, country },
-      },
+      where: { keyword_country: { keyword, country } },
     });
 
     if (!search?.resultsSnapshot?.length) {
@@ -696,7 +711,6 @@ app.get("/api/search-status", async (req, res) => {
     const errorCount = results.filter((r) => r.analysisStatus === "error").length;
     const processingCount = results.filter((r) => r.analysisStatus === "processing").length;
     const pendingCount = results.filter((r) => r.analysisStatus === "pending").length;
-
     const debug = req.query.debug === "true";
 
     return res.json({
@@ -742,11 +756,7 @@ app.post("/api/search", async (req, res) => {
     while (allUrls.length < TARGET_URL_COUNT && page <= MAX_PAGES) {
       const response = await axios.post(
         "https://google.serper.dev/search",
-        {
-          q: keyword,
-          page,
-          gl: country,
-        },
+        { q: keyword, page, gl: country },
         {
           headers: {
             "X-API-KEY": API_KEY,
@@ -770,9 +780,7 @@ app.post("/api/search", async (req, res) => {
     const quickResults = finalUrls.map(buildPendingResult);
 
     await prisma.search.upsert({
-      where: {
-        keyword_country: { keyword, country },
-      },
+      where: { keyword_country: { keyword, country } },
       update: { resultsSnapshot: quickResults },
       create: { keyword, country, resultsSnapshot: quickResults },
     });
@@ -794,9 +802,7 @@ app.post("/api/search", async (req, res) => {
         const { matchedSignals, analyzedPages, ...clean } = r;
         return clean;
       }),
-      statusUrl: `/api/search-status?keyword=${encodeURIComponent(
-        keyword
-      )}&country=${country}`,
+      statusUrl: `/api/search-status?keyword=${encodeURIComponent(keyword)}&country=${country}`,
     });
   } catch (error) {
     console.error("Search error:", error.response?.status, error.message);
@@ -820,9 +826,7 @@ app.post("/api/analyze", async (req, res) => {
 
   try {
     const existing = await prisma.search.findUnique({
-      where: {
-        keyword_country: { keyword, country },
-      },
+      where: { keyword_country: { keyword, country } },
     });
 
     if (!existing?.resultsSnapshot?.length) {
@@ -840,9 +844,7 @@ app.post("/api/analyze", async (req, res) => {
       message: "Analysis started",
       keyword,
       country,
-      statusUrl: `/api/search-status?keyword=${encodeURIComponent(
-        keyword
-      )}&country=${country}`,
+      statusUrl: `/api/search-status?keyword=${encodeURIComponent(keyword)}&country=${country}`,
     });
   } catch (error) {
     console.error("Analyze trigger error:", error.message);

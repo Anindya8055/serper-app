@@ -28,7 +28,7 @@ const FETCH_HEADERS = {
     "(KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
   "Accept-Language": "en-US,en;q=0.9",
   Accept:
-    "text/html,application/xhtml+xml,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
 };
 
 function compactText(text = "", limit = MAX_BODY_TEXT) {
@@ -97,17 +97,78 @@ function extractSchemaTextFromCheerio($) {
   return schemaRaw.join(" ").slice(0, 20000);
 }
 
+function extractUsefulBodyTextFromCheerio($) {
+  const clone = $.root().clone();
+
+  clone
+    .find(
+      [
+        "script",
+        "style",
+        "noscript",
+        "template",
+        "svg",
+        "canvas",
+        "iframe",
+        "header nav",
+        "footer",
+        "form",
+        '[aria-hidden="true"]',
+        ".visually-hidden",
+        ".sr-only",
+        ".screen-reader-text",
+        ".cookie",
+        ".cookies",
+        ".cookie-banner",
+        ".cookie-consent",
+        ".consent",
+        ".newsletter",
+        ".popup",
+        ".modal",
+        ".drawer",
+        ".offcanvas",
+      ].join(",")
+    )
+    .remove();
+
+  const candidates = [
+    "main",
+    "article",
+    '[role="main"]',
+    ".main",
+    ".content",
+    ".page-content",
+    ".entry-content",
+    ".post-content",
+    ".article-content",
+    ".site-content",
+    "body",
+  ];
+
+  let text = "";
+  for (const sel of candidates) {
+    const node = clone.find(sel).first();
+    if (node.length) {
+      text = compactText(node.text(), MAX_BODY_TEXT);
+      if (text.length >= 120) break;
+    }
+  }
+
+  return compactText(text, MAX_BODY_TEXT);
+}
+
 function buildPageData(
   url,
   title,
   metaDescription,
-  normalizedText,
+  bodyText,
   html,
   links,
   linksText,
   schemaText
 ) {
-  const t = String(normalizedText || "").toLowerCase();
+  const normalizedBody = compactText(bodyText, MAX_BODY_TEXT);
+  const t = `${String(title || "")} ${String(metaDescription || "")} ${normalizedBody}`.toLowerCase();
   const l = String(linksText || "").toLowerCase();
   const lowerHtml = String(html || "").toLowerCase();
   const schemaLower = String(schemaText || "").replace(/\s+/g, "").toLowerCase();
@@ -142,12 +203,12 @@ function buildPageData(
 
   const hasPhone =
     /(\+?\d{1,3}[\s\-]?)?(\(?\d{2,4}\)?[\s\-]?)?\d{3,4}[\s\-]?\d{3,4}/.test(
-      normalizedText || ""
+      `${title || ""} ${metaDescription || ""} ${normalizedBody}`
     );
 
   const hasAddress =
     /\b(road|street|st\.|avenue|ave|block|sector|suite|floor|building|house|city|zip|postal|office|boulevard|blvd)\b/i.test(
-      normalizedText || ""
+      `${title || ""} ${metaDescription || ""} ${normalizedBody}`
     );
 
   const hasBusinessListingSchema =
@@ -166,7 +227,7 @@ function buildPageData(
     url,
     title: String(title || "").trim().slice(0, 300),
     metaDescription: String(metaDescription || "").trim().slice(0, 500),
-    bodyText: compactText(normalizedText, MAX_BODY_TEXT),
+    bodyText: normalizedBody,
     schemaText: String(schemaText || "").slice(0, 20000),
     links: (links || []).slice(0, MAX_LINKS),
     linksText: compactText(linksText, MAX_LINKS_TEXT),
@@ -273,7 +334,7 @@ async function fetchWithCheerio(url) {
     $('meta[property="og:description"]').attr("content") ||
     "";
 
-  const bodyText = compactText($("body").text(), MAX_BODY_TEXT);
+  const bodyText = extractUsefulBodyTextFromCheerio($);
 
   const hrefs = [];
   $("a[href]").each((_, el) => {
@@ -287,19 +348,18 @@ async function fetchWithCheerio(url) {
   const linksTextArr = [];
   $("a").each((_, el) => {
     if (linksTextArr.length >= MAX_LINKS) return false;
-    const text = $(el).text().trim();
+    const text = $(el).text().replace(/\s+/g, " ").trim();
     if (text) linksTextArr.push(text);
   });
 
   const linksText = linksTextArr.join(" ");
-  const normalizedText = compactText(`${title} ${metaDescription} ${bodyText}`, MAX_BODY_TEXT);
   const schemaText = extractSchemaTextFromCheerio($);
 
   const pageData = buildPageData(
     url,
     title,
     metaDescription,
-    normalizedText,
+    bodyText,
     html,
     links,
     linksText,
@@ -346,7 +406,11 @@ async function fetchWithPlaywright(url) {
             ?.getAttribute("content") ||
           "";
 
-        const bodyText = (document.body?.innerText || "")
+        const bodyRoot =
+          document.querySelector("main, article, [role='main'], .main, .content, .page-content, .entry-content, .post-content") ||
+          document.body;
+
+        const bodyText = (bodyRoot?.innerText || "")
           .replace(/\s+/g, " ")
           .trim()
           .slice(0, maxBodyText);
@@ -357,7 +421,7 @@ async function fetchWithPlaywright(url) {
           .slice(0, maxLinks);
 
         const linksText = [...document.querySelectorAll("a")]
-          .map((a) => (a.textContent || "").trim())
+          .map((a) => (a.textContent || "").replace(/\s+/g, " ").trim())
           .filter(Boolean)
           .slice(0, maxLinks)
           .join(" ");
@@ -387,7 +451,7 @@ async function fetchWithPlaywright(url) {
         url,
         data.title,
         data.metaDescription,
-        `${data.title} ${data.metaDescription} ${data.bodyText}`,
+        data.bodyText,
         data.html,
         data.links,
         data.linksText,
@@ -401,12 +465,6 @@ async function fetchWithPlaywright(url) {
   }
 }
 
-/**
- * SAFE extractPageData:
- * - Never returns null
- * - For domain analysis, throws when both Cheerio and Playwright fail (so caller can log)
- * - For page-level analysis, server.js catch block already converts error -> fallback classification
- */
 async function extractPageData(_ctx, url) {
   try {
     const cheerioResult = await fetchWithCheerio(url);
@@ -429,7 +487,6 @@ async function extractPageData(_ctx, url) {
     }
   } catch (cheerioError) {
     if (EVAL_FAST_MODE || !ENABLE_BROWSER_UPGRADE) {
-      // Domain analysis uses this; let it bubble so domain-level catch can log
       throw cheerioError;
     }
 
@@ -438,18 +495,8 @@ async function extractPageData(_ctx, url) {
       delete browserResult._needsBrowser;
       delete browserResult._source;
       return browserResult;
-    } catch (playwrightError) {
-      // Final fallback: return a safe empty page object instead of null
-      return buildPageData(
-        url,
-        "",
-        "",
-        "",
-        "",
-        [],
-        "",
-        ""
-      );
+    } catch (_playwrightError) {
+      return buildPageData(url, "", "", "", "", [], "", "");
     }
   }
 }

@@ -90,6 +90,13 @@ const LOCATION_OR_CLINIC_PATH_RE =
 function scoreUrlPath(url, matchedSignals) {
   const scores = createScores();
   const u = String(url || "").toLowerCase();
+  const domain = (() => {
+    try {
+      return new URL(url).hostname.replace(/^www\./, "").toLowerCase();
+    } catch {
+      return "";
+    }
+  })();
 
   if (
     /world|politics|science|health|sports|entertainment|business|technology|opinion|editorial|breaking|live|local|national|international|news\//i.test(
@@ -123,7 +130,10 @@ function scoreUrlPath(url, matchedSignals) {
   if (
     /pricing|demo|free-trial|trial|signup|sign-up|login|sign-in|\bapp\b|software|dashboard|workspace|integrations|platform\/app|api\/|developers\//i.test(
       u
-    )
+    ) &&
+    !isEditorialUrl(url) &&
+    !isEditorialPath(getPathname(url)) &&
+    !isPublisherEditorialDomain(domain)
   ) {
     addScore(scores, matchedSignals, "Saas", 8, "SaaS URL path");
   }
@@ -315,6 +325,16 @@ function scoreTitle(title, matchedSignals, url, domain = "") {
     addScore(scores, matchedSignals, "Small business", 3, "small business niche in title");
   }
 
+  if (isPublisher) {
+    subtractScore(
+      scores,
+      matchedSignals,
+      "Small business",
+      Math.min(8, scores["Small business"] || 0),
+      "publisher domain suppresses small business"
+    );
+  }
+
   return scores;
 }
 
@@ -396,6 +416,16 @@ function scoreMetaDescription(meta, matchedSignals, url, domain, domainIntel) {
 
   if (hasSmallBusinessNiche(t) && !isCommunity) {
     addScore(scores, matchedSignals, "Small business", 3, "small business niche in meta");
+  }
+
+  if (isPublisher) {
+    subtractScore(
+      scores,
+      matchedSignals,
+      "Small business",
+      Math.min(8, scores["Small business"] || 0),
+      "publisher domain suppresses small business"
+    );
   }
 
   return scores;
@@ -618,6 +648,16 @@ function scoreBodyText(bodyText, matchedSignals, url, domain, domainIntel) {
     addScore(scores, matchedSignals, "Blog", 8, "recipe content");
   }
 
+  if (isPublisher) {
+    subtractScore(
+      scores,
+      matchedSignals,
+      "Small business",
+      Math.min(8, scores["Small business"] || 0),
+      "publisher domain suppresses small business"
+    );
+  }
+
   return scores;
 }
 
@@ -699,10 +739,20 @@ function scoreLinksText(linksText, matchedSignals, domain, domainIntel) {
     addScore(scores, matchedSignals, "Small business", 3, "small business niche in nav");
   }
 
+  if (isPublisher) {
+    subtractScore(
+      scores,
+      matchedSignals,
+      "Small business",
+      Math.min(8, scores["Small business"] || 0),
+      "publisher domain suppresses small business"
+    );
+  }
+
   return scores;
 }
 
-function scoreStructuredSignals(signals, matchedSignals, context = {}) {
+function scoreStructuredSignals(signals = {}, matchedSignals, context = {}) {
   const scores = createScores();
 
   const url = String(context.url || "").toLowerCase();
@@ -745,6 +795,11 @@ function scoreStructuredSignals(signals, matchedSignals, context = {}) {
     isCommerceUrl(url) ||
     knownRetail ||
     strongRetailPath;
+
+  const isStrongDirectoryPage =
+    STRONG_DIRECTORY_PATH_RE.test(url) ||
+    /[?&](search|search_terms|q|query|find|keywords?|location|geo|where|near)=/i.test(url) ||
+    /\/directory\/|\/providers\/|\/companies\/|\/businesses\/|\/listings?\/|\/search(\/|$)/i.test(url);
 
   const hasHardCommerce =
     hasConfirmedStorefront || (signals.hasCart && !hasLocalBizSupport);
@@ -890,6 +945,17 @@ function scoreStructuredSignals(signals, matchedSignals, context = {}) {
       "Small business",
       Math.min(8, scores["Small business"] || 0),
       "community domain suppresses small business"
+    );
+  }
+
+  if (isStrongDirectoryPage && !hasConfirmedStorefront) {
+    addScore(scores, matchedSignals, "Directory", 8, "strong directory page signals");
+    subtractScore(
+      scores,
+      matchedSignals,
+      "Small business",
+      Math.min(6, scores["Small business"] || 0),
+      "directory page suppresses single-business classification"
     );
   }
 

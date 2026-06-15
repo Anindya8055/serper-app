@@ -44,6 +44,12 @@
   "nbcnews.com": "Newspaper",
   "travelandleisure.com": "Newspaper",
   "investopedia.com": "Newspaper",
+  "finance.yahoo.com": "Newspaper",
+  "investors.com": "Newspaper",
+  "briefing.com": "Newspaper",
+  "nasdaq.com": "Newspaper",
+  "thestreet.com": "Newspaper",
+  "investing.com": "Newspaper",
 
   "yelp.com": "Directory",
   "tripadvisor.com": "Directory",
@@ -65,6 +71,9 @@
   "turo.com": "Directory",
   "avvo.com": "Directory",
   "linkedin.com": "Directory",
+  "thumbtack.com": "Directory",
+  "nextdoor.com": "Directory",
+  "consumeraffairs.com": "Directory",
 
   "github.com": "Saas",
   "gitlab.com": "Saas",
@@ -101,6 +110,7 @@
   "coursera.org": "Service",
   "prudential.com": "Service",
   "khanacademy.org": "Service",
+  "aetna.com": "Service",
 
   "moz.com": "Blog",
   "ahrefs.com": "Blog",
@@ -111,12 +121,16 @@
   "css-tricks.com": "Blog",
   "markmanson.net": "Blog",
   "overreacted.io": "Blog",
-  "aetna.com": "Service",
-  "thetimes.com": "Newspaper",
   "digitaltrends.com": "Blog",
-  "economist.com": "Newspaper",
+  "kentcdodds.com": "Blog",
+
   "findlaw.com": "Directory",
+
   "heroku.com": "Saas",
   "newrelic.com": "Saas",
-  "kentcdodds.com": "Blog"
-} 
+
+  "thetimes.com": "Newspaper",
+  "economist.com": "Newspaper",
+
+  "parkderm.com": "Small business"
+}

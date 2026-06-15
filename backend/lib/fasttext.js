@@ -39,11 +39,8 @@ function buildFastTextInput(url, pageSignals = {}) {
 
   try {
     const u = new URL(url);
-    parts.push(
-      clean(
-        `${u.hostname.replace(/^www\./, "")} ${u.pathname} ${u.search}`
-      )
-    );
+  const urlPart = clean(`${u.hostname.replace(/^www\./, "")} ${u.pathname} ${u.search}`);
+parts.push(urlPart, urlPart, urlPart);
   } catch {
     parts.push(clean(url));
   }
@@ -73,34 +70,54 @@ function parseFastTextOutput(stdout) {
   };
 }
 
+function buildFastTextError(error, stdout, stderr, binPath, modelPath, text) {
+  const details = {
+    message: error?.message || "fastText prediction failed",
+    code: error?.code ?? null,
+    signal: error?.signal ?? null,
+    killed: !!error?.killed,
+    cmd: [binPath, "predict-prob", modelPath, "-", "1"].join(" "),
+    binPath,
+    modelPath,
+    modelExists: exists(modelPath),
+    stdout: String(stdout || "").trim(),
+    stderr: String(stderr || "").trim(),
+    inputPreview: String(text || "").slice(0, 300),
+  };
+
+  return new Error(`fastText prediction failed: ${JSON.stringify(details)}`);
+}
+
 function runPredictProb(modelPath, text) {
   return new Promise((resolve, reject) => {
-    if (!ENABLE_FASTTEXT) {
-      return resolve(null);
-    }
-
-    if (!exists(FASTTEXT_BIN)) {
-      return resolve(null);
-    }
-
-    if (!exists(modelPath)) {
-      return resolve(null);
-    }
+    if (!ENABLE_FASTTEXT) return resolve(null);
+    if (!exists(FASTTEXT_BIN)) return resolve(null);
+    if (!exists(modelPath)) return resolve(null);
 
     const child = execFile(
       FASTTEXT_BIN,
       ["predict-prob", modelPath, "-", "1"],
-      { timeout: 10000, maxBuffer: 1024 * 1024 },
+      { timeout: 30000, maxBuffer: 1024 * 1024 },
       (error, stdout, stderr) => {
         if (error) {
-          return reject(
-            new Error(stderr?.trim() || error.message || "fastText prediction failed")
-          );
+          return reject(buildFastTextError(error, stdout, stderr, FASTTEXT_BIN, modelPath, text));
         }
 
         return resolve(parseFastTextOutput(stdout));
       }
     );
+
+    child.stdin.on("error", (stdinErr) => {
+      reject(
+        new Error(
+          `fastText stdin failed: ${JSON.stringify({
+            message: stdinErr?.message || "stdin error",
+            binPath: FASTTEXT_BIN,
+            modelPath,
+          })}`
+        )
+      );
+    });
 
     child.stdin.write(`${text}\n`);
     child.stdin.end();
@@ -119,6 +136,7 @@ async function predictSiteType(url, pageSignals = {}) {
     probability: result.probability,
     input: text,
     model: SITE_MODEL,
+    raw: result.raw,
   };
 }
 
@@ -134,6 +152,7 @@ async function predictContentType(url, pageSignals = {}) {
     probability: result.probability,
     input: text,
     model: CONTENT_MODEL,
+    raw: result.raw,
   };
 }
 
