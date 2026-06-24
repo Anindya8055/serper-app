@@ -30,6 +30,14 @@ const allowedOrigins = new Set([
   "http://localhost:3000",
   "https://serper-app-3wyy.vercel.app",
   "https://serper-app-txvf.vercel.app",
+  "https://search.yaaply.net",
+  "http://search.yaaply.net",
+  "https://search.bengalvoyagers.com",
+  "http://search.bengalvoyagers.com",
+  "http://tryserper.ddnsfree.com",
+  "https://tryserper.ddnsfree.com",
+  "http://152.42.222.12",
+  "http://152.42.222.12:80",
 ]);
 
 function isOriginAllowed(origin) {
