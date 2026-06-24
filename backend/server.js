@@ -114,7 +114,21 @@ function buildPendingResult(url) {
     analyzedPages: [],
     analysisStatus: "pending",
     matchedSignals: ["Pending analysis"],
+    dr: null,
   };
+}
+
+async function fetchDomainRating(domain) {
+  try {
+    const response = await axios.get(
+      `https://api.ahrefs.com/v3/public/domain-rating-free?target=${encodeURIComponent(domain)}&output=json`,
+      { headers: { Accept: "application/json" }, timeout: 8000 }
+    );
+    const dr = response.data?.domain_rating?.domain_rating;
+    return typeof dr === "number" ? Math.round(dr) : null;
+  } catch {
+    return null;
+  }
 }
 
 function buildKnownPriorDomainAnalysis(domain, knownPrior) {
@@ -645,6 +659,17 @@ async function runAnalysisInBackground(keyword, country) {
         }
       });
 
+      // Fetch Domain Rating for all unique domains after analysis
+      const uniqueDomainsForDR = [...new Set(results.map((r) => r.domain).filter(Boolean))];
+      await runPool(uniqueDomainsForDR, 5, async (domain) => {
+        const dr = await fetchDomainRating(domain);
+        for (let i = 0; i < results.length; i++) {
+          if (results[i].domain === domain) {
+            results[i] = { ...results[i], dr };
+          }
+        }
+      });
+
       await updateSearchSnapshot(keyword, country, results);
     } catch (error) {
       console.error("Background analysis job failed:", error.message);
@@ -743,7 +768,7 @@ app.get("/api/search-status", async (req, res) => {
 });
 
 app.post("/api/search", async (req, res) => {
-  let { keyword, country } = req.body || {};
+  let { keyword, country, limit, disabledDomains } = req.body || {};
 
   if (!API_KEY) {
     return res.status(500).json({ error: "SERPER_API_KEY is missing in .env" });
@@ -757,11 +782,20 @@ app.post("/api/search", async (req, res) => {
 
   keyword = keyword.toLowerCase().trim();
 
+  const ALLOWED_LIMITS = [10, 20, 50, 100];
+  const targetCount = ALLOWED_LIMITS.includes(Number(limit)) ? Number(limit) : TARGET_URL_COUNT;
+
+  const blockedSet = new Set(
+    Array.isArray(disabledDomains)
+      ? disabledDomains.map((d) => String(d).toLowerCase().trim()).filter(Boolean)
+      : []
+  );
+
   try {
     let allUrls = [];
     let page = 1;
 
-    while (allUrls.length < TARGET_URL_COUNT && page <= MAX_PAGES) {
+    while (allUrls.length < targetCount && page <= MAX_PAGES) {
       const response = await axios.post(
         "https://google.serper.dev/search",
         { q: keyword, page, gl: country },
@@ -784,8 +818,11 @@ app.post("/api/search", async (req, res) => {
       if (!pageResults.length) break;
     }
 
-    const finalUrls = allUrls.slice(0, TARGET_URL_COUNT);
-    const quickResults = finalUrls.map(buildPendingResult);
+    const fetchedUrls = allUrls.slice(0, targetCount);
+    const filteredUrls = fetchedUrls.filter((url) => !blockedSet.has(getBaseDomain(url)));
+    const blockedCount = fetchedUrls.length - filteredUrls.length;
+
+    const quickResults = filteredUrls.map(buildPendingResult);
 
     await prisma.search.upsert({
       where: { keyword_country: { keyword, country } },
@@ -804,6 +841,7 @@ app.post("/api/search", async (req, res) => {
       keyword,
       country,
       total: quickResults.length,
+      blockedCount,
       analyzed: false,
       results: quickResults.map((r) => {
         if (debug) return r;

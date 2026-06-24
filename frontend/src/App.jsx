@@ -90,6 +90,12 @@ function App() {
   const [view, setView] = useState("home");
   const [keyword, setKeyword] = useState("");
   const [country, setCountry] = useState("us");
+  const [limit, setLimit] = useState(20);
+  const [disabledDomains, setDisabledDomains] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("disabledDomains") || "[]"); } catch { return []; }
+  });
+  const [disabledInput, setDisabledInput] = useState("");
+  const [showDisabledSidebar, setShowDisabledSidebar] = useState(false);
   const [results, setResults] = useState([]);
   const [historyItems, setHistoryItems] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -100,6 +106,7 @@ function App() {
   const [theme, setTheme] = useState("dark");
   const [resultSource, setResultSource] = useState("");
   const [activeSearchMeta, setActiveSearchMeta] = useState(null);
+  const [blockedCount, setBlockedCount] = useState(0);
   const [progress, setProgress] = useState({
     total: 0,
     doneCount: 0,
@@ -129,6 +136,10 @@ function App() {
     document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem("theme", theme);
   }, [theme]);
+
+  useEffect(() => {
+    localStorage.setItem("disabledDomains", JSON.stringify(disabledDomains));
+  }, [disabledDomains]);
 
   useEffect(() => {
     return () => {
@@ -192,6 +203,17 @@ function App() {
     } finally {
       setHistoryLoading(false);
     }
+  };
+
+  const addDisabledDomain = () => {
+    const normalized = disabledInput.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+    if (!normalized || disabledDomains.includes(normalized)) { setDisabledInput(""); return; }
+    setDisabledDomains((prev) => [normalized, ...prev]);
+    setDisabledInput("");
+  };
+
+  const removeDisabledDomain = (domain) => {
+    setDisabledDomains((prev) => prev.filter((d) => d !== domain));
   };
 
   const openHistory = async () => {
@@ -293,6 +315,7 @@ function App() {
       setResults([]);
       setHasSearched(true);
       setResultSource("");
+      setBlockedCount(0);
       setProgress({
         total: 0,
         doneCount: 0,
@@ -305,7 +328,7 @@ function App() {
       const res = await fetch(`${API_BASE}/api/search`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ keyword: cleanKeyword, country })
+        body: JSON.stringify({ keyword: cleanKeyword, country, limit, disabledDomains })
       });
 
       const data = await res.json();
@@ -319,6 +342,7 @@ function App() {
 
       const resultRows = Array.isArray(data.results) ? data.results : [];
       setResults(resultRows);
+      setBlockedCount(data.blockedCount || 0);
       setResultSource(data.source || "");
       setActiveSearchMeta({
         keyword: cleanKeyword,
@@ -540,7 +564,32 @@ function App() {
               </div>
             </div>
 
+            <div className="field-group limit-group">
+              <label htmlFor="limit">Fetch Limit</label>
+              <div className="select-wrap">
+                <select
+                  id="limit"
+                  value={limit}
+                  onChange={(e) => setLimit(Number(e.target.value))}
+                  disabled={loading}
+                >
+                  {[10, 20, 50, 100].map((n) => (
+                    <option key={n} value={n}>{n} URLs</option>
+                  ))}
+                </select>
+                <span className="select-arrow">▾</span>
+              </div>
+            </div>
+
             <div className="button-group">
+              <button
+                type="button"
+                className="ghost-btn"
+                onClick={() => setShowDisabledSidebar((v) => !v)}
+                disabled={loading}
+              >
+                <span>Disable List {disabledDomains.length > 0 ? `(${disabledDomains.length})` : ""}</span>
+              </button>
               <button
                 className="primary-btn"
                 onClick={handleSearch}
@@ -656,6 +705,12 @@ function App() {
               </div>
             </div>
 
+            {blockedCount > 0 && (
+              <div className="blocked-banner">
+                {blockedCount} site{blockedCount > 1 ? "s" : ""} blocked by your Disable List
+              </div>
+            )}
+
             {results.length > 0 ? (
               <div className="table-shell">
                 <table className="results-table">
@@ -663,6 +718,7 @@ function App() {
                     <tr>
                       <th className="col-index">#</th>
                       <th className="col-url">URL</th>
+                      <th className="col-dr">DR</th>
                       <th className="col-content">Content Type</th>
                       <th className="col-site">Site Type</th>
                       <th>Status</th>
@@ -682,6 +738,15 @@ function App() {
                           >
                             {item.url}
                           </a>
+                        </td>
+                        <td className="col-dr">
+                          {item.dr !== null && item.dr !== undefined ? (
+                            <span className={`dr-badge ${item.dr >= 60 ? "dr-high" : item.dr >= 30 ? "dr-mid" : "dr-low"}`}>
+                              {item.dr}
+                            </span>
+                          ) : (
+                            <span className="dr-pending">—</span>
+                          )}
                         </td>
                         <td className="col-content">
                           <span className="pill neutral-pill">
@@ -787,6 +852,36 @@ function App() {
             </div>
           )}
         </main>
+      )}
+
+      {showDisabledSidebar && (
+        <div className="disabled-sidebar">
+          <div className="disabled-sidebar-header">
+            <h3>Disable URL List <span className="disable-count">{disabledDomains.length}</span></h3>
+            <button type="button" className="ghost-btn" onClick={() => setShowDisabledSidebar(false)}>✕</button>
+          </div>
+          <p className="disabled-sidebar-note">Domains added here will be filtered from search results.</p>
+          <div className="disabled-input-row">
+            <input
+              type="text"
+              placeholder="e.g. example.com"
+              value={disabledInput}
+              onChange={(e) => setDisabledInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addDisabledDomain()}
+              className="disabled-input"
+            />
+            <button type="button" className="primary-btn" onClick={addDisabledDomain}>Add</button>
+          </div>
+          <ul className="disabled-list">
+            {disabledDomains.length === 0 && <li className="disabled-empty">No domains added yet.</li>}
+            {disabledDomains.map((domain) => (
+              <li key={domain} className="disabled-item">
+                <span>{domain}</span>
+                <button type="button" onClick={() => removeDisabledDomain(domain)} className="remove-btn">✕</button>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </div>
   );
