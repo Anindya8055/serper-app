@@ -90,6 +90,14 @@ function App() {
   const [view, setView] = useState("home");
   const [keyword, setKeyword] = useState("");
   const [country, setCountry] = useState("us");
+  const [limit, setLimit] = useState(20);
+  const [disabledDomains, setDisabledDomains] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("disabledDomains") || "[]"); } catch { return []; }
+  });
+  const [disabledInput, setDisabledInput] = useState("");
+  const [editingDomain, setEditingDomain] = useState(null);
+  const [editValue, setEditValue] = useState("");
+  const [showDisabledSidebar, setShowDisabledSidebar] = useState(false);
   const [results, setResults] = useState([]);
   const [historyItems, setHistoryItems] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -100,6 +108,7 @@ function App() {
   const [theme, setTheme] = useState("dark");
   const [resultSource, setResultSource] = useState("");
   const [activeSearchMeta, setActiveSearchMeta] = useState(null);
+  const [blockedCount, setBlockedCount] = useState(0);
   const [progress, setProgress] = useState({
     total: 0,
     doneCount: 0,
@@ -129,6 +138,10 @@ function App() {
     document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem("theme", theme);
   }, [theme]);
+
+  useEffect(() => {
+    localStorage.setItem("disabledDomains", JSON.stringify(disabledDomains));
+  }, [disabledDomains]);
 
   useEffect(() => {
     return () => {
@@ -192,6 +205,32 @@ function App() {
     } finally {
       setHistoryLoading(false);
     }
+  };
+
+  const addDisabledDomain = () => {
+    const normalized = disabledInput.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+    if (!normalized || disabledDomains.includes(normalized)) { setDisabledInput(""); return; }
+    setDisabledDomains((prev) => [normalized, ...prev]);
+    setDisabledInput("");
+  };
+
+  const removeDisabledDomain = (domain) => {
+    setDisabledDomains((prev) => prev.filter((d) => d !== domain));
+  };
+
+  const startEditDomain = (domain) => {
+    setEditingDomain(domain);
+    setEditValue(domain);
+  };
+
+  const saveEditDomain = () => {
+    const normalized = editValue.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+    if (!normalized || (normalized !== editingDomain && disabledDomains.includes(normalized))) {
+      setEditingDomain(null);
+      return;
+    }
+    setDisabledDomains((prev) => prev.map((d) => d === editingDomain ? normalized : d));
+    setEditingDomain(null);
   };
 
   const openHistory = async () => {
@@ -293,6 +332,7 @@ function App() {
       setResults([]);
       setHasSearched(true);
       setResultSource("");
+      setBlockedCount(0);
       setProgress({
         total: 0,
         doneCount: 0,
@@ -305,7 +345,7 @@ function App() {
       const res = await fetch(`${API_BASE}/api/search`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ keyword: cleanKeyword, country })
+        body: JSON.stringify({ keyword: cleanKeyword, country, limit, disabledDomains })
       });
 
       const data = await res.json();
@@ -319,6 +359,7 @@ function App() {
 
       const resultRows = Array.isArray(data.results) ? data.results : [];
       setResults(resultRows);
+      setBlockedCount(data.blockedCount || 0);
       setResultSource(data.source || "");
       setActiveSearchMeta({
         keyword: cleanKeyword,
@@ -483,6 +524,9 @@ function App() {
         </button>
 
         <div className="header-actions">
+          <button type="button" className="ghost-btn" onClick={() => setShowDisabledSidebar((v) => !v)}>
+            <span>Disable List {disabledDomains.length > 0 ? `(${disabledDomains.length})` : ""}</span>
+          </button>
           <button type="button" className="ghost-btn" onClick={openHistory}>
             <History size={16} />
             <span>Search History</span>
@@ -504,57 +548,63 @@ function App() {
           </section>
 
           <section className="search-panel">
-            <div className="field-group keyword-group">
-              <label htmlFor="keyword">Keyword</label>
-              <div className="input-wrap">
-                <Search size={18} className="input-icon" />
-                <input
-                  id="keyword"
-                  type="text"
-                  placeholder="e.g. mobile price in bangladesh"
-                  value={keyword}
-                  onChange={(e) => setKeyword(e.target.value)}
-                  onKeyDown={onKeyDown}
-                  disabled={loading}
-                />
-              </div>
+            <div className="input-wrap keyword-wrap">
+              <Search size={18} className="input-icon" />
+              <input
+                id="keyword"
+                type="text"
+                placeholder="e.g. mobile price in bangladesh"
+                value={keyword}
+                onChange={(e) => setKeyword(e.target.value)}
+                onKeyDown={onKeyDown}
+                disabled={loading}
+              />
             </div>
 
-            <div className="field-group country-group">
-              <label htmlFor="country">Country</label>
-              <div className="select-wrap">
-                <Globe size={18} className="input-icon" />
-                <select
-                  id="country"
-                  value={country}
-                  onChange={(e) => setCountry(e.target.value)}
-                  disabled={loading}
-                >
-                  {countries.map((item) => (
-                    <option key={item.code} value={item.code}>
-                      {item.name}
-                    </option>
-                  ))}
-                </select>
-                <span className="select-arrow">▾</span>
-              </div>
-            </div>
-
-            <div className="button-group">
-              <button
-                className="primary-btn"
-                onClick={handleSearch}
-                disabled={loading || !keyword.trim()}
-                type="button"
+            <div className="select-wrap">
+              <Globe size={18} className="input-icon" />
+              <select
+                id="country"
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
+                disabled={loading}
               >
-                {loading || polling ? (
-                  <LoaderCircle size={18} className="spin-icon" />
-                ) : (
-                  <Search size={18} />
-                )}
-                <span>{loading ? "Searching..." : polling ? "Updating..." : "Search"}</span>
-              </button>
+                {countries.map((item) => (
+                  <option key={item.code} value={item.code}>
+                    {item.name}
+                  </option>
+                ))}
+              </select>
+              <span className="select-arrow">▾</span>
             </div>
+
+            <div className="select-wrap limit-wrap">
+              <select
+                id="limit"
+                value={limit}
+                onChange={(e) => setLimit(Number(e.target.value))}
+                disabled={loading}
+              >
+                {[10, 20, 50, 100].map((n) => (
+                  <option key={n} value={n}>{n} URLs</option>
+                ))}
+              </select>
+              <span className="select-arrow">▾</span>
+            </div>
+
+            <button
+              className="primary-btn"
+              onClick={handleSearch}
+              disabled={loading || !keyword.trim()}
+              type="button"
+            >
+              {loading || polling ? (
+                <LoaderCircle size={18} className="spin-icon" />
+              ) : (
+                <Search size={18} />
+              )}
+              <span>{loading ? "Searching..." : polling ? "Updating..." : "Search"}</span>
+            </button>
           </section>
 
           {message && <div className="status-message">{message}</div>}
@@ -656,6 +706,12 @@ function App() {
               </div>
             </div>
 
+            {blockedCount > 0 && (
+              <div className="blocked-banner">
+                {blockedCount} site{blockedCount > 1 ? "s" : ""} blocked by your Disable List
+              </div>
+            )}
+
             {results.length > 0 ? (
               <div className="table-shell">
                 <table className="results-table">
@@ -663,6 +719,7 @@ function App() {
                     <tr>
                       <th className="col-index">#</th>
                       <th className="col-url">URL</th>
+                      <th className="col-dr">DR</th>
                       <th className="col-content">Content Type</th>
                       <th className="col-site">Site Type</th>
                       <th>Status</th>
@@ -682,6 +739,15 @@ function App() {
                           >
                             {item.url}
                           </a>
+                        </td>
+                        <td className="col-dr">
+                          {item.dr !== null && item.dr !== undefined ? (
+                            <span className={`dr-badge ${item.dr >= 60 ? "dr-high" : item.dr >= 30 ? "dr-mid" : "dr-low"}`}>
+                              {item.dr}
+                            </span>
+                          ) : (
+                            <span className="dr-pending">—</span>
+                          )}
                         </td>
                         <td className="col-content">
                           <span className="pill neutral-pill">
@@ -787,6 +853,58 @@ function App() {
             </div>
           )}
         </main>
+      )}
+
+      {showDisabledSidebar && (
+        <div className="disabled-sidebar">
+          <div className="disabled-sidebar-header">
+            <h3>Disable URL List <span className="disable-count">{disabledDomains.length}</span></h3>
+            <button type="button" className="ghost-btn" onClick={() => setShowDisabledSidebar(false)}>✕</button>
+          </div>
+          <p className="disabled-sidebar-note">Domains added here will be filtered from search results.</p>
+          <div className="disabled-input-row">
+            <input
+              type="text"
+              placeholder="e.g. example.com"
+              value={disabledInput}
+              onChange={(e) => setDisabledInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addDisabledDomain()}
+              className="disabled-input"
+            />
+            <button type="button" className="primary-btn" onClick={addDisabledDomain}>Add</button>
+          </div>
+          <ul className="disabled-list">
+            {disabledDomains.length === 0 && <li className="disabled-empty">No domains added yet.</li>}
+            {disabledDomains.map((domain) => (
+              <li key={domain} className="disabled-item">
+                {editingDomain === domain ? (
+                  <input
+                    className="disabled-input edit-inline"
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") saveEditDomain(); if (e.key === "Escape") setEditingDomain(null); }}
+                    autoFocus
+                  />
+                ) : (
+                  <span>{domain}</span>
+                )}
+                <div className="disabled-item-actions">
+                  {editingDomain === domain ? (
+                    <>
+                      <button type="button" onClick={saveEditDomain} className="edit-save-btn">Save</button>
+                      <button type="button" onClick={() => setEditingDomain(null)} className="remove-btn">✕</button>
+                    </>
+                  ) : (
+                    <>
+                      <button type="button" onClick={() => startEditDomain(domain)} className="edit-btn">✎</button>
+                      <button type="button" onClick={() => removeDisabledDomain(domain)} className="remove-btn">✕</button>
+                    </>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </div>
   );

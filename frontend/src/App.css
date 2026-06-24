@@ -194,11 +194,31 @@ button:disabled {
 }
 
 .search-panel {
-  display: grid;
-  grid-template-columns: minmax(0, 1.7fr) minmax(220px, 0.8fr) auto;
-  gap: 16px;
-  align-items: end;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 12px;
+  align-items: center;
   margin-bottom: 18px;
+}
+
+.keyword-wrap {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.limit-wrap {
+  width: 130px;
+  flex-shrink: 0;
+}
+
+.search-panel .select-wrap {
+  width: 190px;
+  flex-shrink: 0;
+}
+
+.search-panel .primary-btn {
+  flex-shrink: 0;
+  min-width: 120px;
 }
 
 .field-group {
@@ -604,7 +624,12 @@ select:focus {
   }
 
   .search-panel {
-    grid-template-columns: 1fr;
+    flex-wrap: wrap;
+  }
+
+  .search-panel .select-wrap,
+  .limit-wrap {
+    width: 100%;
   }
 
   .action-buttons,
@@ -680,3 +705,141 @@ select:focus {
 .error-count  { color: #f87171; }
 .done-icon    { color: #4ade80; }
 .clock-icon   { color: #facc15; }
+/* DR column */
+.col-dr { width: 56px; text-align: center; }
+.dr-badge {
+  display: inline-block;
+  min-width: 36px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+.dr-high { background: rgba(74, 222, 128, 0.15); color: #4ade80; }
+.dr-mid  { background: rgba(250, 204, 21, 0.15);  color: #facc15; }
+.dr-low  { background: rgba(248, 113, 113, 0.15); color: #f87171; }
+.dr-pending { color: var(--muted); font-size: 14px; }
+
+/* Blocked banner */
+.blocked-banner {
+  background: rgba(250, 204, 21, 0.1);
+  border: 1px solid rgba(250, 204, 21, 0.25);
+  color: #facc15;
+  border-radius: var(--radius-md);
+  padding: 10px 16px;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+/* Disabled sidebar */
+.disabled-sidebar {
+  position: fixed;
+  top: 0; left: 0;
+  width: 340px;
+  height: 100vh;
+  background: var(--card-2);
+  border-right: 1px solid var(--border-strong);
+  box-shadow: 8px 0 40px rgba(0,0,0,0.3);
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  gap: 16px;
+  overflow-y: auto;
+}
+.disabled-sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.disabled-sidebar-header h3 { margin: 0; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+.disable-count {
+  background: var(--primary-soft);
+  color: var(--primary);
+  border-radius: 20px;
+  padding: 1px 9px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.disabled-sidebar-note { font-size: 12px; color: var(--muted); margin: 0; }
+.disabled-input-row { display: flex; gap: 8px; }
+.disabled-input {
+  flex: 1;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  padding: 8px 12px;
+  font-size: 13px;
+  outline: none;
+}
+.disabled-input:focus { border-color: var(--primary); }
+.disabled-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.disabled-empty { color: var(--muted); font-size: 13px; text-align: center; padding: 12px 0; }
+.disabled-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+.disabled-item span {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.disabled-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.edit-inline {
+  flex: 1;
+  height: 30px;
+  border-radius: 8px;
+  font-size: 12px;
+  padding: 0 8px;
+}
+
+.edit-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 15px;
+  padding: 0 3px;
+  line-height: 1;
+}
+.edit-btn:hover { color: var(--primary); }
+
+.edit-save-btn {
+  background: var(--primary-soft);
+  border: 1px solid var(--primary);
+  color: var(--primary);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+}
+.edit-save-btn:hover { background: var(--primary); color: #062018; }
+
+.remove-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0 2px;
+  line-height: 1;
+}
+.remove-btn:hover { color: #f87171; }
