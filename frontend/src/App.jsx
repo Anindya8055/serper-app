@@ -95,6 +95,8 @@ function App() {
     try { return JSON.parse(localStorage.getItem("disabledDomains") || "[]"); } catch { return []; }
   });
   const [disabledInput, setDisabledInput] = useState("");
+  const [editingDomain, setEditingDomain] = useState(null);
+  const [editValue, setEditValue] = useState("");
   const [showDisabledSidebar, setShowDisabledSidebar] = useState(false);
   const [results, setResults] = useState([]);
   const [historyItems, setHistoryItems] = useState([]);
@@ -214,6 +216,21 @@ function App() {
 
   const removeDisabledDomain = (domain) => {
     setDisabledDomains((prev) => prev.filter((d) => d !== domain));
+  };
+
+  const startEditDomain = (domain) => {
+    setEditingDomain(domain);
+    setEditValue(domain);
+  };
+
+  const saveEditDomain = () => {
+    const normalized = editValue.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+    if (!normalized || (normalized !== editingDomain && disabledDomains.includes(normalized))) {
+      setEditingDomain(null);
+      return;
+    }
+    setDisabledDomains((prev) => prev.map((d) => d === editingDomain ? normalized : d));
+    setEditingDomain(null);
   };
 
   const openHistory = async () => {
@@ -507,6 +524,9 @@ function App() {
         </button>
 
         <div className="header-actions">
+          <button type="button" className="ghost-btn" onClick={() => setShowDisabledSidebar((v) => !v)}>
+            <span>Disable List {disabledDomains.length > 0 ? `(${disabledDomains.length})` : ""}</span>
+          </button>
           <button type="button" className="ghost-btn" onClick={openHistory}>
             <History size={16} />
             <span>Search History</span>
@@ -528,82 +548,63 @@ function App() {
           </section>
 
           <section className="search-panel">
-            <div className="field-group keyword-group">
-              <label htmlFor="keyword">Keyword</label>
-              <div className="input-wrap">
-                <Search size={18} className="input-icon" />
-                <input
-                  id="keyword"
-                  type="text"
-                  placeholder="e.g. mobile price in bangladesh"
-                  value={keyword}
-                  onChange={(e) => setKeyword(e.target.value)}
-                  onKeyDown={onKeyDown}
-                  disabled={loading}
-                />
-              </div>
+            <div className="input-wrap keyword-wrap">
+              <Search size={18} className="input-icon" />
+              <input
+                id="keyword"
+                type="text"
+                placeholder="e.g. mobile price in bangladesh"
+                value={keyword}
+                onChange={(e) => setKeyword(e.target.value)}
+                onKeyDown={onKeyDown}
+                disabled={loading}
+              />
             </div>
 
-            <div className="field-group country-group">
-              <label htmlFor="country">Country</label>
-              <div className="select-wrap">
-                <Globe size={18} className="input-icon" />
-                <select
-                  id="country"
-                  value={country}
-                  onChange={(e) => setCountry(e.target.value)}
-                  disabled={loading}
-                >
-                  {countries.map((item) => (
-                    <option key={item.code} value={item.code}>
-                      {item.name}
-                    </option>
-                  ))}
-                </select>
-                <span className="select-arrow">▾</span>
-              </div>
-            </div>
-
-            <div className="field-group limit-group">
-              <label htmlFor="limit">Fetch Limit</label>
-              <div className="select-wrap">
-                <select
-                  id="limit"
-                  value={limit}
-                  onChange={(e) => setLimit(Number(e.target.value))}
-                  disabled={loading}
-                >
-                  {[10, 20, 50, 100].map((n) => (
-                    <option key={n} value={n}>{n} URLs</option>
-                  ))}
-                </select>
-                <span className="select-arrow">▾</span>
-              </div>
-            </div>
-
-            <div className="button-group">
-              <button
-                type="button"
-                className="ghost-btn"
-                onClick={() => setShowDisabledSidebar((v) => !v)}
+            <div className="select-wrap">
+              <Globe size={18} className="input-icon" />
+              <select
+                id="country"
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
                 disabled={loading}
               >
-                <span>Disable List {disabledDomains.length > 0 ? `(${disabledDomains.length})` : ""}</span>
-              </button>
-              <button
-                className="primary-btn"
-                onClick={handleSearch}
-                disabled={loading || !keyword.trim()}
-                type="button"
-              >
-                {loading || polling ? (
-                  <LoaderCircle size={18} className="spin-icon" />
-                ) : (
-                  <Search size={18} />
-                )}
-                <span>{loading ? "Searching..." : polling ? "Updating..." : "Search"}</span>
-              </button>
+                {countries.map((item) => (
+                  <option key={item.code} value={item.code}>
+                    {item.name}
+                  </option>
+                ))}
+              </select>
+              <span className="select-arrow">▾</span>
             </div>
+
+            <div className="select-wrap limit-wrap">
+              <select
+                id="limit"
+                value={limit}
+                onChange={(e) => setLimit(Number(e.target.value))}
+                disabled={loading}
+              >
+                {[10, 20, 50, 100].map((n) => (
+                  <option key={n} value={n}>{n} URLs</option>
+                ))}
+              </select>
+              <span className="select-arrow">▾</span>
+            </div>
+
+            <button
+              className="primary-btn"
+              onClick={handleSearch}
+              disabled={loading || !keyword.trim()}
+              type="button"
+            >
+              {loading || polling ? (
+                <LoaderCircle size={18} className="spin-icon" />
+              ) : (
+                <Search size={18} />
+              )}
+              <span>{loading ? "Searching..." : polling ? "Updating..." : "Search"}</span>
+            </button>
           </section>
 
           {message && <div className="status-message">{message}</div>}
@@ -876,8 +877,30 @@ function App() {
             {disabledDomains.length === 0 && <li className="disabled-empty">No domains added yet.</li>}
             {disabledDomains.map((domain) => (
               <li key={domain} className="disabled-item">
-                <span>{domain}</span>
-                <button type="button" onClick={() => removeDisabledDomain(domain)} className="remove-btn">✕</button>
+                {editingDomain === domain ? (
+                  <input
+                    className="disabled-input edit-inline"
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") saveEditDomain(); if (e.key === "Escape") setEditingDomain(null); }}
+                    autoFocus
+                  />
+                ) : (
+                  <span>{domain}</span>
+                )}
+                <div className="disabled-item-actions">
+                  {editingDomain === domain ? (
+                    <>
+                      <button type="button" onClick={saveEditDomain} className="edit-save-btn">Save</button>
+                      <button type="button" onClick={() => setEditingDomain(null)} className="remove-btn">✕</button>
+                    </>
+                  ) : (
+                    <>
+                      <button type="button" onClick={() => startEditDomain(domain)} className="edit-btn">✎</button>
+                      <button type="button" onClick={() => removeDisabledDomain(domain)} className="remove-btn">✕</button>
+                    </>
+                  )}
+                </div>
               </li>
             ))}
           </ul>
