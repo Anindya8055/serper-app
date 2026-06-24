@@ -91,8 +91,17 @@ function App() {
   const [keyword, setKeyword] = useState("");
   const [country, setCountry] = useState("us");
   const [limit, setLimit] = useState(20);
+  const DEFAULT_DISABLED_DOMAINS = [
+    "amazon.com", "google.com", "facebook.com", "fb.com", "instagram.com",
+    "threads.net", "youtube.com", "youtu.be", "reddit.com", "redd.it",
+    "tiktok.com", "twitter.com", "x.com", "linkedin.com", "pinterest.com",
+    "wikipedia.org", "wikimedia.org", "quora.com", "medium.com", "tumblr.com",
+  ];
   const [disabledDomains, setDisabledDomains] = useState(() => {
-    try { return JSON.parse(localStorage.getItem("disabledDomains") || "[]"); } catch { return []; }
+    try {
+      const saved = localStorage.getItem("disabledDomains");
+      return saved !== null ? JSON.parse(saved) : DEFAULT_DISABLED_DOMAINS;
+    } catch { return DEFAULT_DISABLED_DOMAINS; }
   });
   const [disabledInput, setDisabledInput] = useState("");
   const [editingDomain, setEditingDomain] = useState(null);
