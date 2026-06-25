@@ -529,7 +529,10 @@ async function runAnalysisInBackground(keyword, country) {
         const { serperTitle, serperSnippet, url } = results[i];
         if (!serperTitle && !serperSnippet) continue;
         const hit = classifyFromSnippet(url, serperTitle || "", serperSnippet || "");
-        if (hit && hit.confidence === "High") {
+        const urlIsContent = /\/blog\/|\/blogs\/|\/news\/|\/article\/|\/articles\/|\/story\/|\/guide\/|\/review\/|\/reviews\/|\/videos?\/|\/select\/|\/picks\/|\/ranked\/|\/roundup\/|\/post\/|\/forum\//i.test(url);
+        // Accept Medium confidence when the URL itself is unambiguously a content page
+        const acceptableHit = hit && (hit.confidence === "High" || (hit.confidence === "Medium" && urlIsContent));
+        if (acceptableHit) {
           results[i] = {
             ...results[i],
             siteType: hit.siteType,
@@ -962,7 +965,11 @@ app.post("/api/search", async (req, res) => {
 
       for (const item of pageResults) {
         if (item.link) {
-          urlSnippetMap.set(item.link, { title: item.title || "", snippet: item.snippet || "" });
+          try {
+            const u = new URL(item.link);
+            const normalizedKey = `${u.protocol}//${u.hostname.replace(/^www\./, "")}${u.pathname.replace(/\/+$/, "") || "/"}${u.search}`;
+            urlSnippetMap.set(normalizedKey, { title: item.title || "", snippet: item.snippet || "" });
+          } catch {}
           allUrls.push(item.link);
         }
       }
