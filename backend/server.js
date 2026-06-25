@@ -393,12 +393,22 @@ async function analyzeSingleResult(item, domainMap, deepIndex = 0) {
     const fastTextResult = await classifyWithFastText(item.url, pageData);
     const mergedPageResult = mergeRuleBasedWithFastText(rulePageResult, fastTextResult);
 
-    let resolvedSiteType = normalizeType(
-      knownPrior || domainAnalysis?.siteType || mergedPageResult.siteType || "Small business"
-    );
-
     const lowerUrl = String(item.url || "").toLowerCase();
     const isHomepage = /^https?:\/\/[^/]+\/?$/.test(lowerUrl);
+    const serpUrlIsShop = /\/collections\/|\/products?\/|\/shop\/|\/store\/|\/cart\/|\/checkout\/|\/buy\/|\/catalog\//i.test(lowerUrl);
+
+    // If the domain was classified as E-commerce purely from a Magento fingerprint on the
+    // homepage, don't blindly inherit that for SERP URLs that are clearly not shop pages.
+    // Magento is used by many non-ecommerce sites (blogs, directories, news sites).
+    const domainFromMagentoOnly =
+      domainAnalysis?.siteType === "E-commerce" &&
+      domainAnalysis?.matchedSignals?.[0] === "Platform fingerprint: Magento" &&
+      !serpUrlIsShop;
+    const effectiveDomainSiteType = domainFromMagentoOnly ? null : domainAnalysis?.siteType;
+
+    let resolvedSiteType = normalizeType(
+      knownPrior || effectiveDomainSiteType || mergedPageResult.siteType || "Small business"
+    );
     const isLikelyEditorialUrl =
       /\/blog\/|\/post\/|\/posts\/|\/article\/|\/articles\/|\/story\/|\/stories\/|\/news\/|\/guide\/|\/best\/|\/reviews?\/|videos?\//i.test(
         lowerUrl
