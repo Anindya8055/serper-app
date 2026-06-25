@@ -783,7 +783,9 @@ app.post("/api/search", async (req, res) => {
   keyword = keyword.toLowerCase().trim();
 
   const ALLOWED_LIMITS = [10, 20, 50, 100];
+  console.log(`[search] limit received: ${JSON.stringify(limit)}, type: ${typeof limit}`);
   const targetCount = ALLOWED_LIMITS.includes(Number(limit)) ? Number(limit) : TARGET_URL_COUNT;
+  console.log(`[search] targetCount: ${targetCount}`);
 
   const blockedSet = new Set(
     Array.isArray(disabledDomains)
