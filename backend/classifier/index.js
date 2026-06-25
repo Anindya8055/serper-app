@@ -670,6 +670,14 @@ function classifyContentType(url, pageSignals = {}, siteTypeHint = null) {
     return "Blog";
   }
 
+  // When caller passes a trusted siteTypeHint (e.g. from domain prior), honour it
+  // for editorial types — don't let URL path heuristics override a known Newspaper/Blog.
+  if (siteTypeHint === "Newspaper" || siteTypeHint === "Blog") {
+    const isBlogPath = /\/blogs?\/[^/?#]+|\/posts?\/[^/?#]+/i.test(lowerUrl);
+    if (isBlogPath) return "Blog";
+    return siteTypeHint;
+  }
+
   if (mediaDomains.has(domain)) {
     const isBlogPath = /\/blog\/|\/blogs\//i.test(lowerUrl);
     if (isBlogPath) return "Blog";
@@ -714,11 +722,15 @@ function classifyContentType(url, pageSignals = {}, siteTypeHint = null) {
   const combined = `${title} ${metaDescription} ${bodyText} ${linksText}`.toLowerCase();
   const isLocalSite = effectiveSiteType === "Small business" || effectiveSiteType === "Service";
 
-  if (safeSignals.hasProductSchema) return "E-commerce";
-  if (safeSignals.hasCart && !isLocalSite) return "E-commerce";
+  // Only trust product schema on pages that look like actual product/shop pages.
+  // Affiliate/editorial pages embed Product schema but are not E-commerce pages.
+  const isEditorialSiteType = effectiveSiteType === "Newspaper" || effectiveSiteType === "Blog";
+  const urlLooksCommerce = /\/collections\/|\/products?\/|\/shop\/|\/store\/|\/cart\/|\/checkout\/|\/buy\//i.test(lowerUrl);
+  if (safeSignals.hasProductSchema && !isEditorialSiteType && !isLocalSite) return "E-commerce";
+  if (safeSignals.hasCart && !isLocalSite && !isEditorialSiteType) return "E-commerce";
 
   if (!isLocalSite) {
-    if (schemaTypes.isProduct) return "E-commerce";
+    if (schemaTypes.isProduct && urlLooksCommerce) return "E-commerce";
     if (safeSignals.hasArticleSchema || schemaTypes.isNewsArticle) return "Newspaper";
     if (schemaTypes.isBlogPosting) return "Blog";
   }

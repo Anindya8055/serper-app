@@ -342,10 +342,13 @@ async function analyzeSingleResult(item, domainMap, deepIndex = 0) {
       throw new Error("extractPageData returned null — site likely blocked headless browser");
     }
 
-    // Platform fingerprint (Shopify, WooCommerce, etc.) — high-confidence shortcut
+    // Platform fingerprint (Shopify, WooCommerce, etc.) — high-confidence shortcut.
+    // Guard: if the SERP URL itself is a content page, don't inherit E-commerce siteType
+    // from the domain fingerprint — let the normal classifier determine siteType from page content.
     const platformMatch = pageData._platformMatch;
     delete pageData._platformMatch;
-    if (platformMatch) {
+    const serpUrlIsContent = /\/blog\/|\/blogs\/|\/news\/|\/article\/|\/articles\/|\/guide\/|\/review\/|\/reviews\/|\/post\/|\/posts\/|\/video\/|\/videos\/|\/select\/|\/picks\/|\/ranked\/|\/roundup\/|\/forum\/|\/opinion\//i.test(item.url);
+    if (platformMatch && !(platformMatch.siteType === "E-commerce" && serpUrlIsContent)) {
       const platformSiteType = normalizeType(platformMatch.siteType);
       const platformContentType = normalizeType(
         classifyContentType(item.url, pageData, platformSiteType)
@@ -397,7 +400,7 @@ async function analyzeSingleResult(item, domainMap, deepIndex = 0) {
     const lowerUrl = String(item.url || "").toLowerCase();
     const isHomepage = /^https?:\/\/[^/]+\/?$/.test(lowerUrl);
     const isLikelyEditorialUrl =
-      /\/blog\/|\/post\/|\/posts\/|\/article\/|\/articles\/|\/story\/|\/stories\/|\/news\/|\/guide\/|\/best\/|\/reviews?\//i.test(
+      /\/blog\/|\/post\/|\/posts\/|\/article\/|\/articles\/|\/story\/|\/stories\/|\/news\/|\/guide\/|\/best\/|\/reviews?\/|videos?\//i.test(
         lowerUrl
       );
     const isLocalSite =
