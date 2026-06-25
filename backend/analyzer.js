@@ -35,20 +35,43 @@ function compactText(text = "", limit = MAX_BODY_TEXT) {
   return String(text).replace(/\s+/g, " ").trim().slice(0, limit);
 }
 
+// Returns true if the URL looks like a content/editorial page rather than a shop page.
+// Used to prevent Shopify CDN false positives on media sites with embedded buy buttons.
+function isContentUrl(url = "") {
+  return /\/blog\/|\/blogs\/|\/news\/|\/article\/|\/articles\/|\/story\/|\/stories\/|\/guide\/|\/guides\/|\/review\/|\/reviews\/|\/best\/|\/topic\/|\/topics\/|\/forum\/|\/forums\/|\/post\/|\/posts\/|\/opinion\/|\/advice\//i.test(url);
+}
+
+// Returns true if the URL looks like a shop/product page.
+function isShopUrl(url = "") {
+  return /\/collections\/|\/products?\/|\/shop\/|\/store\/|\/cart\/|\/checkout\/|\/buy\/|\/order\/|\/catalogue\/|\/catalog\//i.test(url);
+}
+
 // Detect e-commerce/platform type from raw HTML fingerprints.
 // Returns { platform, siteType } or null if nothing matched.
-function detectPlatformFromHtml(html = "", responseHeaders = {}) {
-  const h = html.slice(0, 60000); // only scan first 60KB
+function detectPlatformFromHtml(html = "", responseHeaders = {}, url = "") {
+  const h = html.slice(0, 60000);
+  const contentPage = isContentUrl(url);
+  const shopPage = isShopUrl(url);
+  const isHomepage = /^https?:\/\/[^/]+\/?$/.test(url);
 
-  // Shopify
-  if (
+  // For Shopify: only fire on shop/collection/product URLs or homepages.
+  // Many media/blog sites embed Shopify buy buttons — don't classify them as E-commerce.
+  const shopifyDetected =
     /cdn\.shopify\.com|shopify\.com\/s\/files|Shopify\.theme|window\.Shopify\s*=/i.test(h) ||
-    /x-shopid|x-shopify/i.test(Object.keys(responseHeaders).join(" "))
-  ) return { platform: "Shopify", siteType: "E-commerce" };
+    /x-shopid|x-shopify/i.test(Object.keys(responseHeaders).join(" "));
 
-  // WooCommerce (WordPress + WooCommerce)
-  if (/wp-content\/plugins\/woocommerce|woocommerce\.min\.js|\/wc-api\/|wc_add_to_cart/i.test(h))
+  if (shopifyDetected) {
+    if (shopPage || isHomepage) return { platform: "Shopify", siteType: "E-commerce" };
+    if (contentPage) return null; // blog/news page on a Shopify site — let normal classifier handle it
+    // Unknown URL pattern but Shopify detected — trust it
+    return { platform: "Shopify", siteType: "E-commerce" };
+  }
+
+  // WooCommerce — same guard: content URLs on WP sites shouldn't override to E-commerce
+  if (/wp-content\/plugins\/woocommerce|woocommerce\.min\.js|\/wc-api\/|wc_add_to_cart/i.test(h)) {
+    if (contentPage) return null;
     return { platform: "WooCommerce", siteType: "E-commerce" };
+  }
 
   // BigCommerce
   if (/cdn\d*\.bigcommerce\.com|bigcommerce\.com\/s-|BigCommerce\.com/i.test(h))
@@ -74,7 +97,7 @@ function detectPlatformFromHtml(html = "", responseHeaders = {}) {
   if (/app\.ecwid\.com|ecwid\.com\/script\.js/i.test(h))
     return { platform: "Ecwid", siteType: "E-commerce" };
 
-  // Generic WordPress (not WooCommerce) → Blog/Small business, not E-commerce
+  // Generic WordPress (not WooCommerce) → Blog
   if (/wp-content\/themes|wp-includes\/js|xmlrpc\.php/i.test(h))
     return { platform: "WordPress", siteType: "Blog" };
 
@@ -376,7 +399,7 @@ async function fetchWithCheerio(url) {
   });
 
   const html = typeof response.data === "string" ? response.data : "";
-  const platformMatch = detectPlatformFromHtml(html, response.headers || {});
+  const platformMatch = detectPlatformFromHtml(html, response.headers || {}, url);
   const $ = cheerio.load(html);
 
   const title = $("title").text().trim() || "";
@@ -624,7 +647,7 @@ async function maybeUpgradePageWithBrowser(page) {
 async function analyzeDomain(homepageUrl) {
   const homepageRaw = await extractPageData(null, homepageUrl);
 
-  // Platform fingerprint shortcut — skip full domain analysis
+  // Platform fingerprint shortcut — skip full domain analysis (homepages always qualify)
   const platformMatch = homepageRaw._platformMatch;
   if (platformMatch) {
     delete homepageRaw._platformMatch;

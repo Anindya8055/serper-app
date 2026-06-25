@@ -132,5 +132,32 @@
   "thetimes.com": "Newspaper",
   "economist.com": "Newspaper",
 
-  "parkderm.com": "Small business"
+  "parkderm.com": "Small business",
+
+  "callawaygolf.com": "E-commerce",
+  "taylormadegolf.com": "E-commerce",
+  "golfgalaxy.com": "E-commerce",
+  "pgatoursuperstore.com": "E-commerce",
+  "halpennygolf.com": "E-commerce",
+  "golfsmith.com": "E-commerce",
+  "dickssportinggoods.com": "E-commerce",
+  "titleist.com": "E-commerce",
+  "ping.com": "E-commerce",
+  "clevelandgolf.com": "E-commerce",
+  "srixon.com": "E-commerce",
+  "mizunogolf.com": "E-commerce",
+  "footjoy.com": "E-commerce",
+
+  "golfmonthly.com": "Newspaper",
+  "golfdigest.com": "Newspaper",
+  "golf.com": "Newspaper",
+  "golfchannel.com": "Newspaper",
+  "golfweek.usatoday.com": "Newspaper",
+  "golfweek.com": "Newspaper",
+  "mygolfspy.com": "Blog",
+  "golfinsideruk.com": "Blog",
+  "outofboundsgolf.com": "Blog",
+  "blog.mortongolfsales.com": "Blog",
+  "forums.golfwrx.com": "Blog",
+  "golfwrx.com": "Blog"
 }
