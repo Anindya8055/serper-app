@@ -79,11 +79,12 @@ function detectPlatformFromHtml(html = "", responseHeaders = {}, url = "") {
     return { platform: "BigCommerce", siteType: "E-commerce" };
   }
 
-  // Magento — many media/review sites use Magento infra; only trust on shop/homepage URLs
+  // Magento — extremely high false-positive rate on non-ecommerce sites (blogs, directories,
+  // academies, news sites all embed Magento scripts). Only trust on explicit shop URLs or
+  // the homepage. Return null for ALL other URL patterns.
   if (/mage\/|Magento_|mage\.cookies|require\.config.*Magento/i.test(h)) {
     if (shopPage || isHomepage) return { platform: "Magento", siteType: "E-commerce" };
-    if (contentPage) return null;
-    return { platform: "Magento", siteType: "E-commerce" };
+    return null;
   }
 
   // Squarespace Commerce
