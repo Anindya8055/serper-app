@@ -664,6 +664,12 @@ function classifyContentType(url, pageSignals = {}, siteTypeHint = null) {
   const lowerUrl = String(url || "").toLowerCase();
   const domain = getHostname(url);
 
+  // Blog/news URL patterns override contentType regardless of siteType.
+  // e.g. an E-commerce site's /blogs/ page should have contentType=Blog.
+  if (/\/blogs?\/[^/?#]+|\/news\/[^/?#]+|\/articles?\/[^/?#]+|\/posts?\/[^/?#]+|\/guides?\/[^/?#]+/i.test(lowerUrl)) {
+    return "Blog";
+  }
+
   if (mediaDomains.has(domain)) {
     const isBlogPath = /\/blog\/|\/blogs\//i.test(lowerUrl);
     if (isBlogPath) return "Blog";
