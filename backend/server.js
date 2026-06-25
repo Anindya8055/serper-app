@@ -275,6 +275,30 @@ async function analyzeSingleResult(item, domainMap, deepIndex = 0) {
       throw new Error("extractPageData returned null — site likely blocked headless browser");
     }
 
+    // Platform fingerprint (Shopify, WooCommerce, etc.) — high-confidence shortcut
+    const platformMatch = pageData._platformMatch;
+    delete pageData._platformMatch;
+    if (platformMatch) {
+      const platformSiteType = normalizeType(platformMatch.siteType);
+      const platformContentType = normalizeType(
+        classifyContentType(item.url, pageData, platformSiteType)
+      );
+      return {
+        ...item,
+        siteType: platformSiteType,
+        contentType: platformContentType,
+        confidence: "High",
+        classifierVersion: CLASSIFIER_VERSION,
+        matchedSignals: [
+          `Platform fingerprint: ${platformMatch.platform}`,
+          ...(knownPrior ? [`Known domain prior: ${knownPrior}`] : []),
+        ],
+        analyzedPages: [item.url],
+        analysisStatus: "done",
+        pageData,
+      };
+    }
+
     const rulePageResult = inferTypeFromSignals(
       item.url,
       pageData.title ?? "",

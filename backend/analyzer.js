@@ -35,6 +35,56 @@ function compactText(text = "", limit = MAX_BODY_TEXT) {
   return String(text).replace(/\s+/g, " ").trim().slice(0, limit);
 }
 
+// Detect e-commerce/platform type from raw HTML fingerprints.
+// Returns { platform, siteType } or null if nothing matched.
+function detectPlatformFromHtml(html = "", responseHeaders = {}) {
+  const h = html.slice(0, 60000); // only scan first 60KB
+
+  // Shopify
+  if (
+    /cdn\.shopify\.com|shopify\.com\/s\/files|Shopify\.theme|window\.Shopify\s*=/i.test(h) ||
+    /x-shopid|x-shopify/i.test(Object.keys(responseHeaders).join(" "))
+  ) return { platform: "Shopify", siteType: "E-commerce" };
+
+  // WooCommerce (WordPress + WooCommerce)
+  if (/wp-content\/plugins\/woocommerce|woocommerce\.min\.js|\/wc-api\/|wc_add_to_cart/i.test(h))
+    return { platform: "WooCommerce", siteType: "E-commerce" };
+
+  // BigCommerce
+  if (/cdn\d*\.bigcommerce\.com|bigcommerce\.com\/s-|BigCommerce\.com/i.test(h))
+    return { platform: "BigCommerce", siteType: "E-commerce" };
+
+  // Magento
+  if (/mage\/|Magento_|mage\.cookies|require\.config.*Magento/i.test(h))
+    return { platform: "Magento", siteType: "E-commerce" };
+
+  // Squarespace Commerce
+  if (/squarespace\.com\/commerce|static\.squarespace\.com.*commerce/i.test(h))
+    return { platform: "Squarespace", siteType: "E-commerce" };
+
+  // PrestaShop
+  if (/prestashop|\/themes\/.*\/assets\/css\/theme\.css/i.test(h) && /add.to.cart|panier/i.test(h))
+    return { platform: "PrestaShop", siteType: "E-commerce" };
+
+  // Wix eCommerce
+  if (/static\.wixstatic\.com|wixsite\.com/i.test(h) && /\/store\/|wix-stores/i.test(h))
+    return { platform: "Wix Store", siteType: "E-commerce" };
+
+  // Ecwid
+  if (/app\.ecwid\.com|ecwid\.com\/script\.js/i.test(h))
+    return { platform: "Ecwid", siteType: "E-commerce" };
+
+  // Generic WordPress (not WooCommerce) → Blog/Small business, not E-commerce
+  if (/wp-content\/themes|wp-includes\/js|xmlrpc\.php/i.test(h))
+    return { platform: "WordPress", siteType: "Blog" };
+
+  // Webflow
+  if (/assets\.website-files\.com|webflow\.com\/css/i.test(h))
+    return { platform: "Webflow", siteType: "Small business" };
+
+  return null;
+}
+
 function absolutizeLinks(baseUrl, hrefs = []) {
   const out = [];
 
@@ -326,6 +376,7 @@ async function fetchWithCheerio(url) {
   });
 
   const html = typeof response.data === "string" ? response.data : "";
+  const platformMatch = detectPlatformFromHtml(html, response.headers || {});
   const $ = cheerio.load(html);
 
   const title = $("title").text().trim() || "";
@@ -369,13 +420,10 @@ async function fetchWithCheerio(url) {
   return {
     ...pageData,
     _source: "cheerio",
-    _needsBrowser: shouldFallbackToPlaywright({
-      html,
-      title,
-      bodyText,
-      linksText,
-      schemaText,
-    }),
+    _platformMatch: platformMatch || null,
+    _needsBrowser: platformMatch
+      ? false  // platform fingerprint is definitive — no need for browser
+      : shouldFallbackToPlaywright({ html, title, bodyText, linksText, schemaText }),
   };
 }
 
@@ -468,10 +516,13 @@ async function fetchWithPlaywright(url) {
 async function extractPageData(_ctx, url) {
   try {
     const cheerioResult = await fetchWithCheerio(url);
+    const platformMatch = cheerioResult._platformMatch;
+    delete cheerioResult._platformMatch;
 
     if (EVAL_FAST_MODE || !ENABLE_BROWSER_UPGRADE || !cheerioResult._needsBrowser) {
       delete cheerioResult._needsBrowser;
       delete cheerioResult._source;
+      if (platformMatch) cheerioResult._platformMatch = platformMatch;
       return cheerioResult;
     }
 
@@ -479,10 +530,13 @@ async function extractPageData(_ctx, url) {
       const browserResult = await fetchWithPlaywright(url);
       delete browserResult._needsBrowser;
       delete browserResult._source;
+      // Carry platform match through even after browser upgrade
+      if (platformMatch) browserResult._platformMatch = platformMatch;
       return browserResult;
     } catch (_playwrightError) {
       delete cheerioResult._needsBrowser;
       delete cheerioResult._source;
+      if (platformMatch) cheerioResult._platformMatch = platformMatch;
       return cheerioResult;
     }
   } catch (cheerioError) {
@@ -569,6 +623,28 @@ async function maybeUpgradePageWithBrowser(page) {
 
 async function analyzeDomain(homepageUrl) {
   const homepageRaw = await extractPageData(null, homepageUrl);
+
+  // Platform fingerprint shortcut — skip full domain analysis
+  const platformMatch = homepageRaw._platformMatch;
+  if (platformMatch) {
+    delete homepageRaw._platformMatch;
+    return {
+      domain: getBaseDomain(homepageUrl),
+      homepageUrl,
+      classifierVersion: null,
+      siteType: platformMatch.siteType,
+      confidence: "High",
+      topScore: 1,
+      secondScore: 0,
+      scoreGap: 1,
+      scores: null,
+      analyzedPages: [homepageUrl],
+      pageTitles: [homepageRaw.title].filter(Boolean),
+      pageClassifications: [],
+      matchedSignals: [`Platform fingerprint: ${platformMatch.platform}`],
+    };
+  }
+
   const homepageResolved = await maybeUpgradePageWithBrowser(homepageRaw);
   const homepage = homepageResolved.page;
   const homepageClassification = homepageResolved.classification;
