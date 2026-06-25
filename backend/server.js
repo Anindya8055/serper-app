@@ -103,7 +103,7 @@ function mergeMatchedSignals(...signalGroups) {
   return result;
 }
 
-function buildPendingResult(url) {
+function buildPendingResult(url, serperTitle = "", serperSnippet = "") {
   return {
     url,
     domain: getBaseDomain(url),
@@ -115,7 +115,74 @@ function buildPendingResult(url) {
     analysisStatus: "pending",
     matchedSignals: ["Pending analysis"],
     dr: null,
+    serperTitle: serperTitle || null,
+    serperSnippet: serperSnippet || null,
   };
+}
+
+// Classify siteType from Serper title + snippet without any crawling.
+// Returns { siteType, contentType, confidence } or null if not confident enough.
+function classifyFromSnippet(url, title = "", snippet = "") {
+  const text = `${title} ${snippet}`.toLowerCase();
+  const lowerUrl = url.toLowerCase();
+
+  // Strong e-commerce signals in title/snippet
+  const ecomSignals = [
+    /\bfree shipping\b/,
+    /\badd to cart\b/,
+    /\bbuy (now|online|today)\b/,
+    /\bshop (now|online|our)\b/,
+    /\b(from|starting at|only|just)\s+\$[\d,.]+/,
+    /\$[\d,.]+\s*(usd|aud|gbp|cad)?/,
+    /\b(order|checkout|purchase|in stock|out of stock)\b/,
+    /\bfree returns?\b/,
+    /\b\d+%\s*off\b/,
+  ];
+
+  // Strong blog/editorial signals
+  const blogSignals = [
+    /\b(best|top|review|reviewed|guide|how to|tips|advice|ranked|rated|recommended)\b/,
+    /\b(expert|tested|opinion|analysis|comparison|vs\.?|versus)\b/,
+    /\b(explained|everything you need|should you|worth it)\b/,
+    /\b(article|post|written by|updated|published)\b/,
+  ];
+
+  // Strong forum signals
+  const forumSignals = [
+    /\b(forum|thread|reply|replies|posted by|discussion|community|members?)\b/,
+    /\b(asked|answered|question|topic)\b/,
+  ];
+
+  // URL signals (very reliable)
+  const isCommerceUrl = /\/collections\/|\/products?\/|\/shop\/|\/store\/|\/cart\/|\/checkout\/|\/buy\//i.test(lowerUrl);
+  const isContentUrl = /\/blog\/|\/blogs\/|\/news\/|\/article\/|\/guide\/|\/review\/|\/forum\/|\/topic\//i.test(lowerUrl);
+
+  const ecomScore = ecomSignals.filter(r => r.test(text)).length + (isCommerceUrl ? 3 : 0);
+  const blogScore = blogSignals.filter(r => r.test(text)).length + (isContentUrl ? 2 : 0);
+  const forumScore = forumSignals.filter(r => r.test(text)).length;
+
+  const contentType = normalizeType(classifyContentType(url, null, null));
+
+  if (isCommerceUrl && ecomScore >= 3) {
+    return { siteType: "E-commerce", contentType, confidence: "High", source: "snippet+url" };
+  }
+  if (ecomScore >= 4) {
+    return { siteType: "E-commerce", contentType, confidence: "High", source: "snippet" };
+  }
+  if (ecomScore >= 2 && blogScore === 0) {
+    return { siteType: "E-commerce", contentType, confidence: "Medium", source: "snippet" };
+  }
+  if (forumScore >= 2 || (isContentUrl && forumSignals.some(r => r.test(text)))) {
+    return { siteType: "Blog", contentType: "Blog", confidence: "High", source: "snippet+url" };
+  }
+  if (blogScore >= 3) {
+    return { siteType: "Blog", contentType: "Blog", confidence: "Medium", source: "snippet" };
+  }
+  if (isContentUrl && blogScore >= 1) {
+    return { siteType: "Blog", contentType: "Blog", confidence: "Medium", source: "snippet+url" };
+  }
+
+  return null; // not confident — fall through to normal crawl-based analysis
 }
 
 async function fetchDomainRating(domain) {
@@ -454,6 +521,31 @@ async function runAnalysisInBackground(keyword, country) {
       if (!existing?.resultsSnapshot?.length) return;
 
       const results = [...existing.resultsSnapshot];
+
+      // Phase 1: classify from Serper snippet before any crawling
+      let snippetHits = 0;
+      for (let i = 0; i < results.length; i++) {
+        if (results[i].analysisStatus === "done") continue;
+        const { serperTitle, serperSnippet, url } = results[i];
+        if (!serperTitle && !serperSnippet) continue;
+        const hit = classifyFromSnippet(url, serperTitle || "", serperSnippet || "");
+        if (hit && hit.confidence === "High") {
+          results[i] = {
+            ...results[i],
+            siteType: hit.siteType,
+            contentType: hit.contentType,
+            confidence: hit.confidence,
+            analysisStatus: "done",
+            matchedSignals: [`Snippet classifier: ${hit.source}`],
+          };
+          snippetHits++;
+        }
+      }
+      if (snippetHits > 0) {
+        console.log(`[snippet] Pre-classified ${snippetHits} URLs from Serper snippet`);
+        await updateSearchSnapshot(keyword, country, results);
+      }
+
       const uniqueDomains = [...new Set(results.map((item) => item.domain).filter(Boolean))];
 
       // Fetch DR first so it appears before content/site type analysis
@@ -576,6 +668,7 @@ async function runAnalysisInBackground(keyword, country) {
 
       await runPool(results, PAGE_CONCURRENCY, async (item, index) => {
         try {
+          if (item.analysisStatus === "done") return;
           const knownPrior = getDomainPrior(item.domain);
           const myDeepIndex = knownPrior ? MAX_DEEP_PAGE_ANALYSIS : deepCounter++;
           const analyzedItem = await analyzeSingleResult(item, domainMap, myDeepIndex);
@@ -850,6 +943,7 @@ app.post("/api/search", async (req, res) => {
   try {
     let allUrls = [];
     let page = 1;
+    const urlSnippetMap = new Map();
 
     while (allUrls.length < targetCount && page <= MAX_PAGES) {
       const response = await axios.post(
@@ -865,9 +959,14 @@ app.post("/api/search", async (req, res) => {
       );
 
       const pageResults = response.data?.organic || [];
-      const pageUrls = pageResults.map((item) => item.link).filter(Boolean);
 
-      allUrls.push(...pageUrls);
+      for (const item of pageResults) {
+        if (item.link) {
+          urlSnippetMap.set(item.link, { title: item.title || "", snippet: item.snippet || "" });
+          allUrls.push(item.link);
+        }
+      }
+
       allUrls = cleanUrls(allUrls);
       page++;
 
@@ -878,7 +977,10 @@ app.post("/api/search", async (req, res) => {
     const filteredUrls = fetchedUrls.filter((url) => !blockedSet.has(getBaseDomain(url)));
     const blockedCount = fetchedUrls.length - filteredUrls.length;
 
-    const quickResults = filteredUrls.map(buildPendingResult);
+    const quickResults = filteredUrls.map((url) => {
+      const meta = urlSnippetMap.get(url) || {};
+      return buildPendingResult(url, meta.title || "", meta.snippet || "");
+    });
 
     await prisma.search.upsert({
       where: { keyword_country: { keyword, country } },
