@@ -75,9 +75,9 @@ const PORT = process.env.PORT || 5000;
 const TARGET_URL_COUNT = 20;
 const MAX_PAGES = 10;
 const SERPER_TIMEOUT_MS = 12000;
-const DOMAIN_CONCURRENCY = 4;
-const PAGE_CONCURRENCY = 5;
-const SNAPSHOT_BATCH_SIZE = 5;
+const DOMAIN_CONCURRENCY = 6;
+const PAGE_CONCURRENCY = 8;
+const SNAPSHOT_BATCH_SIZE = 2;
 const SKIP_DOMAIN_ANALYSIS_FOR_KNOWN_PRIORS = true;
 const SKIP_PAGE_FETCH_FOR_KNOWN_PRIORS = true;
 const MAX_DEEP_PAGE_ANALYSIS = 20;
@@ -431,6 +431,16 @@ async function runAnalysisInBackground(keyword, country) {
 
       const results = [...existing.resultsSnapshot];
       const uniqueDomains = [...new Set(results.map((item) => item.domain).filter(Boolean))];
+
+      // Fetch DR first so it appears before content/site type analysis
+      await runPool(uniqueDomains, 8, async (domain) => {
+        const dr = await fetchDomainRating(domain);
+        for (let i = 0; i < results.length; i++) {
+          if (results[i].domain === domain) results[i] = { ...results[i], dr };
+        }
+      });
+      await updateSearchSnapshot(keyword, country, results);
+
       const domainMap = new Map();
 
       await runPool(uniqueDomains, DOMAIN_CONCURRENCY, async (domain) => {
@@ -659,17 +669,6 @@ async function runAnalysisInBackground(keyword, country) {
         }
       });
 
-      // Fetch Domain Rating for all unique domains after analysis
-      const uniqueDomainsForDR = [...new Set(results.map((r) => r.domain).filter(Boolean))];
-      await runPool(uniqueDomainsForDR, 5, async (domain) => {
-        const dr = await fetchDomainRating(domain);
-        for (let i = 0; i < results.length; i++) {
-          if (results[i].domain === domain) {
-            results[i] = { ...results[i], dr };
-          }
-        }
-      });
-
       await updateSearchSnapshot(keyword, country, results);
     } catch (error) {
       console.error("Background analysis job failed:", error.message);
@@ -687,6 +686,38 @@ app.get("/api/debug", (req, res) => {
     origin: req.headers.origin || null,
     allowedOrigins: Array.from(allowedOrigins),
   });
+});
+
+const DEFAULT_DISABLED_DOMAINS = [
+  "amazon.com","google.com","facebook.com","fb.com","instagram.com",
+  "threads.net","youtube.com","youtu.be","reddit.com","redd.it",
+  "tiktok.com","twitter.com","x.com","linkedin.com","pinterest.com",
+  "snapchat.com","telegram.org","whatsapp.com","medium.com","tumblr.com","discord.com",
+];
+
+app.get("/api/disabled-domains", async (req, res) => {
+  try {
+    const setting = await prisma.appSetting.findUnique({ where: { key: "disabledDomains" } });
+    const domains = setting ? setting.value : DEFAULT_DISABLED_DOMAINS;
+    return res.json({ domains });
+  } catch (error) {
+    return res.json({ domains: DEFAULT_DISABLED_DOMAINS });
+  }
+});
+
+app.post("/api/disabled-domains", async (req, res) => {
+  try {
+    const { domains } = req.body || {};
+    if (!Array.isArray(domains)) return res.status(400).json({ error: "domains must be an array" });
+    await prisma.appSetting.upsert({
+      where: { key: "disabledDomains" },
+      update: { value: domains },
+      create: { key: "disabledDomains", value: domains },
+    });
+    return res.json({ ok: true, domains });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
 });
 
 app.get("/api/health", async (req, res) => {
@@ -783,9 +814,7 @@ app.post("/api/search", async (req, res) => {
   keyword = keyword.toLowerCase().trim();
 
   const ALLOWED_LIMITS = [10, 20, 50, 100];
-  console.log(`[search] limit received: ${JSON.stringify(limit)}, type: ${typeof limit}`);
   const targetCount = ALLOWED_LIMITS.includes(Number(limit)) ? Number(limit) : TARGET_URL_COUNT;
-  console.log(`[search] targetCount: ${targetCount}`);
 
   const blockedSet = new Set(
     Array.isArray(disabledDomains)

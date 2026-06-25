@@ -19,7 +19,11 @@ model Search {
   @@unique([keyword, country], name: "keyword_country")
 }
 
-model SiteAnalysis {
+model AppSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+}
   id                Int      @id @default(autoincrement())
   url               String   @unique
   domain            String

@@ -91,18 +91,7 @@ function App() {
   const [keyword, setKeyword] = useState("");
   const [country, setCountry] = useState("us");
   const [limit, setLimit] = useState(20);
-  const DEFAULT_DISABLED_DOMAINS = [
-    "amazon.com", "google.com", "facebook.com", "fb.com", "instagram.com",
-    "threads.net", "youtube.com", "youtu.be", "reddit.com", "redd.it",
-    "tiktok.com", "twitter.com", "x.com", "linkedin.com", "pinterest.com",
-    "wikipedia.org", "wikimedia.org", "quora.com", "medium.com", "tumblr.com",
-  ];
-  const [disabledDomains, setDisabledDomains] = useState(() => {
-    try {
-      const saved = localStorage.getItem("disabledDomains");
-      return saved !== null ? JSON.parse(saved) : DEFAULT_DISABLED_DOMAINS;
-    } catch { return DEFAULT_DISABLED_DOMAINS; }
-  });
+  const [disabledDomains, setDisabledDomains] = useState([]);
   const [disabledInput, setDisabledInput] = useState("");
   const [editingDomain, setEditingDomain] = useState(null);
   const [editValue, setEditValue] = useState("");
@@ -149,8 +138,19 @@ function App() {
   }, [theme]);
 
   useEffect(() => {
-    localStorage.setItem("disabledDomains", JSON.stringify(disabledDomains));
-  }, [disabledDomains]);
+    fetch(`${API_BASE}/api/disabled-domains`)
+      .then(r => r.json())
+      .then(data => { if (Array.isArray(data.domains)) setDisabledDomains(data.domains); })
+      .catch(() => {});
+  }, []);
+
+  const saveDisabledDomainsToServer = (domains) => {
+    fetch(`${API_BASE}/api/disabled-domains`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ domains }),
+    }).catch(() => {});
+  };
 
   useEffect(() => {
     return () => {
@@ -219,12 +219,16 @@ function App() {
   const addDisabledDomain = () => {
     const normalized = disabledInput.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
     if (!normalized || disabledDomains.includes(normalized)) { setDisabledInput(""); return; }
-    setDisabledDomains((prev) => [normalized, ...prev]);
+    const updated = [normalized, ...disabledDomains];
+    setDisabledDomains(updated);
+    saveDisabledDomainsToServer(updated);
     setDisabledInput("");
   };
 
   const removeDisabledDomain = (domain) => {
-    setDisabledDomains((prev) => prev.filter((d) => d !== domain));
+    const updated = disabledDomains.filter((d) => d !== domain);
+    setDisabledDomains(updated);
+    saveDisabledDomainsToServer(updated);
   };
 
   const startEditDomain = (domain) => {
@@ -238,7 +242,9 @@ function App() {
       setEditingDomain(null);
       return;
     }
-    setDisabledDomains((prev) => prev.map((d) => d === editingDomain ? normalized : d));
+    const updated = disabledDomains.map((d) => d === editingDomain ? normalized : d);
+    setDisabledDomains(updated);
+    saveDisabledDomainsToServer(updated);
     setEditingDomain(null);
   };
 
@@ -351,7 +357,6 @@ function App() {
         analyzed: false
       });
 
-      console.log('[debug] sending limit:', limit, typeof limit);
       const res = await fetch(`${API_BASE}/api/search`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
