@@ -34,6 +34,7 @@
   "wsj.com": "Newspaper",
   "bloomberg.com": "Newspaper",
   "yahoo.com": "Newspaper",
+  "sports.yahoo.com": "Newspaper",
   "forbes.com": "Newspaper",
   "newsweek.com": "Newspaper",
   "aol.com": "Newspaper",
@@ -134,6 +135,8 @@
 
   "parkderm.com": "Small business",
 
+  "globalgolf.com": "E-commerce",
+  "tgw.com": "E-commerce",
   "callawaygolf.com": "E-commerce",
   "taylormadegolf.com": "E-commerce",
   "golfgalaxy.com": "E-commerce",
@@ -159,5 +162,23 @@
   "outofboundsgolf.com": "Blog",
   "blog.mortongolfsales.com": "Blog",
   "forums.golfwrx.com": "Blog",
-  "golfwrx.com": "Blog"
+  "golfwrx.com": "Blog",
+
+  "golfergeeks.com": "Blog",
+  "rickshiels.com": "Blog",
+  "news10.com": "Newspaper",
+  "wreg.com": "Newspaper",
+  "dailymotion.com": "Saas",
+  "shows.acast.com": "Saas",
+
+  "abcnews.go.com": "Newspaper",
+  "abcnews.com": "Newspaper",
+  "telegraph.co.uk": "Newspaper",
+  "thetelegraph.co.uk": "Newspaper",
+  "theweek.com": "Newspaper",
+  "nymag.com": "Newspaper",
+  "runrepeat.com": "Blog",
+  "letsrun.com": "Blog",
+  "fleetfeet.com": "E-commerce",
+  "sixminutemile.com": "Blog"
 }
