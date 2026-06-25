@@ -38,7 +38,7 @@ function compactText(text = "", limit = MAX_BODY_TEXT) {
 // Returns true if the URL looks like a content/editorial page rather than a shop page.
 // Used to prevent Shopify CDN false positives on media sites with embedded buy buttons.
 function isContentUrl(url = "") {
-  return /\/blog\/|\/blogs\/|\/news\/|\/article\/|\/articles\/|\/story\/|\/stories\/|\/guide\/|\/guides\/|\/review\/|\/reviews\/|\/best\/|\/topic\/|\/topics\/|\/forum\/|\/forums\/|\/post\/|\/posts\/|\/opinion\/|\/advice\//i.test(url);
+  return /\/blog\/|\/blogs\/|\/news\/|\/article\/|\/articles\/|\/story\/|\/stories\/|\/guide\/|\/guides\/|\/review\/|\/reviews\/|\/best\/|\/topic\/|\/topics\/|\/forum\/|\/forums\/|\/post\/|\/posts\/|\/opinion\/|\/advice\/|\/videos?\/|\/select\/|\/picks\/|\/ranked\/|\/roundup\//i.test(url);
 }
 
 // Returns true if the URL looks like a shop/product page.
@@ -73,13 +73,18 @@ function detectPlatformFromHtml(html = "", responseHeaders = {}, url = "") {
     return { platform: "WooCommerce", siteType: "E-commerce" };
   }
 
-  // BigCommerce
-  if (/cdn\d*\.bigcommerce\.com|bigcommerce\.com\/s-|BigCommerce\.com/i.test(h))
+  // BigCommerce — content URLs on BigCommerce sites should not override to E-commerce
+  if (/cdn\d*\.bigcommerce\.com|bigcommerce\.com\/s-|BigCommerce\.com/i.test(h)) {
+    if (contentPage) return null;
     return { platform: "BigCommerce", siteType: "E-commerce" };
+  }
 
-  // Magento
-  if (/mage\/|Magento_|mage\.cookies|require\.config.*Magento/i.test(h))
+  // Magento — many media/review sites use Magento infra; only trust on shop/homepage URLs
+  if (/mage\/|Magento_|mage\.cookies|require\.config.*Magento/i.test(h)) {
+    if (shopPage || isHomepage) return { platform: "Magento", siteType: "E-commerce" };
+    if (contentPage) return null;
     return { platform: "Magento", siteType: "E-commerce" };
+  }
 
   // Squarespace Commerce
   if (/squarespace\.com\/commerce|static\.squarespace\.com.*commerce/i.test(h))
