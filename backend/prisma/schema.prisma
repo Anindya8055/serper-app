@@ -19,6 +19,12 @@ model Search {
   @@unique([keyword, country], name: "keyword_country")
 }
 
+model AppSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+}
+
 model SiteAnalysis {
   id                Int      @id @default(autoincrement())
   url               String   @unique
