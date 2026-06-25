@@ -90,12 +90,12 @@ function App() {
   const [view, setView] = useState("home");
   const [keyword, setKeyword] = useState("");
   const [country, setCountry] = useState("us");
-  const [limit, setLimit] = useState(20);
+  const [limit, setLimit] = useState(19);
   const DEFAULT_DISABLED_DOMAINS = [
-    "amazon.com", "google.com", "facebook.com", "fb.com", "instagram.com",
+    "facebook.com", "fb.com", "instagram.com",
     "threads.net", "youtube.com", "youtu.be", "reddit.com", "redd.it",
     "tiktok.com", "twitter.com", "x.com", "linkedin.com", "pinterest.com",
-    "wikipedia.org", "wikimedia.org", "quora.com", "medium.com", "tumblr.com",
+    "snapchat.com", "telegram.org", "whatsapp.com", "medium.com", "tumblr.com", "discord.com",
   ];
   const [disabledDomains, setDisabledDomains] = useState(() => {
     try {
