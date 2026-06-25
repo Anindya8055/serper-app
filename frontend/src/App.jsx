@@ -90,12 +90,12 @@ function App() {
   const [view, setView] = useState("home");
   const [keyword, setKeyword] = useState("");
   const [country, setCountry] = useState("us");
-  const [limit, setLimit] = useState(19);
+  const [limit, setLimit] = useState(20);
   const DEFAULT_DISABLED_DOMAINS = [
-    "facebook.com", "fb.com", "instagram.com",
+    "amazon.com", "google.com", "facebook.com", "fb.com", "instagram.com",
     "threads.net", "youtube.com", "youtu.be", "reddit.com", "redd.it",
     "tiktok.com", "twitter.com", "x.com", "linkedin.com", "pinterest.com",
-    "snapchat.com", "telegram.org", "whatsapp.com", "medium.com", "tumblr.com", "discord.com",
+    "wikipedia.org", "wikimedia.org", "quora.com", "medium.com", "tumblr.com",
   ];
   const [disabledDomains, setDisabledDomains] = useState(() => {
     try {
@@ -351,6 +351,7 @@ function App() {
         analyzed: false
       });
 
+      console.log('[debug] sending limit:', limit, typeof limit);
       const res = await fetch(`${API_BASE}/api/search`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
