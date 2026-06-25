@@ -559,6 +559,7 @@ async function runAnalysisInBackground(keyword, country) {
           results[index] = {
             url: analyzedItem.url,
             domain: analyzedItem.domain,
+            dr: results[index].dr ?? null,
             siteType: analyzedItem.siteType,
             confidence: analyzedItem.confidence,
             classifierVersion: analyzedItem.classifierVersion,
