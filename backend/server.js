@@ -369,6 +369,23 @@ async function analyzeSingleResult(item, domainMap, deepIndex = 0) {
       };
     }
 
+    const lowerUrl = String(item.url || "").toLowerCase();
+    const isHomepage = /^https?:\/\/[^/]+\/?$/.test(lowerUrl);
+    const serpUrlIsShop = /\/collections\/|\/products?\/|\/shop\/|\/store\/|\/cart\/|\/checkout\/|\/buy\/|\/catalog\//i.test(lowerUrl);
+    const serpUrlIsContentPage = /\/blog\/|\/blogs\/|\/news\/|\/article\/|\/articles\/|\/guide\/|\/review\/|\/reviews\/|\/post\/|\/posts\/|\/video\/|\/videos\/|\/select\/|\/picks\/|\/ranked\/|\/roundup\/|\/forum\/|\/opinion\/|\/best\//i.test(lowerUrl);
+
+    // If the domain was classified as E-commerce purely from a Magento or WooCommerce fingerprint
+    // on the homepage, don't blindly inherit that for SERP URLs that are clearly content pages.
+    // Magento is used by many non-ecommerce sites; WooCommerce appears on blogs that sell nothing.
+    const domainSignal = domainAnalysis?.matchedSignals?.[0] || "";
+    const domainFromPlatformFP =
+      domainAnalysis?.siteType === "E-commerce" &&
+      (domainSignal === "Platform fingerprint: Magento" ||
+       domainSignal === "Platform fingerprint: WooCommerce") &&
+      !serpUrlIsShop &&
+      (domainSignal === "Platform fingerprint: Magento" || serpUrlIsContentPage);
+    const effectiveDomainSiteType = domainFromPlatformFP ? null : domainAnalysis?.siteType;
+
     const rulePageResult = inferTypeFromSignals(
       item.url,
       pageData.title ?? "",
@@ -387,24 +404,11 @@ async function analyzeSingleResult(item, domainMap, deepIndex = 0) {
         hasProductSchema: !!pageData.hasProductSchema,
         hasArticleSchema: !!pageData.hasArticleSchema,
       },
-      knownPrior || domainAnalysis?.siteType || null
+      knownPrior || effectiveDomainSiteType || null
     );
 
     const fastTextResult = await classifyWithFastText(item.url, pageData);
     const mergedPageResult = mergeRuleBasedWithFastText(rulePageResult, fastTextResult);
-
-    const lowerUrl = String(item.url || "").toLowerCase();
-    const isHomepage = /^https?:\/\/[^/]+\/?$/.test(lowerUrl);
-    const serpUrlIsShop = /\/collections\/|\/products?\/|\/shop\/|\/store\/|\/cart\/|\/checkout\/|\/buy\/|\/catalog\//i.test(lowerUrl);
-
-    // If the domain was classified as E-commerce purely from a Magento fingerprint on the
-    // homepage, don't blindly inherit that for SERP URLs that are clearly not shop pages.
-    // Magento is used by many non-ecommerce sites (blogs, directories, news sites).
-    const domainFromMagentoOnly =
-      domainAnalysis?.siteType === "E-commerce" &&
-      domainAnalysis?.matchedSignals?.[0] === "Platform fingerprint: Magento" &&
-      !serpUrlIsShop;
-    const effectiveDomainSiteType = domainFromMagentoOnly ? null : domainAnalysis?.siteType;
 
     let resolvedSiteType = normalizeType(
       knownPrior || effectiveDomainSiteType || mergedPageResult.siteType || "Small business"
