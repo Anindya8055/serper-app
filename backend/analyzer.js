@@ -654,8 +654,22 @@ async function analyzeDomain(homepageUrl) {
   const homepageRaw = await extractPageData(null, homepageUrl);
 
   // Platform fingerprint shortcut — skip full domain analysis (homepages always qualify)
+  // Guards (mirrors server.js):
+  //   1. WordPress is used by blogs AND local businesses equally — never short-circuit.
+  //   2. Magento/WooCommerce without cart evidence: many local service sites run on these
+  //      without selling products. Only short-circuit when hasCart is true.
   const platformMatch = homepageRaw._platformMatch;
-  if (platformMatch) {
+  const isEcomPlatformFP = platformMatch?.siteType === "E-commerce";
+  const platformNeedsCartCheck =
+    isEcomPlatformFP &&
+    !homepageRaw.hasCart &&
+    (platformMatch?.platform === "Magento" || platformMatch?.platform === "WooCommerce");
+  const usePlatformShortCircuit =
+    platformMatch &&
+    platformMatch.platform !== "WordPress" &&
+    !platformNeedsCartCheck;
+
+  if (usePlatformShortCircuit) {
     delete homepageRaw._platformMatch;
     return {
       domain: getBaseDomain(homepageUrl),
@@ -672,6 +686,11 @@ async function analyzeDomain(homepageUrl) {
       pageClassifications: [],
       matchedSignals: [`Platform fingerprint: ${platformMatch.platform}`],
     };
+  }
+  if (platformMatch) {
+    delete homepageRaw._platformMatch;
+    // Store platform info for downstream use but let full classifier run
+    homepageRaw._platformNote = platformMatch.platform;
   }
 
   const homepageResolved = await maybeUpgradePageWithBrowser(homepageRaw);
