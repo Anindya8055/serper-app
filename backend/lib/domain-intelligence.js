@@ -13,7 +13,7 @@ function normalizeHostname(hostname) {
     .trim()
     .toLowerCase()
     .replace(/^https?:\/\//, "")
-    .replace(/^www\./, "")
+    .replace(/^www\d*\./, "")   // strip www, www1, www2, etc.
     .replace(/\/.*$/, "");
 }
 
