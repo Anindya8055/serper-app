@@ -655,7 +655,9 @@ async function runAnalysisInBackground(keyword, country) {
           if (results[i].domain !== domain) continue;
 
           const prevStatus = results[i].analysisStatus;
-          const nextStatus = prevStatus === "done" ? "done" : "processing";
+          // Don't overwrite Phase 1 snippet classifications with weaker domain analysis
+          if (prevStatus === "done") continue;
+          const nextStatus = "processing";
 
           const intermediateContentType =
             results[i].contentType ||

@@ -27,7 +27,6 @@
   "homedepot.com": "E-commerce",
   "costco.com": "E-commerce",
   "sephora.com": "E-commerce",
-
   "thespruce.com": "Newspaper",
   "hgtv.com": "Newspaper",
   "architecturaldigest.com": "Newspaper",
@@ -51,7 +50,6 @@
   "nasdaq.com": "Newspaper",
   "thestreet.com": "Newspaper",
   "investing.com": "Newspaper",
-
   "yelp.com": "Directory",
   "tripadvisor.com": "Directory",
   "yellowpages.com": "Directory",
@@ -75,7 +73,6 @@
   "thumbtack.com": "Directory",
   "nextdoor.com": "Directory",
   "consumeraffairs.com": "Directory",
-
   "github.com": "Saas",
   "gitlab.com": "Saas",
   "slack.com": "Saas",
@@ -88,10 +85,9 @@
   "polymarket.com": "Saas",
   "salesforce.com": "Saas",
   "box.com": "Saas",
-
   "wikipedia.org": "Service",
   "britannica.com": "Service",
-  "healthline.com": "Service",
+  "healthline.com": "Newspaper",
   "drugs.com": "Service",
   "clevelandclinic.org": "Service",
   "cancer.gov": "Service",
@@ -112,7 +108,6 @@
   "prudential.com": "Service",
   "khanacademy.org": "Service",
   "aetna.com": "Service",
-
   "moz.com": "Blog",
   "ahrefs.com": "Blog",
   "semrush.com": "Blog",
@@ -124,17 +119,12 @@
   "overreacted.io": "Blog",
   "digitaltrends.com": "Blog",
   "kentcdodds.com": "Blog",
-
   "findlaw.com": "Directory",
-
   "heroku.com": "Saas",
   "newrelic.com": "Saas",
-
   "thetimes.com": "Newspaper",
   "economist.com": "Newspaper",
-
   "parkderm.com": "Small business",
-
   "globalgolf.com": "E-commerce",
   "tgw.com": "E-commerce",
   "callawaygolf.com": "E-commerce",
@@ -150,7 +140,6 @@
   "srixon.com": "E-commerce",
   "mizunogolf.com": "E-commerce",
   "footjoy.com": "E-commerce",
-
   "golfmonthly.com": "Newspaper",
   "golfdigest.com": "Newspaper",
   "golf.com": "Newspaper",
@@ -163,14 +152,12 @@
   "blog.mortongolfsales.com": "Blog",
   "forums.golfwrx.com": "Blog",
   "golfwrx.com": "Blog",
-
   "golfergeeks.com": "Blog",
   "rickshiels.com": "Blog",
   "news10.com": "Newspaper",
   "wreg.com": "Newspaper",
   "dailymotion.com": "Saas",
   "shows.acast.com": "Saas",
-
   "abcnews.go.com": "Newspaper",
   "abcnews.com": "Newspaper",
   "telegraph.co.uk": "Newspaper",
@@ -181,7 +168,6 @@
   "letsrun.com": "Blog",
   "fleetfeet.com": "E-commerce",
   "sixminutemile.com": "Blog",
-
   "gq.com": "Newspaper",
   "esquire.com": "Newspaper",
   "menshealth.com": "Newspaper",
@@ -190,11 +176,23 @@
   "shape.com": "Newspaper",
   "outsideonline.com": "Newspaper",
   "verywellfit.com": "Newspaper",
-  "healthline.com": "Newspaper",
   "forum.videofitness.com": "Blog",
   "doctorsofrunning.com": "Blog",
   "theruntesters.com": "Blog",
   "rtings.com": "Blog",
   "outdoorgearlab.com": "Blog",
-  "gearjunkie.com": "Newspaper"
+  "gearjunkie.com": "Newspaper",
+  "nike.com": "E-commerce",
+  "adidas.com": "E-commerce",
+  "asics.com": "E-commerce",
+  "newbalance.com": "E-commerce",
+  "brooks.com": "E-commerce",
+  "saucony.com": "E-commerce",
+  "hokaoneone.com": "E-commerce",
+  "hoka.com": "E-commerce",
+  "hibbett.com": "E-commerce",
+  "believeintherun.com": "Blog",
+  "findmyfootwear.com": "Blog",
+  "mensfitness.co.uk": "Newspaper",
+  "womenshealthmag.co.uk": "Newspaper"
 }
