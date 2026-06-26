@@ -545,6 +545,8 @@ async function runAnalysisInBackground(keyword, country) {
         if (results[i].analysisStatus === "done") continue;
         const { serperTitle, serperSnippet, url } = results[i];
         if (!serperTitle && !serperSnippet) continue;
+        // Skip snippet classification for known-prior domains — the prior is more reliable
+        if (getDomainPrior(results[i].domain)) continue;
         const hit = classifyFromSnippet(url, serperTitle || "", serperSnippet || "");
         const urlIsContent = /\/blog\/|\/blogs\/|\/news\/|\/article\/|\/articles\/|\/story\/|\/guide\/|\/review\/|\/reviews\/|\/videos?\/|\/select\/|\/picks\/|\/ranked\/|\/roundup\/|\/post\/|\/forum\//i.test(url);
         // Accept Medium confidence when the URL itself is unambiguously a content page
