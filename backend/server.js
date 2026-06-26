@@ -377,12 +377,31 @@ async function analyzeSingleResult(item, domainMap, deepIndex = 0) {
     }
 
     // Platform fingerprint (Shopify, WooCommerce, etc.) — high-confidence shortcut.
-    // Guard: if the SERP URL itself is a content page, don't inherit E-commerce siteType
-    // from the domain fingerprint — let the normal classifier determine siteType from page content.
+    // Guards:
+    // 1. WordPress is used equally by blogs AND small businesses/service companies.
+    //    Never short-circuit on WordPress alone — let the full classifier run.
+    // 2. Magento/WooCommerce without cart evidence: many local service sites (dental clinics,
+    //    plumbers, agencies) run on these platforms without actually selling products.
+    //    Only short-circuit to E-commerce when there is real cart/shop evidence.
+    // 3. Don't inherit E-commerce when the SERP URL is clearly a content page.
     const platformMatch = pageData._platformMatch;
     delete pageData._platformMatch;
     const serpUrlIsContent = /\/blog\/|\/blogs\/|\/news\/|\/article\/|\/articles\/|\/guide\/|\/review\/|\/reviews\/|\/post\/|\/posts\/|\/video\/|\/videos\/|\/select\/|\/picks\/|\/ranked\/|\/roundup\/|\/forum\/|\/opinion\//i.test(item.url);
-    if (platformMatch && !(platformMatch.siteType === "E-commerce" && serpUrlIsContent)) {
+    const serpUrlIsShopFP = /\/collections\/|\/products?\/|\/shop\/|\/store\/|\/cart\/|\/checkout\/|\/buy\/|\/catalog\//i.test(item.url.toLowerCase());
+    const isEcomPlatformFP = platformMatch?.siteType === "E-commerce";
+    // Magento/WooCommerce need cart evidence to be trusted as E-commerce
+    const platformNeedsCartCheck =
+      isEcomPlatformFP &&
+      !pageData.hasCart &&
+      !serpUrlIsShopFP &&
+      (platformMatch?.platform === "Magento" || platformMatch?.platform === "WooCommerce");
+    const usePlatformShortCircuit =
+      platformMatch &&
+      platformMatch.platform !== "WordPress" &&
+      !(isEcomPlatformFP && serpUrlIsContent) &&
+      !platformNeedsCartCheck;
+
+    if (usePlatformShortCircuit) {
       const platformSiteType = normalizeType(platformMatch.siteType);
       const platformContentType = normalizeType(
         classifyContentType(item.url, pageData, platformSiteType)
