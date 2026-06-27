@@ -1,2 +1,3 @@
 "backend/fasttext/*.bin" 
 "backend/fasttext/*.bin" 
+"backend/fasttext/*.bin" 
