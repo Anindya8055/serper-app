@@ -47,10 +47,13 @@ def main():
     print("  serper-app — push & deploy")
     print("=" * 60)
 
-    # 1. Switch to working branch
-    run(f"git checkout {BRANCH}")
+    # 1. Fetch all remote branches (ensures the branch is known locally)
+    run(f"git fetch {REMOTE}")
 
-    # 2. Pull any remote updates first
+    # 2. Switch to working branch (--track handles first-time checkout)
+    run(f"git checkout --track {REMOTE}/{BRANCH} 2>nul || git checkout {BRANCH}")
+
+    # 3. Pull any remote updates
     run(f"git pull {REMOTE} {BRANCH}")
 
     # 3. Run patch scripts
