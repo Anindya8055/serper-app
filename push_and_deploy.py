@@ -6,7 +6,7 @@ BRANCH       = "main"
 REMOTE       = "origin"
 SERVER_USER  = "root"
 SERVER_HOST  = "152.42.222.12"
-SERVER_PATH  = "/root/serper-app"
+SERVER_PATH  = "/var/www/serper-app"
 PM2_APP_NAME = "serper-backend"
 
 PATCH_SCRIPTS = [
