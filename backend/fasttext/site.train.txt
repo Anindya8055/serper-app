@@ -189,3 +189,44 @@ __label__Small_business thecakabakery.com custom cakes
 __label__Small_business taxprogroup.com tax preparation
 __label__Small_business woodthumb.com custom
 __label__Small_business highdesertautobody.com collision repair
+
+labelBlog paulgraham.com essays startups html
+labelBlog simonwillison.net 2024 llm security
+labelBlog jvns.ca blog 2024 debugging tips
+labelBlog overreacted.io why do hooks exist
+labelBlog rachelandrew.co.uk archives 2024 grid layout
+labelBlog medium.com johnsmith my year in review 2024
+labelBlog substack.com p the future of ai writing
+labelBlog css-tricks.com a complete guide to flexbox
+labelBlog smashingmagazine.com 2024 01 best css techniques
+labelBlog alistapart.com article responsive web design
+labelBlog healthyblog.com post intermittent fasting guide
+labelBlog mybookreviews.net author best fantasy 2024
+
+labelService chase.com personal credit cards
+labelService statefarm.com insurance auto
+labelService clevelandclinic.org health diagnostics
+labelService healthline.com nutrition how to lose weight
+labelService khanacademy.org math algebra
+labelService coursera.org learn machine learning
+labelService edx.org course introduction to python
+labelService homeadvisor.com task plumbing
+labelService thumbtack.com k house cleaners near me
+labelService aircontrols.com plumbing billings mt
+labelService reliantplumbing.com areas we serve san antonio
+labelService homecarecontractors.com roofing
+labelService canaancompanies.com residential plumbing services
+labelService drroof.com augusta ga roofing roof repair
+
+labelSmallbusiness joespizzanyc.com
+labelSmallbusiness downtown-dental.com appointments
+labelSmallbusiness greatlakesroofing.com services
+labelSmallbusiness coverproroofing.com
+labelSmallbusiness beavercreekdental.com
+labelSmallbusiness dentistrooftampa.com
+labelSmallbusiness mydentaltampa.com
+labelSmallbusiness affordableroofingflorida.com
+labelSmallbusiness kaizenfamilydentistry.com emergency dentist
+labelSmallbusiness texastacotruck.com catering
+labelSmallbusiness yardmasterslandscape.com services
+labelSmallbusiness thecakabakery.com custom cakes
