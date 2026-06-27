@@ -11,6 +11,7 @@ PM2_APP_NAME = "serper-backend"
 
 PATCH_SCRIPTS = [
     "deploy_fix12.py",
+    "deploy_fix13.py",
 ]
 
 
