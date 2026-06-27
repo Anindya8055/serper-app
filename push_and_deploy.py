@@ -25,11 +25,11 @@ import os
 # ── CONFIG ────────────────────────────────────────────────────────────────────
 BRANCH        = "claude/ecstatic-darwin-nfuxtc"
 REMOTE        = "origin"
-SERVER_USER   = "ubuntu"          # SSH username on your server
-SERVER_HOST   = "your.server.ip"  # IP address or hostname
-SERVER_PATH   = "~/serper-app"    # Path to the repo on the server
-PM2_APP_NAME  = "serper-app"      # Name used in pm2 list (change if different)
-SSH_KEY       = ""                # Path to SSH key, e.g. r"C:\Users\you\.ssh\id_rsa"
+SERVER_USER   = "root"
+SERVER_HOST   = "152.42.222.12"
+SERVER_PATH   = "~/serper-app"
+PM2_APP_NAME  = "serper-backend"
+SSH_KEY       = ""                # Set to your key path if needed, e.g. r"C:\Users\Anindya\.ssh\id_rsa"
                                   # Leave "" to use default SSH key
 # ─────────────────────────────────────────────────────────────────────────────
 
