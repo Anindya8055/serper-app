@@ -13,13 +13,13 @@ const {
 } = require("../lib/url-utils");
 
 const LEGAL_DIRECTORY_PATH_RE =
-  /\/(lawyers|attorneys|all-lawyers|find-a-lawyer|find-a-attorney|legal-directory)(\/|$|\?)/i;
+  /(lawyers|attorneys|all-lawyers|find-a-lawyer|find-a-attorney|legal-directory)(\/|$|\?)/i;
 
 const HEALTH_LOCATION_PATH_RE =
-  /\/(locations?|dental-clinic|dental-care|dental-center|dentistry|clinic|clinics?|offices?|our-locations?|profile)(\/|$)/i;
+  /(locations?|dental-clinic|dental-care|dental-center|dentistry|clinic|clinics?|offices?|our-locations?|profile)(\/|$)/i;
 
 const STRONG_DIRECTORY_PATH_RE =
-  /\/(directory|listing|listings|find-a-|near-me|search\?|providers?|professionals?|results)(\/|$|\?)/i;
+  /(directory|listing|listings|find-a-|near-me|search\?|providers?|professionals?|results)(\/|$|\?)/i;
 
 const LEGAL_DIRECTORY_DOMAINS = new Set([
   "avvo.com",
@@ -114,12 +114,16 @@ function applyInteractionRules(scores, matchedSignals, context = {}) {
       addScore(scores, matchedSignals, "Directory", boost, "legal directory domain hard override");
     }
     subtractScore(
-      scores, matchedSignals, "Small business",
+      scores,
+      matchedSignals,
+      "Small business",
       scores["Small business"] || 0,
       "legal directory domain removes Small business"
     );
     subtractScore(
-      scores, matchedSignals, "Service",
+      scores,
+      matchedSignals,
+      "Service",
       Math.min(8, scores["Service"] || 0),
       "legal directory domain suppresses Service"
     );
@@ -132,12 +136,16 @@ function applyInteractionRules(scores, matchedSignals, context = {}) {
       addScore(scores, matchedSignals, "Service", boost, "health system domain hard override");
     }
     subtractScore(
-      scores, matchedSignals, "Small business",
+      scores,
+      matchedSignals,
+      "Small business",
       scores["Small business"] || 0,
       "health system domain removes Small business"
     );
     subtractScore(
-      scores, matchedSignals, "Saas",
+      scores,
+      matchedSignals,
+      "Saas",
       scores["Saas"] || 0,
       "health system domain removes SaaS"
     );
@@ -151,12 +159,16 @@ function applyInteractionRules(scores, matchedSignals, context = {}) {
   if (isHealthOrgOrEdu && !isInstitutional) {
     if (sbScore > serviceScore) {
       addScore(
-        scores, matchedSignals, "Service",
+        scores,
+        matchedSignals,
+        "Service",
         sbScore - serviceScore + 4,
         "health .org/.edu domain upgrades Small business to Service"
       );
       subtractScore(
-        scores, matchedSignals, "Small business",
+        scores,
+        matchedSignals,
+        "Small business",
         sbScore,
         "health .org/.edu domain removes Small business"
       );
@@ -167,7 +179,10 @@ function applyInteractionRules(scores, matchedSignals, context = {}) {
     subtractScore(scores, matchedSignals, "Saas", saasScore, "clinic/location path suppresses SaaS");
     if (isInstitutional || isHealthOrgOrEdu) {
       addScore(
-        scores, matchedSignals, "Service", 6,
+        scores,
+        matchedSignals,
+        "Service",
+        6,
         "clinic/location path on institutional domain boosts Service"
       );
     }
@@ -177,7 +192,9 @@ function applyInteractionRules(scores, matchedSignals, context = {}) {
     if (dirScore < sbScore || dirScore < serviceScore) {
       addScore(scores, matchedSignals, "Directory", 8, "directory/finder URL path boosts Directory");
       subtractScore(
-        scores, matchedSignals, "Small business",
+        scores,
+        matchedSignals,
+        "Small business",
         Math.min(8, scores["Small business"] || 0),
         "directory path dampens Small business"
       );
@@ -279,7 +296,9 @@ function applyInteractionRules(scores, matchedSignals, context = {}) {
     )
   ) {
     subtractScore(
-      scores, matchedSignals, "Saas",
+      scores,
+      matchedSignals,
+      "Saas",
       Math.min(saasScore, 8),
       "editorial/review page suppresses false SaaS"
     );
@@ -287,7 +306,9 @@ function applyInteractionRules(scores, matchedSignals, context = {}) {
 
   if (saasScore >= 10 && ecomScore > 0) {
     subtractScore(
-      scores, matchedSignals, "E-commerce",
+      scores,
+      matchedSignals,
+      "E-commerce",
       Math.min(ecomScore, 8),
       "SaaS suppresses E-commerce"
     );
@@ -298,12 +319,21 @@ function applyInteractionRules(scores, matchedSignals, context = {}) {
     hasSingleLocationSignals &&
     (hasLocalIdentity || hasLocalServiceTerms || hasAppointmentOrBooking)
   ) {
-    addScore(scores, matchedSignals, "Small business", 7, "single-location local service/business");
-    addScore(scores, matchedSignals, "Service", 3, "local service/business workflow");
+    // Re-balance: let Service win on clear service workflows
+    addScore(
+      scores,
+      matchedSignals,
+      "Small business",
+      5,
+      "single-location local business"
+    );
+    addScore(scores, matchedSignals, "Service", 6, "single-location local service workflow");
 
     if (!hasHardStorefrontEvidence && ecomScore > 0) {
       subtractScore(
-        scores, matchedSignals, "E-commerce",
+        scores,
+        matchedSignals,
+        "E-commerce",
         Math.min(8, scores["E-commerce"] || 0),
         "local service page without storefront"
       );
@@ -311,7 +341,9 @@ function applyInteractionRules(scores, matchedSignals, context = {}) {
 
     if ((scores["Saas"] || 0) > 0 && hasAppointmentOrBooking) {
       subtractScore(
-        scores, matchedSignals, "Saas",
+        scores,
+        matchedSignals,
+        "Saas",
         Math.min(10, scores["Saas"] || 0),
         "local appointment page is not SaaS"
       );
@@ -324,7 +356,9 @@ function applyInteractionRules(scores, matchedSignals, context = {}) {
       )
     ) {
       subtractScore(
-        scores, matchedSignals, "Directory",
+        scores,
+        matchedSignals,
+        "Directory",
         Math.min(8, scores["Directory"] || 0),
         "single business is not a directory"
       );
@@ -338,17 +372,28 @@ function applyInteractionRules(scores, matchedSignals, context = {}) {
     hasQuoteIntent &&
     (hasSingleLocationProof || signals.hasHours)
   ) {
-    addScore(scores, matchedSignals, "Small business", 10, "strong local small-business rescue");
-    addScore(scores, matchedSignals, "Service", 2, "local service business");
+    // Re-balance: keep local identity strong, but not overwhelmingly Small business
+    addScore(
+      scores,
+      matchedSignals,
+      "Small business",
+      6,
+      "strong local small-business rescue"
+    );
+    addScore(scores, matchedSignals, "Service", 5, "local service business");
     subtractScore(
-      scores, matchedSignals, "Directory",
+      scores,
+      matchedSignals,
+      "Directory",
       Math.min(6, scores["Directory"] || 0),
       "single-location local business is not a directory"
     );
 
     if (hasWeakStorefrontOnly) {
       subtractScore(
-        scores, matchedSignals, "E-commerce",
+        scores,
+        matchedSignals,
+        "E-commerce",
         Math.min(10, scores["E-commerce"] || 0),
         "local service business without real storefront evidence"
       );
@@ -357,23 +402,35 @@ function applyInteractionRules(scores, matchedSignals, context = {}) {
 
   if (sbScore > 0 && serviceScore > 0) {
     const hasServiceWorkflow =
-      /schedule an? ?(appointment|consultation|call|service)|book an? ?(appointment|service|session)|request a ?quote|get a ?free ?estimate|emergency service|repair call|report a crime|submit a tip|victim assistance|public safety|investigation|banking|insurance|mortgage|retirement/i.test(t);
+      /schedule an? ?(appointment|consultation|call|service)|book an? ?(appointment|service|session)|request a ?quote|get a ?free ?estimate|emergency service|repair call|report a crime|submit a tip|victim assistance|public safety|investigation|banking|insurance|mortgage|retirement/i.test(
+        t
+      );
 
     const hasLocalRetailIdentity =
-      /family.?owned|locally owned|our little|our store|come visit|visit us|stop in|neighborhood|our office|our clinic|call us/i.test(t) ||
+      /family.?owned|locally owned|our little|our store|come visit|visit us|stop in|neighborhood|our office|our clinic|call us/i.test(
+        t
+      ) ||
       hasSmallBusinessNiche(`${title} ${metaDescription} ${t} ${nav}`);
 
     if (hasServiceWorkflow && !hasLocalRetailIdentity && serviceScore >= sbScore + 4) {
       addScore(scores, matchedSignals, "Service", 4, "service workflow language");
     } else if (hasLocalRetailIdentity) {
       addScore(scores, matchedSignals, "Small business", 8, "local identity language");
-      subtractScore(scores, matchedSignals, "Service", 4, "local business dampens service");
+      subtractScore(
+        scores,
+        matchedSignals,
+        "Service",
+        4,
+        "local business dampens service"
+      );
     }
   }
 
   if (dirScore > 0 && serviceScore > 0) {
     const isMultiListingPage =
-      /browse all|view all listings|compare .* providers|find .* near|search results|showing results|businesses|jobs|flights|hotels/i.test(t);
+      /browse all|view all listings|compare .* providers|find .* near|search results|showing results|businesses|jobs|flights|hotels/i.test(
+        t
+      );
 
     if (!isMultiListingPage && signals.hasAddress && signals.hasPhone) {
       subtractScore(scores, matchedSignals, "Directory", 5, "single-business page");
@@ -383,7 +440,9 @@ function applyInteractionRules(scores, matchedSignals, context = {}) {
 
   if ((scores["Directory"] || 0) > 0 && (scores["E-commerce"] || 0) > 0) {
     const isMultiListingPage =
-      /browse all|view all listings|compare .* providers|find .* near|search results|showing results|businesses|top .* near|jobs|flights|hotels/i.test(t);
+      /browse all|view all listings|compare .* providers|find .* near|search results|showing results|businesses|top .* near|jobs|flights|hotels/i.test(
+        t
+      );
 
     const hasCartOrProduct =
       !!signals.hasCart || !!signals.hasProductSchema || isCommerceUrl(url);
@@ -413,15 +472,21 @@ function applyInteractionRules(scores, matchedSignals, context = {}) {
 
     if (!hasHardStorefront && (scores["E-commerce"] || 0) > 0) {
       subtractScore(
-        scores, matchedSignals, "E-commerce",
+        scores,
+        matchedSignals,
+        "E-commerce",
         scores["E-commerce"],
         "institutional without storefront evidence"
       );
     }
 
     if (
-      /report a crime|submit a tip|victim assistance|investigate|federal bureau|department of|office of|public safety|law enforcement|human trafficking/i.test(nav) ||
-      /report a crime|submit a tip|victim assistance|public safety|law enforcement|human trafficking/i.test(url)
+      /report a crime|submit a tip|victim assistance|investigate|federal bureau|department of|office of|public safety|law enforcement|human trafficking/i.test(
+        nav
+      ) ||
+      /report a crime|submit a tip|victim assistance|public safety|law enforcement|human trafficking/i.test(
+        url
+      )
     ) {
       addScore(scores, matchedSignals, "Service", 6, "institutional/public safety");
     }
@@ -435,76 +500,12 @@ function applyInteractionRules(scores, matchedSignals, context = {}) {
     }
 
     subtractScore(
-      scores, matchedSignals, "Directory",
+      scores,
+      matchedSignals,
+      "Directory",
       Math.min(8, scores["Directory"] || 0),
       "financial institution is not a directory"
     );
-
-    if (!signals.hasCart && !signals.hasProductSchema && !isCommerceUrl(url)) {
-      subtractScore(
-        scores, matchedSignals, "E-commerce",
-        Math.min(8, scores["E-commerce"] || 0),
-        "finance page without storefront"
-      );
-    }
-  }
-
-  if (domain === "polymarket.com" || domain.endsWith(".polymarket.com")) {
-    addScore(scores, matchedSignals, "Saas", 8, "prediction market platform");
-    subtractScore(
-      scores, matchedSignals, "Newspaper",
-      Math.min(8, scores["Newspaper"] || 0),
-      "platform event page is not newspaper"
-    );
-  }
-
-  const looksLikeLocalBusinessDomain =
-    domainIntel.isLikelyLocalBusinessDomain(domain) &&
-    !domainIntel.getDomainPrior(domain) &&
-    !domainIntel.isInstitutionalDomain(domain) &&
-    !domainIntel.isLargeFinancialInstitutionDomain(domain) &&
-    !comparisonDomains.has(domain);
-
-  const hasLocalBusinessIntent =
-    /family.?owned|locally owned|visit us|call us|our office|our clinic|our location|hours|appointments?|services?|menu|catering|repair|treatment|massage|dental|pizza|bakery|floral|landscaping|autobody|gym|fitness|handyman/i.test(
-      `${title} ${metaDescription} ${t} ${nav} ${url}`
-    ) || hasSmallBusinessNiche(`${title} ${metaDescription} ${t} ${nav} ${url}`);
-
-  const strongCompetingClass =
-    (scores["E-commerce"] || 0) >= 10 ||
-    (scores["Saas"] || 0) >= 10 ||
-    (scores["Directory"] || 0) >= 10 ||
-    (scores["Blog"] || 0) >= 12 ||
-    (scores["Newspaper"] || 0) >= 12;
-
-  if (
-    looksLikeLocalBusinessDomain &&
-    hasSingleLocationSignals &&
-    hasLocalBusinessIntent &&
-    !strongCompetingClass
-  ) {
-    addScore(scores, matchedSignals, "Small business", 6, "narrow local-business rescue");
-    subtractScore(scores, matchedSignals, "Directory", 4, "single business dampens directory");
-    subtractScore(scores, matchedSignals, "Saas", 3, "local business dampens SaaS");
-
-    if (!signals.hasCart && !signals.hasProductSchema && !isCommerceUrl(url)) {
-      subtractScore(scores, matchedSignals, "E-commerce", 4, "local business without storefront");
-    }
-  }
-
-  if (
-    typeof context.isStrongBrandedLocalBusiness === "function" &&
-    context.isStrongBrandedLocalBusiness(
-      url, domain, title, metaDescription,
-      context.bodyText, context.linksText, signals
-    ) &&
-    !comparisonDomains.has(domain)
-  ) {
-    if (!hasStrongNonSmallBusiness(scores, 8)) {
-      addScore(scores, matchedSignals, "Small business", 8, "branded local business preference");
-      subtractScore(scores, matchedSignals, "Directory", 4, "local business dampens Directory");
-      subtractScore(scores, matchedSignals, "Saas", 4, "local business dampens SaaS");
-    }
   }
 }
 

@@ -1,10 +1,35 @@
 const { getPathname, isEditorialPath } = require("../lib/url-utils");
 
+function getHostnameSafe(rawUrl) {
+  try {
+    return new URL(rawUrl).hostname.toLowerCase();
+  } catch (e) {
+    return "";
+  }
+}
+
 function adjustContentTypeAfterScoring(contentType, siteType, url, schemaTypes, bodyText) {
   const pathName = getPathname(url);
   const editorialPath = isEditorialPath(pathName);
   const lowerUrl = String(url || "").toLowerCase();
   const text = String(bodyText || "").toLowerCase();
+  const hostname = getHostnameSafe(url);
+
+  const REVIEW_DIR_SUFFIXES = [
+    "trustpilot.com",
+    "pissedconsumer.com",
+    "consumeraffairs.com",
+    "resellerratings.com",
+    "sitejabber.com",
+    "verifiedreviews.com",
+    "reviews.io",
+  ];
+
+  const isReviewDirectoryHost =
+    hostname &&
+    REVIEW_DIR_SUFFIXES.some(
+      (suffix) => hostname === suffix || hostname.endsWith("." + suffix)
+    );
 
   const hasBlogPosting = !!schemaTypes.isBlogPosting;
   const hasNewsArticle = !!schemaTypes.isNewsArticle;
@@ -30,7 +55,9 @@ function adjustContentTypeAfterScoring(contentType, siteType, url, schemaTypes, 
   // also has a clear editorial slug — prevents clinic homepages being forced
   // to Blog, but allows novodentbd.com/best-10-dentist-in-dhaka → Blog.
   const hasEditorialSlug =
-    /\/blog\/|\/blogs\/|\/article\/|\/articles\/|\/post\/|\/posts\/|\/news\/|\/why-|\/what-|\/how-|\/best-|\/top-|\/guide-|\/tips-|\/benefits-|\/cost-|\/vs-/i.test(lowerUrl);
+    /\/blog\/|\/blogs\/|\/article\/|\/articles\/|\/post\/|\/posts\/|\/news\/|\/why-|\/what-|\/how-|\/best-|\/top-|\/guide-|\/tips-|\/benefits-|\/cost-|\/vs-/i.test(
+      lowerUrl
+    );
 
   if (
     (siteType === "Small business" || siteType === "Service") &&
@@ -43,47 +70,73 @@ function adjustContentTypeAfterScoring(contentType, siteType, url, schemaTypes, 
   // ─── HARD URL OVERRIDES (known domains) ────────────────────────────────────
 
   if (
-    /wsj\.com\/articles\/|bloomberg\.com\/news\/articles\/|apnews\.com\/article\/|wired\.com\/story\/|marketwatch\.com\/story\/|techradar\.com\/best\/|zdnet\.com\/article\/|thetimes\.com\/article\/|investopedia\.com\/terms\/|pcmag\.com\/reviews\/|tomsguide\.com\/best\/|theatlantic\.com\/.+\/archive\/|usatoday\.com\/story\/|architecturaldigest\.com\/story\/|digitaltrends\.com\/cars\/best-|hgtv\.com\/design\/|alistapart\.com\/article\/|mayoclinic\.org\/diseases-conditions\//i.test(lowerUrl)
+    /wsj\.com\/articles\/|bloomberg\.com\/news\/articles\/|apnews\.com\/article\/|wired\.com\/story\/|marketwatch\.com\/story\/|techradar\.com\/best\/|zdnet\.com\/article\/|thetimes\.com\/article\/|investopedia\.com\/terms\/|pcmag\.com\/reviews\/|tomsguide\.com\/best\/|theatlantic\.com\/.+\/archive\/|usatoday\.com\/story\/|architecturaldigest\.com\/story\/|digitaltrends\.com\/cars\/best-|hgtv\.com\/design\/|alistapart\.com\/article\/|mayoclinic\.org\/diseases-conditions\//i.test(
+      lowerUrl
+    )
   ) {
     return "Newspaper";
   }
 
   if (
-    /etsy\.com\/listing\/\d+|target\.com\/p\/|ikea\.com\/.+\/p\/|newegg\.com\/.+\/p\/|sephora\.com\/product\/|macys\.com\/shop\/product\/|homedepot\.com\/p\/|overstock\.com\/.+\/product\.html|zappos\.com\/product\/|petco\.com\/shop\/.+\/product\/|ulta\.com\/p\/|flipkart\.com\/.+\/p\/itm|backmarket\.com\/en-us\/p\/|castlery\.com\/products\/|society6\.com\/product\//i.test(lowerUrl)
+    /etsy\.com\/listing\/\d+|target\.com\/p\/|ikea\.com\/.+\/p\/|newegg\.com\/.+\/p\/|sephora\.com\/product\/|macys\.com\/shop\/product\/|homedepot\.com\/p\/|overstock\.com\/.+\/product\.html|zappos\.com\/product\/|petco\.com\/shop\/.+\/product\/|ulta\.com\/p\/|flipkart\.com\/.+\/p\/itm|backmarket\.com\/en-us\/p\/|castlery\.com\/products\/|society6\.com\/product\//i.test(
+      lowerUrl
+    )
   ) {
     return "E-commerce";
   }
 
   if (
-    /yellowpages\.com\/search|linkedin\.com\/jobs\/search|swappa\.com\/listing\/view\//i.test(lowerUrl)
+    /yellowpages\.com\/search|linkedin\.com\/jobs\/search|swappa\.com\/listing\/view\//i.test(
+      lowerUrl
+    )
   ) {
     return "Directory";
   }
 
   if (
-    /hubspot\.com\/products\/crm|datadog\.com\/product\/apm|airtable\.com\/product\/database|cloudflare\.com\/products\/workers|atlassian\.com\/software\/jira|monday\.com\/pricing|clickup\.com\/features|zapier\.com\/app\/dashboard|intercom\.com\/customer-messaging|make\.com\/en\/pricing|render\.com\/docs\/deploy-node-express-app|webflow\.com\/pricing/i.test(lowerUrl)
+    /hubspot\.com\/products\/crm|datadog\.com\/product\/apm|airtable\.com\/product\/database|cloudflare\.com\/products\/workers|atlassian\.com\/software\/jira|monday\.com\/pricing|clickup\.com\/features|zapier\.com\/app\/dashboard|intercom\.com\/customer-messaging|make\.com\/en\/pricing|render\.com\/docs\/deploy-node-express-app|webflow\.com\/pricing/i.test(
+      lowerUrl
+    )
   ) {
     return "Saas";
   }
 
   if (
-    /acmeplumbing\.net\/contact|downtown-dental\.com\/appointments|mrelectric\.com\/services\/|wipfli\.com\/services\/tax/i.test(lowerUrl)
+    /acmeplumbing\.net\/contact|downtown-dental\.com\/appointments|mrelectric\.com\/services\/|wipfli\.com\/services\/tax/i.test(
+      lowerUrl
+    )
   ) {
     return "Service";
+  }
+
+  // ─── REVIEW / COMPLAINT PLATFORMS (Trustpilot, etc.) ──────────────────────
+
+  if (isReviewDirectoryHost) {
+    // Many of these platforms have both review listings and occasional
+    // blog/editorial content. If path looks editorial, treat as Blog;
+    // otherwise treat as Directory.
+    if (/\/blog\/|\/news\/|\/articles?\//i.test(lowerUrl)) {
+      return "Blog";
+    }
+    return "Directory";
   }
 
   // ─── EARLY RETURN: Small business / Service + service-intent URL ───────────
 
   if (
     (siteType === "Small business" || siteType === "Service") &&
-    /\/iv[-_]?(drip|therapy|infusion)|\/vitamin[-_]?drip|\/iv[-_]?menu|\/wellness|\/clinic|\/medical[-_]?clinic|\/therapy|\/treatment|\/skincare|\/aesthetic|\/infusion|\/hydration|\/drip[-_]?bar|\/drip[-_]?therapy|\/spa[-_]?treatment|\/beauty[-_]?treatment|\/hair[-_]?treatment|\/dental|\/physio|\/chiropractic|\/acupuncture|\/massage|\/facial|\/laser/i.test(lowerUrl)
+    /\/iv[-_]?(drip|therapy|infusion)|\/vitamin[-_]?drip|\/iv[-_]?menu|\/wellness|\/clinic|\/medical[-_]?clinic|\/therapy|\/treatment|\/skincare|\/aesthetic|\/infusion|\/hydration|\/drip[-_]?bar|\/drip[-_]?therapy|\/spa[-_]?treatment|\/beauty[-_]?treatment|\/hair[-_]?treatment|\/dental|\/physio|\/chiropractic|\/acupuncture|\/massage|\/facial|\/laser/i.test(
+      lowerUrl
+    )
   ) {
     return "Service";
   }
 
   if (
     (siteType === "Small business" || siteType === "Service") &&
-    /\/menu[-_]?prices?|\/price[-_]?list|\/price[-_]?menu|\/treatments?(\/?$)|\/procedures?(\/?$)|\/packages?(\/?$)|\/promotions?(\/?$)|\/our[-_]?services?(\/?$)|\/what[-_]?we[-_]?do|\/how[-_]?it[-_]?works/i.test(lowerUrl)
+    /\/menu[-_]?prices?|\/price[-_]?list|\/price[-_]?menu|\/treatments?(\/?$)|\/procedures?(\/?$)|\/packages?(\/?$)|\/promotions?(\/?$)|\/our[-_]?services?(\/?$)|\/what[-_]?we[-_]?do|\/how[-_]?it[-_]?works/i.test(
+      lowerUrl
+    )
   ) {
     return "Service";
   }
@@ -99,7 +152,11 @@ function adjustContentTypeAfterScoring(contentType, siteType, url, schemaTypes, 
     newsScore += 2;
   }
 
-  if (/\/article\/|\/articles\/|\/story\/|\/stories\/|\/archive\/|\/news\/|\/world\/|\/politics\/|\/business\/|\/technology\/|\/science\/|\/sports\/|\/opinion\/|\/editorial\//i.test(lowerUrl)) {
+  if (
+    /\/article\/|\/articles\/|\/story\/|\/stories\/|\/archive\/|\/news\/|\/world\/|\/politics\/|\/business\/|\/technology\/|\/science\/|\/sports\/|\/opinion\/|\/editorial\//i.test(
+      lowerUrl
+    )
+  ) {
     newsScore += 5;
   }
 
@@ -203,7 +260,11 @@ function adjustContentTypeAfterScoring(contentType, siteType, url, schemaTypes, 
     serviceScore += 6;
   }
 
-  if (/\/iv[-_]?(drip|therapy|infusion)|\/vitamin[-_]?drip|\/wellness|\/clinic|\/therapy|\/treatment|\/skincare|\/aesthetic|\/infusion|\/hydration|\/drip[-_]?bar|\/nad[-_]?therapy|\/vitamin[-_]?c|\/glutathione|\/beauty|\/spa/i.test(lowerUrl)) {
+  if (
+    /\/iv[-_]?(drip|therapy|infusion)|\/vitamin[-_]?drip|\/wellness|\/clinic|\/therapy|\/treatment|\/skincare|\/aesthetic|\/infusion|\/hydration|\/drip[-_]?bar|\/nad[-_]?therapy|\/vitamin[-_]?c|\/glutathione|\/beauty|\/spa/i.test(
+      lowerUrl
+    )
+  ) {
     serviceScore += 5;
   }
 
@@ -229,14 +290,22 @@ function adjustContentTypeAfterScoring(contentType, siteType, url, schemaTypes, 
 
   // ─── BODY TEXT SIGNALS ─────────────────────────────────────────────────────
 
-  if (/review|reviews|hands-on|first look|impressions|tested|my experience|guide|how to|tips|best|top|vs\.?|comparison|recipe/i.test(text)) {
+  if (
+    /review|reviews|hands-on|first look|impressions|tested|my experience|guide|how to|tips|best|top|vs\.?|comparison|recipe/i.test(
+      text
+    )
+  ) {
     if (siteType !== "Small business" && siteType !== "Service") {
       blogScore += 3;
       newsScore += 1;
     }
   }
 
-  if (/breaking news|latest news|reporter|correspondent|newsroom|developing story|live updates?|this story has been updated/i.test(text)) {
+  if (
+    /breaking news|latest news|reporter|correspondent|newsroom|developing story|live updates?|this story has been updated/i.test(
+      text
+    )
+  ) {
     newsScore += 5;
   }
 
@@ -258,7 +327,11 @@ function adjustContentTypeAfterScoring(contentType, siteType, url, schemaTypes, 
     serviceScore += 4;
   }
 
-  if (/iv drip|iv therapy|iv infusion|vitamin drip|drip bar|intravenous|hydration therapy|wellness clinic|medical clinic|aesthetic clinic|beauty clinic|skin clinic|dental clinic|physiotherapy|chiropractic|acupuncture treatment|massage therapy|facial treatment/i.test(text)) {
+  if (
+    /iv drip|iv therapy|iv infusion|vitamin drip|drip bar|intravenous|hydration therapy|wellness clinic|medical clinic|aesthetic clinic|beauty clinic|skin clinic|dental clinic|physiotherapy|chiropractic|acupuncture treatment|massage therapy|facial treatment/i.test(
+      text
+    )
+  ) {
     serviceScore += 5;
   }
 

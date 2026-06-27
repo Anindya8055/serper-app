@@ -4,7 +4,7 @@
 // Right now getBaseDomain does its own parsing, so tldts is optional.
 // const { getDomain } = require("tldts");
 
-// 1) Blocked domains list (restored)
+// 1) Blocked domains list
 const BLOCKED_DOMAINS = [
   "facebook.com",
   "fb.com",
@@ -27,20 +27,19 @@ const BLOCKED_DOMAINS = [
 ];
 
 // 2) Helper: check if URL should be blocked
-function isBlockedUrl(url) {
+function isBlockedUrl(url, blockedDomains = BLOCKED_DOMAINS) {
   try {
     const hostname = new URL(url).hostname.toLowerCase().replace(/^www\./, "");
-    return BLOCKED_DOMAINS.some(
+    return blockedDomains.some(
       (domain) => hostname === domain || hostname.endsWith(`.${domain}`)
     );
   } catch {
-    // If URL is invalid, safest is to treat as blocked for SERP purposes
     return true;
   }
 }
 
 // 3) Normalize and dedupe URLs, while filtering blocked domains
-function cleanUrls(urls = []) {
+function cleanUrls(urls = [], blockedDomains = BLOCKED_DOMAINS) {
   const seen = new Set();
   const cleaned = [];
 
@@ -50,13 +49,11 @@ function cleanUrls(urls = []) {
     try {
       const url = new URL(raw);
 
-      // Basic normalization like your “new” version
-      const hostname = url.hostname.replace(/^www\./, "");
+      const hostname = url.hostname.toLowerCase().replace(/^www\./, "");
       const pathname = url.pathname.replace(/\/+$/, "") || "/";
       const normalized = `${url.protocol}//${hostname}${pathname}${url.search}`;
 
-      // Apply blocked-domain filtering here
-      if (isBlockedUrl(normalized)) continue;
+      if (isBlockedUrl(normalized, blockedDomains)) continue;
 
       if (!seen.has(normalized)) {
         seen.add(normalized);
@@ -70,15 +67,21 @@ function cleanUrls(urls = []) {
   return cleaned;
 }
 
-// 4) Base domain helper (keeps your updated logic)
+// 4) Base domain helper
 function getBaseDomain(input) {
   try {
-    const url = input.startsWith("http")
-      ? new URL(input)
-      : new URL(`https://${input}`);
-    return url.hostname.replace(/^www\./, "");
+    const raw = String(input || "").trim();
+    if (!raw) return "";
+
+    const url = raw.startsWith("http://") || raw.startsWith("https://")
+      ? new URL(raw)
+      : new URL(`https://${raw}`);
+
+    return url.hostname.toLowerCase().replace(/^www\./, "");
   } catch {
     return String(input || "")
+      .trim()
+      .toLowerCase()
       .replace(/^https?:\/\//, "")
       .replace(/^www\./, "")
       .split("/")[0];
@@ -88,11 +91,15 @@ function getBaseDomain(input) {
 // 5) Homepage URL builder
 function buildHomepageUrl(domain) {
   const base = getBaseDomain(domain);
-  return `https://${base}`;
+  return base ? `https://${base}` : "";
 }
 
-// 6) Important link picker (keeps your newer scoring, adds blocking)
-function pickImportantLinks(links = [], homepageUrl = "") {
+// 6) Important link picker
+function pickImportantLinks(
+  links = [],
+  homepageUrl = "",
+  blockedDomains = BLOCKED_DOMAINS
+) {
   const homepageDomain = getBaseDomain(homepageUrl);
 
   const priorityPatterns = [
@@ -122,7 +129,7 @@ function pickImportantLinks(links = [], homepageUrl = "") {
 
   for (const link of links) {
     if (!link) continue;
-    if (isBlockedUrl(link)) continue; // do not follow internal links to blocked domains
+    if (isBlockedUrl(link, blockedDomains)) continue;
 
     try {
       const url = new URL(link);
@@ -139,6 +146,7 @@ function pickImportantLinks(links = [], homepageUrl = "") {
       }
 
       if (path === "/" || path === "") score -= 5;
+
       if (/privacy|terms|login|signin|signup|account|cart|checkout/i.test(path)) {
         score -= 3;
       }

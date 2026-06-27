@@ -6,6 +6,7 @@ const {
 
 const { getPathname } = require("../lib/url-utils");
 
+
 // ─── Known legal directory domains ───────────────────────────────────────────
 const LEGAL_DIRECTORY_DOMAINS = new Set([
   "avvo.com",
@@ -26,6 +27,7 @@ const LEGAL_DIRECTORY_DOMAINS = new Set([
   "lawyers.law.cornell.edu",
   "thervo.com",
 ]);
+
 
 // ─── Known health-system / institutional-service domains ─────────────────────
 const HEALTH_SYSTEM_DOMAINS = new Set([
@@ -72,6 +74,7 @@ const HEALTH_SYSTEM_DOMAINS = new Set([
   "bswhealth.com",
 ]);
 
+
 // ─── Domains that should always behave like editorial/publisher properties ───
 const HARD_MEDIA_DOMAINS = new Set([
   "forbes.com",
@@ -102,6 +105,7 @@ const HARD_MEDIA_DOMAINS = new Set([
   "morningstar.com",
 ]);
 
+
 // ─── Domains that should never resolve to Small business ─────────────────────
 const NEVER_SMALL_BUSINESS_DOMAINS = new Set([
   "microsoft.com",
@@ -123,6 +127,7 @@ const NEVER_SMALL_BUSINESS_DOMAINS = new Set([
   "amazon.com",
 ]);
 
+
 // ─── Strong SaaS vendor domains ──────────────────────────────────────────────
 const HARD_SAAS_DOMAINS = new Set([
   "microsoft.com",
@@ -137,25 +142,48 @@ const HARD_SAAS_DOMAINS = new Set([
   "sybill.ai",
 ]);
 
+
 // ─── URL path patterns that are clearly directory/listing pages ──────────────
 const DIRECTORY_PATH_RE =
   /\/(lawyers|attorneys|all-lawyers|find-a-lawyer|find-a-dentist|find-a-doctor|search\?find_desc|dentists|directory|listings?|providers?|professionals?|search-results|near-me|companies|businesses)(\/|$|\?)/i;
+
 
 // ─── URL path patterns that are clearly a location/clinic page (not SaaS) ───
 const LOCATION_PAGE_RE =
   /\/(locations?|dental-clinic|dental-care|dental-center|dentistry|clinic|clinics?|offices?|branches?|our-locations?)(\/|$)/i;
 
+
 // ─── Blog / editorial-like paths ─────────────────────────────────────────────
 const BLOG_LIKE_PATH_RE =
   /\/(blog|blogs|resources?|articles?|learn|insights?|guides?|posts?|stories|tips|tutorials?)($|\/)/i;
+
 
 // ─── SaaS product / conversion paths ─────────────────────────────────────────
 const SAAS_PRODUCT_PATH_RE =
   /\/(product|products|pricing|plans|platform|features|database|automation|email-marketing|workers|upgrade|payments|communications|customer-service|customer-messaging|crm|software|integrations|demo|free-trial)($|\/)/i;
 
+
 // ─── Strong editorial content paths ──────────────────────────────────────────
 const EDITORIAL_PATH_RE =
   /\/(article|articles|story|stories|reviews?|best|guide|guides|how-to|analysis|opinion|news|resources?)($|\/)/i;
+
+
+// ─── Review / complaint platform domains (Trustpilot, etc.) ─────────────────
+const REVIEW_DIRECTORY_SUFFIXES = [
+  "trustpilot.com",
+  "pissedconsumer.com",
+  "consumeraffairs.com",
+  "resellerratings.com",
+];
+
+function isReviewDirectoryDomain(domain) {
+  if (!domain) return false;
+  const d = domain.toLowerCase();
+  return REVIEW_DIRECTORY_SUFFIXES.some(
+    (suffix) => d === suffix || d.endsWith("." + suffix)
+  );
+}
+
 
 function applyPathOverrides(url, currentType, matchedSignals, PATH_OVERRIDES = {}) {
   const pathname = getPathname(url);
@@ -179,6 +207,7 @@ function applyPathOverrides(url, currentType, matchedSignals, PATH_OVERRIDES = {
   return currentType;
 }
 
+
 function isLocalBusinessLooking(domain) {
   const knownNationalBrands =
     /amazon|walmart|target|bestbuy|homedepot|lowes|costco|ebay|etsy|wayfair|ikea|macys|nordstrom|sephora|shopify|stripe|salesforce|hubspot|notion|github|gitlab|vercel|netlify|figma|slack|zapier|monday|asana|clickup|dropbox|box|zendesk|datadog|atlassian|mailchimp|cloudflare|supabase|linear|newrelic|twilio|intercom|airtable|yelp|tripadvisor|yellowpages|angi|zillow|realtor|booking|airbnb|expedia|kayak|cars\.com|autotrader|houzz|healthgrades|zocdoc|avvo|glassdoor|indeed|thumbtack|bbb|homeadvisor|linkedin|findlaw|kbb|orbitz|hotels\.com|turo|carrentals|medium|substack|dev\.to|neilpatel|moz\.com|ahrefs|semrush|backlinko|buffer|wordpress|blogger|blogspot|wix|squarespace|webflow|microsoft|zoho|xero/i;
@@ -190,6 +219,7 @@ function isLocalBusinessLooking(domain) {
 
   return localServicePattern.test(domain);
 }
+
 
 function isLocalWithoutStorefront(domain, scores, context) {
   if (!isLocalBusinessLooking(domain)) return false;
@@ -211,6 +241,7 @@ function isLocalWithoutStorefront(domain, scores, context) {
 
   return !hasCart && !hasProductSchema && !strongStorefrontCopy && ecomScore < 18;
 }
+
 
 function applyFinalDomainOverrides(
   siteType,
@@ -244,6 +275,22 @@ function applyFinalDomainOverrides(
   const prior = domainIntel.getDomainPrior(domain);
 
   finalType = applyPathOverrides(url, finalType, matchedSignals, PATH_OVERRIDES);
+
+  // ── FIX 0: Trustpilot / complaint / review platforms → Directory/Blog ─────
+  if (isReviewDirectoryDomain(domain)) {
+    const lowerUrl = String(url || "").toLowerCase();
+    const isEditorialPath = /\/blog\/|\/news\/|\/articles?\//i.test(lowerUrl);
+
+    matchedSignals.push({
+      type: "Post-process",
+      reason: "review/complaint platform domain -> Directory/Blog",
+      points: 0,
+    });
+
+    finalType = isEditorialPath ? "Blog" : "Directory";
+    finalConfidence = "High";
+    return { siteType: finalType, confidence: finalConfidence };
+  }
 
   // ── FIX 1: Legal directory domains always → Directory ─────────────────────
   if (LEGAL_DIRECTORY_DOMAINS.has(domain)) {
