@@ -1,34 +1,16 @@
-#!/usr/bin/env python3
-"""
-push_and_deploy.py
-------------------
-Run this on your Windows PC from inside the serper-app folder:
-
-    python push_and_deploy.py
-
-What it does:
-  1. Runs pending patch scripts (domain priors, etc.)
-  2. Commits any resulting file changes
-  3. Pushes to GitHub (main branch)
-  4. SSHs into the server -> git pull -> pm2 restart -> shows logs
-"""
-
 import subprocess
 import sys
 import os
 
-# ── CONFIG ────────────────────────────────────────────────────────────────────
 BRANCH       = "main"
 REMOTE       = "origin"
 SERVER_USER  = "root"
 SERVER_HOST  = "152.42.222.12"
 SERVER_PATH  = "/root/serper-app"
 PM2_APP_NAME = "serper-backend"
-# ─────────────────────────────────────────────────────────────────────────────
 
-# Patch scripts to run before pushing (skipped automatically if already applied)
 PATCH_SCRIPTS = [
-    "deploy_fix12.py",   # Phase 2 domain priors — 66 new entries
+    "deploy_fix12.py",
 ]
 
 
@@ -43,10 +25,10 @@ def run(cmd, check=True):
 
 def main():
     print("=" * 60)
-    print("  serper-app — push & deploy")
+    print("  serper-app -- push & deploy")
     print("=" * 60)
 
-    # 1. Run patch scripts
+    # 1. Run patch scripts if they exist
     for script in PATCH_SCRIPTS:
         if os.path.exists(script):
             print(f"\n--- Running {script} ---")
@@ -54,40 +36,32 @@ def main():
         else:
             print(f"\n[SKIP] {script} not found")
 
-    # 2. Commit any file changes the patch scripts made
+    # 2. Commit any uncommitted changes
     status = subprocess.run(
         "git status --porcelain", shell=True, capture_output=True, text=True
     )
     if status.stdout.strip():
-        run("git add backend/config/domain-priors/exact.json")
-        run('git commit -m "Phase 2 domain priors — 66 new entries"')
+        run("git add -A")
+        run("git commit -m \"Apply latest fixes and domain priors\"")
     else:
-        print("\n[OK] Nothing new to commit — patch already applied.")
+        print("\n[OK] Nothing to commit.")
 
     # 3. Push to GitHub
-    print(f"\n{'=' * 60}")
-    print(f"  Pushing to GitHub  (origin/main)")
-    print("=" * 60)
+    print("\n--- Pushing to GitHub (origin/main) ---")
     run(f"git push {REMOTE} {BRANCH}")
 
-    # 4. Deploy on server via SSH
-    print(f"\n{'=' * 60}")
-    print(f"  Deploying on server  (root@{SERVER_HOST})")
-    print("=" * 60)
-
-    server_commands = " && ".join([
-        f"cd {SERVER_PATH}",
-        f"git pull origin {BRANCH}",
-        f"pm2 restart {PM2_APP_NAME}",
-        f"pm2 logs {PM2_APP_NAME} --lines 30 --nostream",
-    ])
-
-    ssh_cmd = f'ssh {SERVER_USER}@{SERVER_HOST} "{server_commands}"'
-    run(ssh_cmd)
+    # 4. Deploy on server
+    print(f"\n--- Deploying on server (root@{SERVER_HOST}) ---")
+    server_commands = (
+        f"cd {SERVER_PATH} && "
+        f"git pull origin {BRANCH} && "
+        f"pm2 restart {PM2_APP_NAME} && "
+        f"pm2 logs {PM2_APP_NAME} --lines 30 --nostream"
+    )
+    run(f"ssh {SERVER_USER}@{SERVER_HOST} \"{server_commands}\"")
 
     print("\n" + "=" * 60)
-    print("  DONE — push & deploy complete!")
-    print("  Site: https://search.yaaply.net/")
+    print("  DONE -- https://search.yaaply.net/")
     print("=" * 60)
 
 
