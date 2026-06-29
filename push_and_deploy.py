@@ -14,6 +14,7 @@ PATCH_SCRIPTS = [
     "deploy_fix13.py",
     "deploy_fix14.py",
     "deploy_fix15.py",
+    "deploy_fix16.py",
 ]
 
 
@@ -44,7 +45,7 @@ def main():
         "git status --porcelain", shell=True, capture_output=True, text=True
     )
     if status.stdout.strip():
-        run("git add backend/config/domain-priors/exact.json backend/server.js backend/analyzer.js backend/lib/domain-intelligence.js push_and_deploy.py deploy_fix12.py deploy_fix13.py deploy_fix14.py deploy_fix15.py .gitignore")
+        run("git add backend/config/domain-priors/exact.json backend/server.js backend/analyzer.js backend/lib/domain-intelligence.js push_and_deploy.py deploy_fix12.py deploy_fix13.py deploy_fix14.py deploy_fix15.py deploy_fix16.py .gitignore")
         run("git commit -m \"Apply latest fixes and domain priors\"")
     else:
         print("\n[OK] Nothing to commit.")
