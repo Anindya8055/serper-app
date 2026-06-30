@@ -187,6 +187,9 @@ function App() {
   const handlePause = () => {
     pausedRef.current = true;
     setPaused(true);
+    setPolling(false);
+    setLoading(false);
+    stopTimer();
     if (pollTimeoutRef.current) {
       clearTimeout(pollTimeoutRef.current);
       pollTimeoutRef.current = null;
@@ -668,12 +671,12 @@ function App() {
               disabled={loading || !keyword.trim()}
               type="button"
             >
-              {loading || polling ? (
+              {!paused && (loading || polling) ? (
                 <LoaderCircle size={18} className="spin-icon" />
               ) : (
                 <Search size={18} />
               )}
-              <span>{loading ? "Searching..." : polling ? "Updating..." : "Search"}</span>
+              <span>{paused ? "Search" : loading ? "Searching..." : polling ? "Updating..." : "Search"}</span>
             </button>
           </section>
 
@@ -723,7 +726,7 @@ function App() {
 
               <div className="progress-meta-row">
                 <div className="progress-counts">
-                  <RefreshCw size={14} className={polling ? "spin-icon" : ""} />
+                  <RefreshCw size={14} className={polling && !paused ? "spin-icon" : ""} />
                   <span>
                     <strong>{finished}</strong>/{progress.total} analyzed
                     {progress.errorCount > 0 && (
