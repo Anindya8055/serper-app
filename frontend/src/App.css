@@ -300,6 +300,41 @@ select:focus {
   pointer-events: none;
 }
 
+.search-controls-row {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 10px;
+}
+
+.search-ctrl-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--card-2);
+  color: var(--text);
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.search-ctrl-btn:hover {
+  background: var(--card);
+  transform: scale(1.08);
+}
+
+.cancel-btn {
+  color: #e05252;
+  border-color: #e05252;
+}
+
+.cancel-btn:hover {
+  background: rgba(224, 82, 82, 0.12);
+}
+
 .status-message,
 .source-badge {
   border: 1px solid var(--border);

@@ -125,6 +125,10 @@ function App() {
   const pollTimeoutRef = useRef(null);
   const abortRef = useRef(null);
   const cancelledRef = useRef(false);
+  const [paused, setPaused] = useState(false);
+  const pausedRef = useRef(false);
+  const activeSearchKeywordRef = useRef(null);
+  const activeSearchCountryRef = useRef(null);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme");
@@ -167,6 +171,8 @@ function App() {
 
   const clearPolling = () => {
     cancelledRef.current = true;
+    pausedRef.current = false;
+    setPaused(false);
     if (pollTimeoutRef.current) {
       clearTimeout(pollTimeoutRef.current);
       pollTimeoutRef.current = null;
@@ -176,6 +182,46 @@ function App() {
       abortRef.current = null;
     }
     setPolling(false);
+  };
+
+  const handlePause = () => {
+    pausedRef.current = true;
+    setPaused(true);
+    if (pollTimeoutRef.current) {
+      clearTimeout(pollTimeoutRef.current);
+      pollTimeoutRef.current = null;
+    }
+    if (abortRef.current) {
+      abortRef.current.abort();
+      abortRef.current = null;
+    }
+  };
+
+  const handleResume = () => {
+    if (!activeSearchKeywordRef.current) return;
+    pausedRef.current = false;
+    setPaused(false);
+    pollSearchStatus(activeSearchKeywordRef.current, activeSearchCountryRef.current, selectedCountryName);
+  };
+
+  const handleCancel = () => {
+    const kw = activeSearchKeywordRef.current;
+    const ct = activeSearchCountryRef.current;
+    clearPolling();
+    setLoading(false);
+    stopTimer();
+    setProgress({ total: 0, doneCount: 0, errorCount: 0, processingCount: 0, pendingCount: 0, analyzed: 0 });
+    setResultSource("");
+    setMessage("Search cancelled.");
+    activeSearchKeywordRef.current = null;
+    activeSearchCountryRef.current = null;
+    if (kw && ct) {
+      fetch(`${API_BASE}/api/cancel-search`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ keyword: kw, country: ct }),
+      }).catch(() => {});
+    }
   };
 
   const startTimer = () => {
@@ -312,7 +358,7 @@ function App() {
         `Analyzing "${searchKeyword}" in ${countryName}... ${data.doneCount || 0}/${data.total || 0} done.`
       );
 
-      if (!cancelledRef.current) {
+      if (!cancelledRef.current && !pausedRef.current) {
         pollTimeoutRef.current = setTimeout(() => {
           pollSearchStatus(searchKeyword, searchCountry, countryName);
         }, POLL_INTERVAL);
@@ -339,6 +385,11 @@ function App() {
       return;
     }
 
+    cancelledRef.current = false;
+    pausedRef.current = false;
+    setPaused(false);
+    activeSearchKeywordRef.current = cleanKeyword;
+    activeSearchCountryRef.current = country;
     clearPolling();
     if (timerRef.current) clearInterval(timerRef.current);
     setTotalTimeMs(null);
@@ -577,16 +628,6 @@ function App() {
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
                 onKeyDown={onKeyDown}
-                onFocus={() => {
-                  if (loading || polling) {
-                    clearPolling();
-                    setLoading(false);
-                    stopTimer();
-                    setProgress({ total: 0, doneCount: 0, errorCount: 0, processingCount: 0, pendingCount: 0, analyzed: 0 });
-                    setResultSource("");
-                    setMessage("Search cancelled.");
-                  }
-                }}
               />
             </div>
 
@@ -635,6 +676,27 @@ function App() {
               <span>{loading ? "Searching..." : polling ? "Updating..." : "Search"}</span>
             </button>
           </section>
+
+          {(loading || polling || paused) && (
+            <div className="search-controls-row">
+              <button
+                type="button"
+                className="search-ctrl-btn pause-play-btn"
+                onClick={paused ? handleResume : handlePause}
+                title={paused ? "Resume" : "Pause"}
+              >
+                {paused ? "▶" : "⏸"}
+              </button>
+              <button
+                type="button"
+                className="search-ctrl-btn cancel-btn"
+                onClick={handleCancel}
+                title="Cancel search"
+              >
+                ✕
+              </button>
+            </div>
+          )}
 
           {message && <div className="status-message">{message}</div>}
 

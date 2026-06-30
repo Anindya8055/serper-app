@@ -82,6 +82,7 @@ const SKIP_DOMAIN_ANALYSIS_FOR_KNOWN_PRIORS = true;
 const SKIP_PAGE_FETCH_FOR_KNOWN_PRIORS = true;
 const MAX_DEEP_PAGE_ANALYSIS = 20;
 const activeJobs = new Map();
+const cancelledJobs = new Set();
 
 async function updateSearchSnapshot(keyword, country, resultsSnapshot) {
   await prisma.search.update({
@@ -604,6 +605,7 @@ async function analyzeSingleResult(item, domainMap, deepIndex = 0) {
 async function runAnalysisInBackground(keyword, country) {
   const jobKey = `${keyword}|${country}`;
   if (activeJobs.has(jobKey)) return;
+  cancelledJobs.delete(jobKey);
 
   const jobPromise = (async () => {
     try {
@@ -644,6 +646,8 @@ async function runAnalysisInBackground(keyword, country) {
         await updateSearchSnapshot(keyword, country, results);
       }
 
+      if (cancelledJobs.has(jobKey)) { cancelledJobs.delete(jobKey); return; }
+
       const uniqueDomains = [...new Set(results.map((item) => item.domain).filter(Boolean))];
 
       // Fetch DR first so it appears before content/site type analysis
@@ -654,6 +658,8 @@ async function runAnalysisInBackground(keyword, country) {
         }
       });
       await updateSearchSnapshot(keyword, country, results);
+
+      if (cancelledJobs.has(jobKey)) { cancelledJobs.delete(jobKey); return; }
 
       const domainMap = new Map();
 
@@ -766,9 +772,12 @@ async function runAnalysisInBackground(keyword, country) {
       let completed = 0;
       let deepCounter = 0;
 
+      if (cancelledJobs.has(jobKey)) { cancelledJobs.delete(jobKey); return; }
+
       await runPool(results, PAGE_CONCURRENCY, async (item, index) => {
         try {
           if (item.analysisStatus === "done") return;
+          if (cancelledJobs.has(jobKey)) return;
           const knownPrior = getDomainPrior(item.domain);
           const myDeepIndex = knownPrior ? MAX_DEEP_PAGE_ANALYSIS : deepCounter++;
           const analyzedItem = await analyzeSingleResult(item, domainMap, myDeepIndex);
@@ -904,6 +913,15 @@ app.get("/api/debug", (req, res) => {
     origin: req.headers.origin || null,
     allowedOrigins: Array.from(allowedOrigins),
   });
+});
+
+app.post("/api/cancel-search", (req, res) => {
+  const { keyword, country } = req.body;
+  if (!keyword || !country) return res.status(400).json({ error: "keyword and country required" });
+  const jobKey = `${keyword}|${country}`;
+  cancelledJobs.add(jobKey);
+  activeJobs.delete(jobKey);
+  res.json({ ok: true, cancelled: jobKey });
 });
 
 const DEFAULT_DISABLED_DOMAINS = [
