@@ -531,8 +531,8 @@ function App() {
         <button
           type="button"
           className="brand-mark"
-          onClick={() => setView("home")}
-          aria-label="Go to home"
+          onClick={() => window.location.reload()}
+          aria-label="Refresh page"
         >
           <span className="brand-dot"></span>
           <span className="brand-text">SERP URL TOOL</span>
@@ -572,7 +572,12 @@ function App() {
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
                 onKeyDown={onKeyDown}
-                disabled={loading}
+                onClick={() => {
+                  if (loading || polling) {
+                    clearPolling();
+                    setLoading(false);
+                  }
+                }}
               />
             </div>
 
