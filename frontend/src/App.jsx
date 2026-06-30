@@ -572,10 +572,12 @@ function App() {
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
                 onKeyDown={onKeyDown}
-                onClick={() => {
+                onFocus={() => {
                   if (loading || polling) {
                     clearPolling();
                     setLoading(false);
+                    stopTimer();
+                    setProgress({ total: 0, doneCount: 0, errorCount: 0, processingCount: 0, pendingCount: 0, analyzed: 0 });
                   }
                 }}
               />
