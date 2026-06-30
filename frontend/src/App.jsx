@@ -583,6 +583,8 @@ function App() {
                     setLoading(false);
                     stopTimer();
                     setProgress({ total: 0, doneCount: 0, errorCount: 0, processingCount: 0, pendingCount: 0, analyzed: 0 });
+                    setResultSource("");
+                    setMessage("Search cancelled.");
                   }
                 }}
               />
