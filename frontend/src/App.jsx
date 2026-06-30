@@ -124,6 +124,7 @@ function App() {
 
   const pollTimeoutRef = useRef(null);
   const abortRef = useRef(null);
+  const cancelledRef = useRef(false);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme");
@@ -165,6 +166,7 @@ function App() {
   }, [country]);
 
   const clearPolling = () => {
+    cancelledRef.current = true;
     if (pollTimeoutRef.current) {
       clearTimeout(pollTimeoutRef.current);
       pollTimeoutRef.current = null;
@@ -310,9 +312,11 @@ function App() {
         `Analyzing "${searchKeyword}" in ${countryName}... ${data.doneCount || 0}/${data.total || 0} done.`
       );
 
-      pollTimeoutRef.current = setTimeout(() => {
-        pollSearchStatus(searchKeyword, searchCountry, countryName);
-      }, POLL_INTERVAL);
+      if (!cancelledRef.current) {
+        pollTimeoutRef.current = setTimeout(() => {
+          pollSearchStatus(searchKeyword, searchCountry, countryName);
+        }, POLL_INTERVAL);
+      }
     } catch (error) {
       if (error.name !== "AbortError") {
         console.error("pollSearchStatus error:", error);
@@ -406,6 +410,7 @@ function App() {
 
       // start live timer when analysis begins
       startTimer();
+      cancelledRef.current = false;
 
       pollTimeoutRef.current = setTimeout(() => {
         pollSearchStatus(cleanKeyword, country, selectedCountryName);
