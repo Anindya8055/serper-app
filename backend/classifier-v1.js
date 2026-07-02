@@ -1213,7 +1213,11 @@ function inferTypeFromSignals(
     if (prior && SITETYPES.includes(prior)) {
       addScore(scores, matchedSignals, prior, 16, "domain prior bot-blocked fallback");
     } else if (siteTypeHint && SITETYPES.includes(siteTypeHint)) {
-      addScore(scores, matchedSignals, siteTypeHint, 3, "site type hint bot-blocked fallback");
+      // Platform fingerprint (Shopify/WooCommerce/Magento) on a bot-blocked page is
+      // highly reliable — the fingerprint came from real HTML before the block page loaded.
+      const isPlatformFp = ["E-commerce", "Blog"].includes(siteTypeHint);
+      const hintWeight = isPlatformFp ? 14 : 3;
+      addScore(scores, matchedSignals, siteTypeHint, hintWeight, "site type hint bot-blocked fallback");
     }
 
     if (domainIntel.isInstitutionalDomain(domain)) {
