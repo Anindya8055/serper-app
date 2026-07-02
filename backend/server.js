@@ -577,15 +577,35 @@ async function analyzeSingleResult(item, domainMap, deepIndex = 0) {
     };
   } catch (error) {
     const effectiveType = knownPrior || domainAnalysis?.siteType || null;
-    const fallbackContentType = normalizeType(
-      classifyContentType(item.url, null, effectiveType)
+
+    // When crawling fails (bot-block, 403, timeout) and we have no prior or domain signal,
+    // try the snippet classifier one more time — better than defaulting to "Small business".
+    let snippetFallback = null;
+    if (!effectiveType && (item.serperTitle || item.serperSnippet)) {
+      snippetFallback = classifyFromSnippet(
+        item.url,
+        item.serperTitle || "",
+        item.serperSnippet || ""
+      );
+    }
+
+    const resolvedFallbackType = normalizeType(
+      effectiveType || snippetFallback?.siteType || "Small business"
     );
+    const fallbackContentType = normalizeType(
+      classifyContentType(item.url, null, resolvedFallbackType)
+    );
+    const fallbackConfidence = knownPrior
+      ? "High"
+      : snippetFallback
+      ? snippetFallback.confidence
+      : domainAnalysis?.confidence || "Low";
 
     return {
       ...item,
-      siteType: normalizeType(effectiveType || "Small business"),
+      siteType: resolvedFallbackType,
       contentType: fallbackContentType,
-      confidence: knownPrior ? "High" : (domainAnalysis?.confidence || "Low"),
+      confidence: fallbackConfidence,
       classifierVersion:
         domainAnalysis?.classifierVersion ||
         item.classifierVersion ||
@@ -593,6 +613,7 @@ async function analyzeSingleResult(item, domainMap, deepIndex = 0) {
       matchedSignals: mergeMatchedSignals(
         knownPrior ? [`Known domain prior: ${knownPrior}`] : [],
         domainAnalysis?.matchedSignals || [],
+        snippetFallback ? [`Snippet fallback (crawl failed): ${snippetFallback.source}`] : [],
         [`Fallback — unable to fetch page: ${error.message}`]
       ),
       analyzedPages: domainAnalysis?.analyzedPages || item.analyzedPages || [],
@@ -685,14 +706,32 @@ async function runAnalysisInBackground(keyword, country) {
           }
         } catch (error) {
           console.error(`Failed to analyze domain: ${domain}`, error.message);
+
+          // Try snippet-based inference from any result for this domain
+          let domainSnippetType = null;
+          if (!knownPrior) {
+            const sampleResult = results.find(
+              (r) => r.domain === domain && (r.serperTitle || r.serperSnippet)
+            );
+            if (sampleResult) {
+              const hit = classifyFromSnippet(
+                sampleResult.url,
+                sampleResult.serperTitle || "",
+                sampleResult.serperSnippet || ""
+              );
+              if (hit && hit.confidence === "High") domainSnippetType = hit.siteType;
+            }
+          }
+
           domainMap.set(domain, {
             domain,
             homepageUrl,
-            siteType: knownPrior || "Small business",
-            confidence: knownPrior ? "High" : "Low",
+            siteType: knownPrior || domainSnippetType || "Small business",
+            confidence: knownPrior ? "High" : domainSnippetType ? "Medium" : "Low",
             classifierVersion: CLASSIFIER_VERSION,
             matchedSignals: [
               ...(knownPrior ? [`Known domain prior: ${knownPrior}`] : []),
+              ...(domainSnippetType ? [`Snippet domain fallback: ${domainSnippetType}`] : []),
               `Fallback — unable to analyze domain: ${error.message}`,
             ],
             analyzedPages: [],

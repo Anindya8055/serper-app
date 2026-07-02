@@ -23,6 +23,7 @@ NEW_PRIORS = {
     "equifax.com": "Service",               # Equifax -- credit bureau
     "transunion.com": "Service",            # TransUnion -- credit bureau
     "annualcreditreport.com": "Service",    # AnnualCreditReport.com -- gov-mandated credit report site
+    "kiplinger.com": "Blog",               # Kiplinger -- financial magazine/editorial (Magento FP override)
 }
 
 
