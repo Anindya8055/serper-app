@@ -55,7 +55,7 @@ function isLikelyProfessionalServiceDomain(url = "") {
     // Professional services: legal, medical, dental, contractors
     if (/law|legal|attorney|lawyer|firm|counsel|advocate|solicitor|dental|dentist|ortho|medical|clinic|health|doctor|physician|chiro|therapy|therapist|plumb|electric|hvac|roofing|contractor|construct|realty|realtor|property|accountant|cpa|financial|insurance|agency/i.test(domain)) return true;
     // Local service businesses: salons, auto shops, restaurants, etc.
-    if (/salon|spa|hair|barber|nails|nail|beauty|lash|brow|wax|tattoo|studio|auto|repair|garage|mechanic|tire|tires|muffler|brakes|automotive|restaurant|cafe|diner|bistro|kitchen|eatery|pizz|burger|sushi|tacos?|bbq|grill|brewing|brewery|winery|bakery|catering|landscap|lawn|cleaning|maid|pest|pool|towing|locksmith|glass|paint|flooring|carpet|upholstery|movers?|moving|storage|childcare|daycare|preschool|tutoring|fitness|gym|yoga|pilates|crossfit|spa|massage|chiropractic|veterinar|vet|pet|grooming|funeral|florist|photo|portrait|wedding|event|dj\b|catering/i.test(domain)) return true;
+    if (/salon|parlour|parlor|spa|hair|barber|nails|nail|beauty|lash|brow|wax|tattoo|studio|auto|carcare|car-care|repair|garage|mechanic|tire|tires|muffler|brakes|automotive|restaurant|cafe|diner|bistro|kitchen|eatery|pizz|burger|sushi|tacos?|bbq|grill|brewing|brewery|winery|bakery|catering|landscap|lawn|cleaning|maid|pest|pool|towing|locksmith|glass|paint|flooring|carpet|upholstery|movers?|moving|storage|childcare|daycare|preschool|tutoring|fitness|gym|yoga|pilates|crossfit|massage|chiropractic|veterinar|vet|groom|funeral|florist|portrait|wedding|dj\b/i.test(domain)) return true;
     return false;
   } catch {
     return false;
@@ -103,11 +103,18 @@ function detectPlatformFromHtml(html = "", responseHeaders = {}, url = "") {
   // and never on professional service or local business domains.
   if (/mage\/|Magento_|mage\.cookies|require\.config.*Magento/i.test(h)) {
     if (isProfessionalService) return null;
+    // Never trust Magento on government domains
+    try { if (new URL(url).hostname.endsWith(".gov")) return null; } catch {}
     if (shopPage) return { platform: "Magento", siteType: "E-commerce" };
     // On homepages, trust Magento only if the domain doesn't look like a local business or editorial site
     if (isHomepage) {
-      const isBlogLike = /recipe|food|dining|travel|tourism|restaurant|eater|infatuation|thrillist/i.test(url);
+      const isBlogLike = /recipe|food|dining|travel|tourism|restaurant|eater|infatuation|thrillist|blog|wandering|nomad|backpack|adventure|journey|abroad|skinny|slim|healthy|skincare/i.test(url);
       if (isBlogLike) return null;
+      // Also check domain name for travel/food blog patterns
+      try {
+        const d = new URL(url).hostname.replace(/^www\./, "").toLowerCase();
+        if (/travel|wander|nomad|backpack|adventure|journey|abroad|recipe|skinny|healthy|foodie|groom/i.test(d)) return null;
+      } catch {}
       return { platform: "Magento", siteType: "E-commerce" };
     }
     return null;
