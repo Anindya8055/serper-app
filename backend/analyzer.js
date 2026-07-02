@@ -48,12 +48,15 @@ function isShopUrl(url = "") {
 
 // Detect e-commerce/platform type from raw HTML fingerprints.
 // Returns true if the domain name strongly suggests a local/professional service business
-// (law firm, medical, dental, contractor, etc.) — used to suppress platform FPs.
+// (law firm, medical, dental, contractor, local service, etc.) — used to suppress platform FPs.
 function isLikelyProfessionalServiceDomain(url = "") {
   try {
     const domain = new URL(url).hostname.replace(/^www\./, "").toLowerCase();
-    // Explicit professional niche keywords in the domain name
-    return /law|legal|attorney|lawyer|firm|counsel|advocate|solicitor|dental|dentist|ortho|medical|clinic|health|doctor|physician|chiro|therapy|therapist|plumb|electric|hvac|roofing|contractor|construct|realty|realtor|property|accountant|cpa|financial|insurance|agency/i.test(domain);
+    // Professional services: legal, medical, dental, contractors
+    if (/law|legal|attorney|lawyer|firm|counsel|advocate|solicitor|dental|dentist|ortho|medical|clinic|health|doctor|physician|chiro|therapy|therapist|plumb|electric|hvac|roofing|contractor|construct|realty|realtor|property|accountant|cpa|financial|insurance|agency/i.test(domain)) return true;
+    // Local service businesses: salons, auto shops, restaurants, etc.
+    if (/salon|spa|hair|barber|nails|nail|beauty|lash|brow|wax|tattoo|studio|auto|repair|garage|mechanic|tire|tires|muffler|brakes|automotive|restaurant|cafe|diner|bistro|kitchen|eatery|pizz|burger|sushi|tacos?|bbq|grill|brewing|brewery|winery|bakery|catering|landscap|lawn|cleaning|maid|pest|pool|towing|locksmith|glass|paint|flooring|carpet|upholstery|movers?|moving|storage|childcare|daycare|preschool|tutoring|fitness|gym|yoga|pilates|crossfit|spa|massage|chiropractic|veterinar|vet|pet|grooming|funeral|florist|photo|portrait|wedding|event|dj\b|catering/i.test(domain)) return true;
+    return false;
   } catch {
     return false;
   }
@@ -83,6 +86,10 @@ function detectPlatformFromHtml(html = "", responseHeaders = {}, url = "") {
   // WooCommerce — suppress on content URLs and professional service domains (law, dental, medical, etc.)
   if (/wp-content\/plugins\/woocommerce|woocommerce\.min\.js|\/wc-api\/|wc_add_to_cart/i.test(h)) {
     if (contentPage || isProfessionalService) return null;
+    // Suppress if the page looks like editorial/blog content (recipe, travel, food, review articles)
+    // even without a canonical /blog/ URL pattern
+    const isBlogLike = /recipe|ingredient|restaur|travel|destination|itinerary|dining|cuisine|review|gallery|photo/i.test(url);
+    if (isBlogLike) return null;
     return { platform: "WooCommerce", siteType: "E-commerce" };
   }
 
@@ -93,10 +100,16 @@ function detectPlatformFromHtml(html = "", responseHeaders = {}, url = "") {
   }
 
   // Magento — extremely high false-positive rate. Only trust on explicit shop URLs or homepages,
-  // and never on professional service domains.
+  // and never on professional service or local business domains.
   if (/mage\/|Magento_|mage\.cookies|require\.config.*Magento/i.test(h)) {
     if (isProfessionalService) return null;
-    if (shopPage || isHomepage) return { platform: "Magento", siteType: "E-commerce" };
+    if (shopPage) return { platform: "Magento", siteType: "E-commerce" };
+    // On homepages, trust Magento only if the domain doesn't look like a local business or editorial site
+    if (isHomepage) {
+      const isBlogLike = /recipe|food|dining|travel|tourism|restaurant|eater|infatuation|thrillist/i.test(url);
+      if (isBlogLike) return null;
+      return { platform: "Magento", siteType: "E-commerce" };
+    }
     return null;
   }
 
@@ -116,9 +129,9 @@ function detectPlatformFromHtml(html = "", responseHeaders = {}, url = "") {
   if (/app\.ecwid\.com|ecwid\.com\/script\.js/i.test(h))
     return { platform: "Ecwid", siteType: "E-commerce" };
 
-  // Generic WordPress (not WooCommerce) → Blog, unless it's a professional service domain
+  // Generic WordPress (not WooCommerce) → Blog, unless it's a professional service or local business domain
   if (/wp-content\/themes|wp-includes\/js|xmlrpc\.php/i.test(h)) {
-    if (isProfessionalService) return null; // let full classifier handle law firms, dentists, etc.
+    if (isProfessionalService) return null; // let full classifier handle local businesses
     return { platform: "WordPress", siteType: "Blog" };
   }
 
