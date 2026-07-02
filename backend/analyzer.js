@@ -47,12 +47,25 @@ function isShopUrl(url = "") {
 }
 
 // Detect e-commerce/platform type from raw HTML fingerprints.
+// Returns true if the domain name strongly suggests a local/professional service business
+// (law firm, medical, dental, contractor, etc.) — used to suppress platform FPs.
+function isLikelyProfessionalServiceDomain(url = "") {
+  try {
+    const domain = new URL(url).hostname.replace(/^www\./, "").toLowerCase();
+    // Explicit professional niche keywords in the domain name
+    return /law|legal|attorney|lawyer|firm|counsel|advocate|solicitor|dental|dentist|ortho|medical|clinic|health|doctor|physician|chiro|therapy|therapist|plumb|electric|hvac|roofing|contractor|construct|realty|realtor|property|accountant|cpa|financial|insurance|agency/i.test(domain);
+  } catch {
+    return false;
+  }
+}
+
 // Returns { platform, siteType } or null if nothing matched.
 function detectPlatformFromHtml(html = "", responseHeaders = {}, url = "") {
   const h = html.slice(0, 60000);
   const contentPage = isContentUrl(url);
   const shopPage = isShopUrl(url);
   const isHomepage = /^https?:\/\/[^/]+\/?$/.test(url);
+  const isProfessionalService = isLikelyProfessionalServiceDomain(url);
 
   // For Shopify: only fire on shop/collection/product URLs or homepages.
   // Many media/blog sites embed Shopify buy buttons — don't classify them as E-commerce.
@@ -67,9 +80,9 @@ function detectPlatformFromHtml(html = "", responseHeaders = {}, url = "") {
     return { platform: "Shopify", siteType: "E-commerce" };
   }
 
-  // WooCommerce — same guard: content URLs on WP sites shouldn't override to E-commerce
+  // WooCommerce — suppress on content URLs and professional service domains (law, dental, medical, etc.)
   if (/wp-content\/plugins\/woocommerce|woocommerce\.min\.js|\/wc-api\/|wc_add_to_cart/i.test(h)) {
-    if (contentPage) return null;
+    if (contentPage || isProfessionalService) return null;
     return { platform: "WooCommerce", siteType: "E-commerce" };
   }
 
@@ -79,10 +92,10 @@ function detectPlatformFromHtml(html = "", responseHeaders = {}, url = "") {
     return { platform: "BigCommerce", siteType: "E-commerce" };
   }
 
-  // Magento — extremely high false-positive rate on non-ecommerce sites (blogs, directories,
-  // academies, news sites all embed Magento scripts). Only trust on explicit shop URLs or
-  // the homepage. Return null for ALL other URL patterns.
+  // Magento — extremely high false-positive rate. Only trust on explicit shop URLs or homepages,
+  // and never on professional service domains.
   if (/mage\/|Magento_|mage\.cookies|require\.config.*Magento/i.test(h)) {
+    if (isProfessionalService) return null;
     if (shopPage || isHomepage) return { platform: "Magento", siteType: "E-commerce" };
     return null;
   }
@@ -103,9 +116,11 @@ function detectPlatformFromHtml(html = "", responseHeaders = {}, url = "") {
   if (/app\.ecwid\.com|ecwid\.com\/script\.js/i.test(h))
     return { platform: "Ecwid", siteType: "E-commerce" };
 
-  // Generic WordPress (not WooCommerce) → Blog
-  if (/wp-content\/themes|wp-includes\/js|xmlrpc\.php/i.test(h))
+  // Generic WordPress (not WooCommerce) → Blog, unless it's a professional service domain
+  if (/wp-content\/themes|wp-includes\/js|xmlrpc\.php/i.test(h)) {
+    if (isProfessionalService) return null; // let full classifier handle law firms, dentists, etc.
     return { platform: "WordPress", siteType: "Blog" };
+  }
 
   // Webflow
   if (/assets\.website-files\.com|webflow\.com\/css/i.test(h))

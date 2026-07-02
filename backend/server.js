@@ -82,6 +82,7 @@ const SKIP_DOMAIN_ANALYSIS_FOR_KNOWN_PRIORS = true;
 const SKIP_PAGE_FETCH_FOR_KNOWN_PRIORS = true;
 const MAX_DEEP_PAGE_ANALYSIS = 20;
 const activeJobs = new Map();
+const cancelledJobs = new Set();
 
 async function updateSearchSnapshot(keyword, country, resultsSnapshot) {
   await prisma.search.update({
@@ -126,7 +127,11 @@ function classifyFromSnippet(url, title = "", snippet = "") {
   const text = `${title} ${snippet}`.toLowerCase();
   const lowerUrl = url.toLowerCase();
 
-  // Strong e-commerce signals in title/snippet
+  // URL signals (very reliable)
+  const isCommerceUrl = /\/collections\/|\/products?\/|\/shop\/|\/store\/|\/cart\/|\/checkout\/|\/buy\//i.test(lowerUrl);
+  const isContentUrl = /\/blog\/|\/blogs\/|\/news\/|\/article\/|\/guide\/|\/review\/|\/forum\/|\/topic\//i.test(lowerUrl);
+
+  // ── E-COMMERCE ─────────────────────────────────────────────────────────────
   const ecomSignals = [
     /\bfree shipping\b/,
     /\badd to cart\b/,
@@ -138,48 +143,120 @@ function classifyFromSnippet(url, title = "", snippet = "") {
     /\bfree returns?\b/,
     /\b\d+%\s*off\b/,
   ];
+  const ecomScore = ecomSignals.filter(r => r.test(text)).length + (isCommerceUrl ? 3 : 0);
 
-  // Strong blog/editorial signals
+  // ── BLOG / EDITORIAL ────────────────────────────────────────────────────────
   const blogSignals = [
-    /\b(best|top|review|reviewed|guide|how to|tips|advice|ranked|rated|recommended)\b/,
+    /\b(best|top \d|review|reviewed|guide|how to|tips|advice|ranked|rated|recommended)\b/,
     /\b(expert|tested|opinion|analysis|comparison|vs\.?|versus)\b/,
     /\b(explained|everything you need|should you|worth it)\b/,
     /\b(article|post|written by|updated|published)\b/,
+    /\b(pros and cons|in-depth|roundup|our pick|we tested|i tested)\b/,
   ];
+  const blogScore = blogSignals.filter(r => r.test(text)).length + (isContentUrl ? 2 : 0);
 
-  // Strong forum signals
+  // ── FORUM ───────────────────────────────────────────────────────────────────
   const forumSignals = [
     /\b(forum|thread|reply|replies|posted by|discussion|community|members?)\b/,
     /\b(asked|answered|question|topic)\b/,
   ];
-
-  // URL signals (very reliable)
-  const isCommerceUrl = /\/collections\/|\/products?\/|\/shop\/|\/store\/|\/cart\/|\/checkout\/|\/buy\//i.test(lowerUrl);
-  const isContentUrl = /\/blog\/|\/blogs\/|\/news\/|\/article\/|\/guide\/|\/review\/|\/forum\/|\/topic\//i.test(lowerUrl);
-
-  const ecomScore = ecomSignals.filter(r => r.test(text)).length + (isCommerceUrl ? 3 : 0);
-  const blogScore = blogSignals.filter(r => r.test(text)).length + (isContentUrl ? 2 : 0);
   const forumScore = forumSignals.filter(r => r.test(text)).length;
+
+  // ── NEWSPAPER ───────────────────────────────────────────────────────────────
+  const newsSignals = [
+    /\b(breaking|exclusive|developing|wire|correspondent|reporter|newsroom)\b/,
+    /\b(reuters|ap news|associated press|bloomberg news|afp)\b/,
+    /\b(according to|says|said|told reporters|announced|confirmed)\b/,
+    /\b(news|headlines|coverage|reporting on)\b/,
+  ];
+  const newsScore = newsSignals.filter(r => r.test(text)).length;
+
+  // ── SAAS / SOFTWARE PLATFORM ────────────────────────────────────────────────
+  const saasSignals = [
+    /\b(free trial|start for free|no credit card|sign up free|get started free)\b/,
+    /\b(per user|per month|per seat|billed monthly|billed annually|upgrade plan)\b/,
+    /\b(dashboard|workspace|platform|integrations?|api|automation|workflow)\b/,
+    /\b(software for|crm|saas|app for teams?|all.?in.?one platform)\b/,
+    /\b(cancel anytime|14.?day|30.?day trial|money.?back guarantee)\b/,
+  ];
+  const saasScore = saasSignals.filter(r => r.test(text)).length;
+
+  // ── SERVICE (institutional / professional) ──────────────────────────────────
+  const serviceSignals = [
+    /\b(insurance|insurer|coverage|policy|premium|deductible|claim)\b/,
+    /\b(bank|banking|credit union|mortgage|loan|lender|refinance)\b/,
+    /\b(hospital|clinic|healthcare|medical center|health system|physician)\b/,
+    /\b(university|college|school district|accredited|tuition|enrollment)\b/,
+    /\b(government|federal|state agency|department of|ministry of|official site)\b/,
+    /\b(utility|electric company|gas company|water utility|telecom|carrier)\b/,
+    /\b(credit bureau|credit score|credit report|equifax|experian|transunion)\b/,
+    /\b(vpn service|hosting provider|web host|cloud hosting|managed hosting)\b/,
+    /\b(get a quote|request a quote|free quote|instant quote|compare quotes)\b/,
+  ];
+  const serviceScore = serviceSignals.filter(r => r.test(text)).length;
+
+  // ── DIRECTORY ───────────────────────────────────────────────────────────────
+  const dirSignals = [
+    /\b(find (a |an )?(doctor|lawyer|dentist|contractor|plumber|electrician|therapist|agent|provider))\b/,
+    /\b(compare (plans?|providers?|quotes?|rates?|prices?|cards?|options?))\b/,
+    /\b(listings?|directory|browse (all|providers?|companies|professionals?))\b/,
+    /\b(read reviews|customer reviews|rated by|stars?|top.rated)\b/,
+    /\b(near me|in your area|local providers?|find near)\b/,
+    /\b(job listings?|job board|search jobs|apply now|open positions)\b/,
+    /\b(hotel|flight|rental car).*(search|find|compare|book)\b/,
+    /\b(search results?|showing \d+ results?|filter by)\b/,
+  ];
+  const dirScore = dirSignals.filter(r => r.test(text)).length;
 
   const contentType = normalizeType(classifyContentType(url, null, null));
 
-  if (isCommerceUrl && ecomScore >= 3) {
+  // ── Decision logic (most specific first) ────────────────────────────────────
+
+  // E-commerce
+  if (isCommerceUrl && ecomScore >= 3)
     return { siteType: "E-commerce", contentType, confidence: "High", source: "snippet+url" };
-  }
-  if (ecomScore >= 4) {
+  if (ecomScore >= 4)
     return { siteType: "E-commerce", contentType, confidence: "High", source: "snippet" };
-  }
-  if (ecomScore >= 2 && blogScore === 0) {
+  if (ecomScore >= 2 && blogScore === 0)
     return { siteType: "E-commerce", contentType, confidence: "Medium", source: "snippet" };
-  }
-  if (forumScore >= 2 || (isContentUrl && forumSignals.some(r => r.test(text)))) {
+
+  // Forum
+  if (forumScore >= 2 || (isContentUrl && forumSignals.some(r => r.test(text))))
     return { siteType: "Blog", contentType: "Blog", confidence: "High", source: "snippet+url" };
-  }
-  if (blogScore >= 3) {
+
+  // Blog (editorial — check before SaaS/Service because review titles hit blog signals)
+  if (blogScore >= 3 && blogScore > saasScore && blogScore > serviceScore)
     return { siteType: "Blog", contentType: "Blog", confidence: "Medium", source: "snippet" };
-  }
-  if (isContentUrl && blogScore >= 1) {
+  if (isContentUrl && blogScore >= 1)
     return { siteType: "Blog", contentType: "Blog", confidence: "Medium", source: "snippet+url" };
+
+  // News — only confident when news signals dominate and no strong blog/ecom overlap
+  if (newsScore >= 2 && newsScore > blogScore && ecomScore === 0)
+    return { siteType: "Newspaper", contentType: "Newspaper", confidence: "Medium", source: "snippet" };
+
+  // SaaS — needs 2+ signals and no strong editorial overlap
+  if (saasScore >= 2 && blogScore <= 1)
+    return { siteType: "Saas", contentType: "Saas", confidence: "Medium", source: "snippet" };
+
+  // Directory — needs 2+ signals (comparison/listing sites)
+  if (dirScore >= 2 && ecomScore === 0)
+    return { siteType: "Directory", contentType: "Directory", confidence: "Medium", source: "snippet" };
+
+  // Service — needs 2+ strong institutional signals
+  if (serviceScore >= 2 && ecomScore === 0 && blogScore <= 1)
+    return { siteType: "Service", contentType: "Service", confidence: "Medium", source: "snippet" };
+
+  // Single strong service signal (insurance, bank, hospital, etc.) — reliable on its own
+  if (serviceScore === 1) {
+    const strongAlone = [
+      /\b(insurance company|insurer|insurance provider)\b/,
+      /\b(bank|banking|credit union)\b/,
+      /\b(hospital|health system|medical center)\b/,
+      /\b(credit bureau|credit score service)\b/,
+      /\b(vpn service|web hosting|cloud hosting)\b/,
+    ];
+    if (strongAlone.some(r => r.test(text)) && ecomScore === 0 && blogScore <= 1)
+      return { siteType: "Service", contentType: "Service", confidence: "Medium", source: "snippet" };
   }
 
   return null; // not confident — fall through to normal crawl-based analysis
@@ -500,15 +577,35 @@ async function analyzeSingleResult(item, domainMap, deepIndex = 0) {
     };
   } catch (error) {
     const effectiveType = knownPrior || domainAnalysis?.siteType || null;
-    const fallbackContentType = normalizeType(
-      classifyContentType(item.url, null, effectiveType)
+
+    // When crawling fails (bot-block, 403, timeout) and we have no prior or domain signal,
+    // try the snippet classifier one more time — better than defaulting to "Small business".
+    let snippetFallback = null;
+    if (!effectiveType && (item.serperTitle || item.serperSnippet)) {
+      snippetFallback = classifyFromSnippet(
+        item.url,
+        item.serperTitle || "",
+        item.serperSnippet || ""
+      );
+    }
+
+    const resolvedFallbackType = normalizeType(
+      effectiveType || snippetFallback?.siteType || "Small business"
     );
+    const fallbackContentType = normalizeType(
+      classifyContentType(item.url, null, resolvedFallbackType)
+    );
+    const fallbackConfidence = knownPrior
+      ? "High"
+      : snippetFallback
+      ? snippetFallback.confidence
+      : domainAnalysis?.confidence || "Low";
 
     return {
       ...item,
-      siteType: normalizeType(effectiveType || "Small business"),
+      siteType: resolvedFallbackType,
       contentType: fallbackContentType,
-      confidence: knownPrior ? "High" : (domainAnalysis?.confidence || "Low"),
+      confidence: fallbackConfidence,
       classifierVersion:
         domainAnalysis?.classifierVersion ||
         item.classifierVersion ||
@@ -516,6 +613,7 @@ async function analyzeSingleResult(item, domainMap, deepIndex = 0) {
       matchedSignals: mergeMatchedSignals(
         knownPrior ? [`Known domain prior: ${knownPrior}`] : [],
         domainAnalysis?.matchedSignals || [],
+        snippetFallback ? [`Snippet fallback (crawl failed): ${snippetFallback.source}`] : [],
         [`Fallback — unable to fetch page: ${error.message}`]
       ),
       analyzedPages: domainAnalysis?.analyzedPages || item.analyzedPages || [],
@@ -528,6 +626,7 @@ async function analyzeSingleResult(item, domainMap, deepIndex = 0) {
 async function runAnalysisInBackground(keyword, country) {
   const jobKey = `${keyword}|${country}`;
   if (activeJobs.has(jobKey)) return;
+  cancelledJobs.delete(jobKey);
 
   const jobPromise = (async () => {
     try {
@@ -568,6 +667,8 @@ async function runAnalysisInBackground(keyword, country) {
         await updateSearchSnapshot(keyword, country, results);
       }
 
+      if (cancelledJobs.has(jobKey)) { cancelledJobs.delete(jobKey); return; }
+
       const uniqueDomains = [...new Set(results.map((item) => item.domain).filter(Boolean))];
 
       // Fetch DR first so it appears before content/site type analysis
@@ -578,6 +679,8 @@ async function runAnalysisInBackground(keyword, country) {
         }
       });
       await updateSearchSnapshot(keyword, country, results);
+
+      if (cancelledJobs.has(jobKey)) { cancelledJobs.delete(jobKey); return; }
 
       const domainMap = new Map();
 
@@ -603,14 +706,32 @@ async function runAnalysisInBackground(keyword, country) {
           }
         } catch (error) {
           console.error(`Failed to analyze domain: ${domain}`, error.message);
+
+          // Try snippet-based inference from any result for this domain
+          let domainSnippetType = null;
+          if (!knownPrior) {
+            const sampleResult = results.find(
+              (r) => r.domain === domain && (r.serperTitle || r.serperSnippet)
+            );
+            if (sampleResult) {
+              const hit = classifyFromSnippet(
+                sampleResult.url,
+                sampleResult.serperTitle || "",
+                sampleResult.serperSnippet || ""
+              );
+              if (hit && hit.confidence === "High") domainSnippetType = hit.siteType;
+            }
+          }
+
           domainMap.set(domain, {
             domain,
             homepageUrl,
-            siteType: knownPrior || "Small business",
-            confidence: knownPrior ? "High" : "Low",
+            siteType: knownPrior || domainSnippetType || "Small business",
+            confidence: knownPrior ? "High" : domainSnippetType ? "Medium" : "Low",
             classifierVersion: CLASSIFIER_VERSION,
             matchedSignals: [
               ...(knownPrior ? [`Known domain prior: ${knownPrior}`] : []),
+              ...(domainSnippetType ? [`Snippet domain fallback: ${domainSnippetType}`] : []),
               `Fallback — unable to analyze domain: ${error.message}`,
             ],
             analyzedPages: [],
@@ -690,9 +811,12 @@ async function runAnalysisInBackground(keyword, country) {
       let completed = 0;
       let deepCounter = 0;
 
+      if (cancelledJobs.has(jobKey)) { cancelledJobs.delete(jobKey); return; }
+
       await runPool(results, PAGE_CONCURRENCY, async (item, index) => {
         try {
           if (item.analysisStatus === "done") return;
+          if (cancelledJobs.has(jobKey)) return;
           const knownPrior = getDomainPrior(item.domain);
           const myDeepIndex = knownPrior ? MAX_DEEP_PAGE_ANALYSIS : deepCounter++;
           const analyzedItem = await analyzeSingleResult(item, domainMap, myDeepIndex);
@@ -828,6 +952,15 @@ app.get("/api/debug", (req, res) => {
     origin: req.headers.origin || null,
     allowedOrigins: Array.from(allowedOrigins),
   });
+});
+
+app.post("/api/cancel-search", (req, res) => {
+  const { keyword, country } = req.body;
+  if (!keyword || !country) return res.status(400).json({ error: "keyword and country required" });
+  const jobKey = `${keyword}|${country}`;
+  cancelledJobs.add(jobKey);
+  activeJobs.delete(jobKey);
+  res.json({ ok: true, cancelled: jobKey });
 });
 
 const DEFAULT_DISABLED_DOMAINS = [

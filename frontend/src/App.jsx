@@ -124,6 +124,11 @@ function App() {
 
   const pollTimeoutRef = useRef(null);
   const abortRef = useRef(null);
+  const cancelledRef = useRef(false);
+  const [paused, setPaused] = useState(false);
+  const pausedRef = useRef(false);
+  const activeSearchKeywordRef = useRef(null);
+  const activeSearchCountryRef = useRef(null);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme");
@@ -165,6 +170,9 @@ function App() {
   }, [country]);
 
   const clearPolling = () => {
+    cancelledRef.current = true;
+    pausedRef.current = false;
+    setPaused(false);
     if (pollTimeoutRef.current) {
       clearTimeout(pollTimeoutRef.current);
       pollTimeoutRef.current = null;
@@ -174,6 +182,49 @@ function App() {
       abortRef.current = null;
     }
     setPolling(false);
+  };
+
+  const handlePause = () => {
+    pausedRef.current = true;
+    setPaused(true);
+    setPolling(false);
+    setLoading(false);
+    stopTimer();
+    if (pollTimeoutRef.current) {
+      clearTimeout(pollTimeoutRef.current);
+      pollTimeoutRef.current = null;
+    }
+    if (abortRef.current) {
+      abortRef.current.abort();
+      abortRef.current = null;
+    }
+  };
+
+  const handleResume = () => {
+    if (!activeSearchKeywordRef.current) return;
+    pausedRef.current = false;
+    setPaused(false);
+    pollSearchStatus(activeSearchKeywordRef.current, activeSearchCountryRef.current, selectedCountryName);
+  };
+
+  const handleCancel = () => {
+    const kw = activeSearchKeywordRef.current;
+    const ct = activeSearchCountryRef.current;
+    clearPolling();
+    setLoading(false);
+    stopTimer();
+    setProgress({ total: 0, doneCount: 0, errorCount: 0, processingCount: 0, pendingCount: 0, analyzed: 0 });
+    setResultSource("");
+    setMessage("Search cancelled.");
+    activeSearchKeywordRef.current = null;
+    activeSearchCountryRef.current = null;
+    if (kw && ct) {
+      fetch(`${API_BASE}/api/cancel-search`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ keyword: kw, country: ct }),
+      }).catch(() => {});
+    }
   };
 
   const startTimer = () => {
@@ -310,9 +361,11 @@ function App() {
         `Analyzing "${searchKeyword}" in ${countryName}... ${data.doneCount || 0}/${data.total || 0} done.`
       );
 
-      pollTimeoutRef.current = setTimeout(() => {
-        pollSearchStatus(searchKeyword, searchCountry, countryName);
-      }, POLL_INTERVAL);
+      if (!cancelledRef.current && !pausedRef.current) {
+        pollTimeoutRef.current = setTimeout(() => {
+          pollSearchStatus(searchKeyword, searchCountry, countryName);
+        }, POLL_INTERVAL);
+      }
     } catch (error) {
       if (error.name !== "AbortError") {
         console.error("pollSearchStatus error:", error);
@@ -335,6 +388,11 @@ function App() {
       return;
     }
 
+    cancelledRef.current = false;
+    pausedRef.current = false;
+    setPaused(false);
+    activeSearchKeywordRef.current = cleanKeyword;
+    activeSearchCountryRef.current = country;
     clearPolling();
     if (timerRef.current) clearInterval(timerRef.current);
     setTotalTimeMs(null);
@@ -406,6 +464,7 @@ function App() {
 
       // start live timer when analysis begins
       startTimer();
+      cancelledRef.current = false;
 
       pollTimeoutRef.current = setTimeout(() => {
         pollSearchStatus(cleanKeyword, country, selectedCountryName);
@@ -531,8 +590,8 @@ function App() {
         <button
           type="button"
           className="brand-mark"
-          onClick={() => setView("home")}
-          aria-label="Go to home"
+          onClick={() => window.location.reload()}
+          aria-label="Refresh page"
         >
           <span className="brand-dot"></span>
           <span className="brand-text">SERP URL TOOL</span>
@@ -572,7 +631,6 @@ function App() {
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
                 onKeyDown={onKeyDown}
-                disabled={loading}
               />
             </div>
 
@@ -613,14 +671,35 @@ function App() {
               disabled={loading || !keyword.trim()}
               type="button"
             >
-              {loading || polling ? (
+              {!paused && (loading || polling) ? (
                 <LoaderCircle size={18} className="spin-icon" />
               ) : (
                 <Search size={18} />
               )}
-              <span>{loading ? "Searching..." : polling ? "Updating..." : "Search"}</span>
+              <span>{paused ? "Search" : loading ? "Searching..." : polling ? "Updating..." : "Search"}</span>
             </button>
           </section>
+
+          {(loading || polling || paused) && (
+            <div className="search-controls-row">
+              <button
+                type="button"
+                className="search-ctrl-btn pause-play-btn"
+                onClick={paused ? handleResume : handlePause}
+                title={paused ? "Resume" : "Pause"}
+              >
+                {paused ? "▶" : "⏸"}
+              </button>
+              <button
+                type="button"
+                className="search-ctrl-btn cancel-btn"
+                onClick={handleCancel}
+                title="Cancel search"
+              >
+                ✕
+              </button>
+            </div>
+          )}
 
           {message && <div className="status-message">{message}</div>}
 
@@ -647,7 +726,7 @@ function App() {
 
               <div className="progress-meta-row">
                 <div className="progress-counts">
-                  <RefreshCw size={14} className={polling ? "spin-icon" : ""} />
+                  <RefreshCw size={14} className={polling && !paused ? "spin-icon" : ""} />
                   <span>
                     <strong>{finished}</strong>/{progress.total} analyzed
                     {progress.errorCount > 0 && (
