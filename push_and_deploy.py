@@ -19,6 +19,11 @@ PATCH_SCRIPTS = [
     "deploy_fix18.py",
     "deploy_fix19.py",
     "deploy_fix20.py",
+    "deploy_fix21.py",
+    "deploy_fix22.py",
+    "deploy_fix23.py",
+    "deploy_fix24.py",
+    "deploy_fix25.py",
 ]
 
 
