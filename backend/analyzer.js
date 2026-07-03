@@ -7,9 +7,9 @@ const { scoreSignals, getTopScore } = require("./classifier");
 const FETCH_TIMEOUT = 3000;
 const PLAYWRIGHT_TIMEOUT = 4000;
 
-const MAX_BODY_TEXT = 8000;
-const MAX_LINKS = 80;
-const MAX_LINKS_TEXT = 3500;
+const MAX_BODY_TEXT = 4000;
+const MAX_LINKS = 40;
+const MAX_LINKS_TEXT = 2000;
 const MAX_AGGREGATE_TEXT = 18000;
 const MAX_AGGREGATE_LINKS_TEXT = 8000;
 

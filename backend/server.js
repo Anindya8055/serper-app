@@ -75,8 +75,8 @@ const PORT = process.env.PORT || 5000;
 const TARGET_URL_COUNT = 20;
 const MAX_PAGES = 10;
 const SERPER_TIMEOUT_MS = 12000;
-const DOMAIN_CONCURRENCY = 3;
-const PAGE_CONCURRENCY = 4;
+const DOMAIN_CONCURRENCY = 5;
+const PAGE_CONCURRENCY = 5;
 const SNAPSHOT_BATCH_SIZE = 2;
 const SKIP_DOMAIN_ANALYSIS_FOR_KNOWN_PRIORS = true;
 const SKIP_PAGE_FETCH_FOR_KNOWN_PRIORS = true;
@@ -405,7 +405,13 @@ async function analyzeSingleResult(item, domainMap, deepIndex = 0) {
   const domainAnalysis = domainMap.get(item.domain);
   const knownPrior = getDomainPrior(item.domain);
 
+  // Skip re-fetching the page if domain analysis already classified with High confidence
+  // (saves 1 HTTP fetch per URL — critical for speed on low-resource servers)
+  const domainHighConfidence =
+    domainAnalysis?.confidence === "High" && domainAnalysis?.siteType;
+
   const doDeepFetch =
+    !domainHighConfidence &&
     deepIndex < MAX_DEEP_PAGE_ANALYSIS &&
     shouldDoDeepPageAnalysis(item, knownPrior);
 
