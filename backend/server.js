@@ -405,13 +405,7 @@ async function analyzeSingleResult(item, domainMap, deepIndex = 0) {
   const domainAnalysis = domainMap.get(item.domain);
   const knownPrior = getDomainPrior(item.domain);
 
-  // Skip re-fetching the page if domain analysis already classified with High confidence
-  // (saves 1 HTTP fetch per URL — critical for speed on low-resource servers)
-  const domainHighConfidence =
-    domainAnalysis?.confidence === "High" && domainAnalysis?.siteType;
-
   const doDeepFetch =
-    !domainHighConfidence &&
     deepIndex < MAX_DEEP_PAGE_ANALYSIS &&
     shouldDoDeepPageAnalysis(item, knownPrior);
 

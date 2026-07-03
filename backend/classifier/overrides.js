@@ -367,6 +367,23 @@ function applyFinalDomainOverrides(
     }
   }
 
+  // ── FIX 8b: bootcamp/coding school subdomains on .edu domains → Service ────
+  const isEduBootcamp =
+    /\.edu$/.test(domain) &&
+    /bootcamp|coding|boot-camp|fullstack|full-stack|cyber|data-science|datascience/i.test(
+      domain.split(".")[0]
+    );
+
+  if (isEduBootcamp && (finalType === "Saas" || finalType === "Small business" || finalType === "Blog")) {
+    matchedSignals.push({
+      type: "Post-process",
+      reason: ".edu bootcamp subdomain -> Service",
+      points: 0,
+    });
+    finalType = "Service";
+    finalConfidence = "Medium";
+  }
+
   // ── FIX 8: .org/.edu health/medical domains that slipped through → Service ─
   const isHealthOrgOrEdu =
     /\.(org|edu)$/.test(domain) &&

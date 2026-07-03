@@ -105,6 +105,11 @@ function detectPlatformFromHtml(html = "", responseHeaders = {}, url = "") {
     if (isProfessionalService) return null;
     // Never trust Magento on government domains
     try { if (new URL(url).hostname.endsWith(".gov")) return null; } catch {}
+    // Suppress if page title/content indicates a photography, bootcamp, coworking, or freelance site
+    const titleMatch = h.match(/<title[^>]*>([^<]{0,200})<\/title>/i);
+    const pageTitle = titleMatch ? titleMatch[1].toLowerCase() : "";
+    const isMagentoServiceSite = /photographer|photography|bootcamp|boot camp|coding school|coworking|co-working|co working|freelance|portfolio|wedding planner/i.test(pageTitle);
+    if (isMagentoServiceSite) return null;
     if (shopPage) return { platform: "Magento", siteType: "E-commerce" };
     // On homepages, trust Magento only if the domain doesn't look like a local business or editorial site
     if (isHomepage) {
@@ -139,6 +144,11 @@ function detectPlatformFromHtml(html = "", responseHeaders = {}, url = "") {
   // Generic WordPress (not WooCommerce) → Blog, unless it's a professional service or local business domain
   if (/wp-content\/themes|wp-includes\/js|xmlrpc\.php/i.test(h)) {
     if (isProfessionalService) return null; // let full classifier handle local businesses
+    // Suppress if page title indicates a service business (coworking, bootcamp, law, agency, etc.)
+    const wpTitleMatch = h.match(/<title[^>]*>([^<]{0,200})<\/title>/i);
+    const wpPageTitle = wpTitleMatch ? wpTitleMatch[1].toLowerCase() : "";
+    const isWordPressService = /coworking|co-working|bootcamp|boot camp|coding school|law firm|legal|attorney|agency|consulting|consultant|accounting|insurance|real estate/i.test(wpPageTitle);
+    if (isWordPressService) return null;
     return { platform: "WordPress", siteType: "Blog" };
   }
 
