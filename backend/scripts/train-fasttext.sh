@@ -23,23 +23,27 @@ echo "Training site model..."
 "$FASTTEXT_BIN" supervised \
   -input "$FASTTEXT_DIR/site-train.txt" \
   -output "$FASTTEXT_DIR/site-model" \
-  -epoch 50 \
-  -lr 0.5 \
-  -wordNgrams 2 \
-  -dim 100 \
+  -epoch 100 \
+  -lr 0.3 \
+  -wordNgrams 3 \
+  -dim 150 \
   -loss softmax \
-  -minCount 1
+  -minCount 1 \
+  -minn 3 \
+  -maxn 6
 
 echo "Training content model..."
 "$FASTTEXT_BIN" supervised \
   -input "$FASTTEXT_DIR/content-train.txt" \
   -output "$FASTTEXT_DIR/content-model" \
-  -epoch 50 \
-  -lr 0.5 \
-  -wordNgrams 2 \
-  -dim 100 \
+  -epoch 100 \
+  -lr 0.3 \
+  -wordNgrams 3 \
+  -dim 150 \
   -loss softmax \
-  -minCount 1
+  -minCount 1 \
+  -minn 3 \
+  -maxn 6
 
 echo ""
 echo "=== Validation: site model ==="
