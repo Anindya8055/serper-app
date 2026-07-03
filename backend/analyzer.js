@@ -55,7 +55,7 @@ function isLikelyProfessionalServiceDomain(url = "") {
     // Professional services: legal, medical, dental, contractors
     if (/law|legal|attorney|lawyer|firm|counsel|advocate|solicitor|dental|dentist|ortho|medical|clinic|health|doctor|physician|chiro|therapy|therapist|plumb|electric|hvac|roofing|contractor|construct|realty|realtor|property|accountant|cpa|financial|insurance|agency/i.test(domain)) return true;
     // Local service businesses: salons, auto shops, restaurants, etc.
-    if (/salon|parlour|parlor|spa|hair|barber|nails|nail|beauty|lash|brow|wax|tattoo|studio|auto|carcare|car-care|repair|garage|mechanic|tire|tires|muffler|brakes|automotive|restaurant|cafe|diner|bistro|kitchen|eatery|pizz|burger|sushi|tacos?|bbq|grill|brewing|brewery|winery|bakery|catering|landscap|lawn|cleaning|maid|pest|pool|towing|locksmith|glass|paint|flooring|carpet|upholstery|movers?|moving|storage|childcare|daycare|preschool|tutoring|fitness|gym|yoga|pilates|crossfit|massage|chiropractic|veterinar|vet|groom|funeral|florist|portrait|wedding|dj\b/i.test(domain)) return true;
+    if (/salon|parlour|parlor|spa|hair|barber|nails|nail|beauty|lash|brow|wax|tattoo|studio|auto|carcare|car-care|repair|garage|mechanic|tire|tires|muffler|brakes|automotive|restaurant|cafe|diner|bistro|kitchen|eatery|pizz|burger|sushi|tacos?|bbq|grill|brewing|brewery|winery|bakery|catering|landscap|lawn|cleaning|maid|pest|pool|towing|locksmith|glass|paint|flooring|carpet|upholstery|movers?|moving|storage|childcare|daycare|preschool|tutoring|fitness|gym|yoga|pilates|crossfit|massage|chiropractic|veterinar|vet|groom|paws|pawz|paw\b|petcare|pet-care|funeral|florist|portrait|wedding|dj\b/i.test(domain)) return true;
     return false;
   } catch {
     return false;
@@ -113,7 +113,7 @@ function detectPlatformFromHtml(html = "", responseHeaders = {}, url = "") {
       // Also check domain name for travel/food blog patterns
       try {
         const d = new URL(url).hostname.replace(/^www\./, "").toLowerCase();
-        if (/travel|wander|nomad|backpack|adventure|journey|abroad|recipe|skinny|healthy|foodie|groom/i.test(d)) return null;
+        if (/travel|wander|nomad|backpack|adventure|journey|abroad|recipe|skinny|healthy|foodie|groom|nutrition|nutriti|frugal|budget.*food|food.*budget/i.test(d)) return null;
       } catch {}
       return { platform: "Magento", siteType: "E-commerce" };
     }
