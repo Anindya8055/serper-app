@@ -545,7 +545,11 @@ function scoreBodyText(bodyText, matchedSignals, url, domain, domainIntel) {
       t
     )
   ) {
-    addScore(scores, matchedSignals, "Saas", 14, "SaaS product-specific terms");
+    // Suppress SaaS signal on photography/creative service domains — "plans" = booking packages, not SaaS
+    const isPhotographyDomain = /photograph|photo(?:graphy|grapher)|portrait|studio|wedding.*photo|shoot/i.test(domain);
+    if (!isPhotographyDomain) {
+      addScore(scores, matchedSignals, "Saas", 14, "SaaS product-specific terms");
+    }
   }
 
   if (
