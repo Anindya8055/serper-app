@@ -266,7 +266,7 @@ async function fetchDomainRating(domain) {
   try {
     const response = await axios.get(
       `https://api.ahrefs.com/v3/public/domain-rating-free?target=${encodeURIComponent(domain)}&output=json`,
-      { headers: { Accept: "application/json" }, timeout: 8000 }
+      { headers: { Accept: "application/json" }, timeout: 2000 }
     );
     const dr = response.data?.domain_rating?.domain_rating;
     return typeof dr === "number" ? Math.round(dr) : null;
@@ -671,20 +671,13 @@ async function runAnalysisInBackground(keyword, country) {
 
       const uniqueDomains = [...new Set(results.map((item) => item.domain).filter(Boolean))];
 
-      // Fetch DR first so it appears before content/site type analysis
-      await runPool(uniqueDomains, 8, async (domain) => {
-        const dr = await fetchDomainRating(domain);
-        for (let i = 0; i < results.length; i++) {
-          if (results[i].domain === domain) results[i] = { ...results[i], dr };
-        }
-      });
-      await updateSearchSnapshot(keyword, country, results);
-
       if (cancelledJobs.has(jobKey)) { cancelledJobs.delete(jobKey); return; }
 
       const domainMap = new Map();
 
       await runPool(uniqueDomains, DOMAIN_CONCURRENCY, async (domain) => {
+        // Fetch DR in parallel with domain analysis
+        const drPromise = fetchDomainRating(domain);
         const homepageUrl = buildHomepageUrl(domain);
         const knownPrior = getDomainPrior(domain);
 
@@ -773,6 +766,12 @@ async function runAnalysisInBackground(keyword, country) {
           pageClassifications: da?.pageClassifications || [],
           analyzedPages: da?.analyzedPages || [],
         });
+
+        // Await DR (started in parallel at top of this block)
+        const dr = await drPromise;
+        for (let i = 0; i < results.length; i++) {
+          if (results[i].domain === domain && dr != null) results[i] = { ...results[i], dr };
+        }
 
         for (let i = 0; i < results.length; i++) {
           if (results[i].domain !== domain) continue;
