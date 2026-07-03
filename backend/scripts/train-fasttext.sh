@@ -29,8 +29,8 @@ echo "Training site model..."
   -dim 150 \
   -loss softmax \
   -minCount 1 \
-  -minn 3 \
-  -maxn 6
+  -minn 0 \
+  -maxn 0
 
 echo "Training content model..."
 "$FASTTEXT_BIN" supervised \
@@ -42,8 +42,8 @@ echo "Training content model..."
   -dim 150 \
   -loss softmax \
   -minCount 1 \
-  -minn 3 \
-  -maxn 6
+  -minn 0 \
+  -maxn 0
 
 echo ""
 echo "=== Validation: site model ==="
