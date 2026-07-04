@@ -1,5 +1,15 @@
 {
   ".gov": "Service",
   ".mil": "Service",
-  ".edu": "Service"
+  ".edu": "Service",
+  "eater.com": "Newspaper",
+  "timeout.com": "Newspaper",
+  "theguardian.com": "Newspaper",
+  "nytimes.com": "Newspaper",
+  "telegraph.co.uk": "Newspaper",
+  "independent.co.uk": "Newspaper",
+  "standard.co.uk": "Newspaper",
+  "bbc.co.uk": "Newspaper",
+  "bbc.com": "Newspaper",
+  "ft.com": "Newspaper"
 }

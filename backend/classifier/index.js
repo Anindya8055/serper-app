@@ -234,6 +234,9 @@ const mediaDomains = new Set([
   "businessinsider.com", "ft.com", "economist.com", "techradar.com",
   "cnet.com", "engadget.com", "arstechnica.com", "zdnet.com",
   "thetimes.com", "timeout.com", "travelandleisure.com", "morningstar.com",
+  "eater.com", "theinfatuation.com", "thrillist.com", "grubstreet.com",
+  "guide.michelin.com", "worlds50best.com", "zagat.com", "hardens.com",
+  "goodfoodguide.com", "hotdinners.com", "foodism.co.uk", "londonist.com",
   "consumerreports.org", "time.com", "pcmag.com", "tomsguide.com",
   "digitaltrends.com", "androidauthority.com", "fortune.com", "inc.com",
   "theatlantic.com", "usatoday.com", "politico.com", "thehill.com",
@@ -265,6 +268,9 @@ const neverSmallBusinessDomains = new Set([
 const directoryCoreDomains = new Set([
   "healthgrades.com", "zocdoc.com", "glassdoor.com", "indeed.com",
   "homeadvisor.com", "vitals.com", "findlaw.com", "sasthyaseba.com", "whatclinic.com",
+  "squaremeal.co.uk", "designmynight.com", "quandoo.co.uk", "quandoo.com",
+  "thefork.com", "sevenrooms.com", "opentable.com", "resy.com",
+  "zomato.com", "tripadvisor.com", "yelp.com",
 ]);
 
 const pureBlogDomains = new Set([
@@ -678,7 +684,8 @@ function classifyContentType(url, pageSignals = {}, siteTypeHint = null) {
     return siteTypeHint;
   }
 
-  if (mediaDomains.has(domain)) {
+  const domainBase = domain.split(".").slice(-2).join(".");
+  if (mediaDomains.has(domain) || mediaDomains.has(domainBase)) {
     const isBlogPath = /\/blog\/|\/blogs\//i.test(lowerUrl);
     if (isBlogPath) return "Blog";
     const isSaasPath = /\/pricing(\/|$)|\/features(\/|$)|\/platform(\/|$)|\/integrations(\/|$)/i.test(lowerUrl);
@@ -812,8 +819,10 @@ function classifyContentType(url, pageSignals = {}, siteTypeHint = null) {
   if (isStrongBlogPage) return "Blog";
 
   const isStrongEditorialPage =
-    /\/article\/[^/?#]+|\/articles\/[^/?#]+|\/story\/[^/?#]+|\/stories\/[^/?#]+|\/archive\/\d{4}\/|\/reviews?\/[^/?#]*|\/best\/[^/?#]*|\/guide\/[^/?#]*|\/news\/articles\/|\/terms\/[a-z]|\/science\/[^/?#]+|\/design\/rooms\/|\/diseases-conditions\/[^/?#]+/i.test(lowerUrl) ||
-    /wsj\.com\/articles\/|bloomberg\.com\/news\/articles\/|apnews\.com\/article\/|wired\.com\/story\/|marketwatch\.com\/story\/|techradar\.com\/best\/|zdnet\.com\/article\/|thetimes\.com\/article\/|investopedia\.com\/terms\/|pcmag\.com\/reviews\/|tomsguide\.com\/best\/|theatlantic\.com\/.+\/archive\/|usatoday\.com\/story\/|architecturaldigest\.com\/story\/|digitaltrends\.com\/cars\/best-|hgtv\.com\/design\/|britannica\.com\/science\/|alistapart\.com\/article\//i.test(lowerUrl);
+    /\/article\/[^/?#]+|\/articles\/[^/?#]+|\/story\/[^/?#]+|\/stories\/[^/?#]+|\/archive\/\d{4}\/|\/reviews?\/[^/?#]*|\/best\/[^/?#]*|\/guide\/[^/?#]*|\/guides\/[^/?#]*|\/news\/articles\/|\/terms\/[a-z]|\/science\/[^/?#]+|\/design\/rooms\/|\/diseases-conditions\/[^/?#]+|\/maps\/best-/i.test(lowerUrl) ||
+    /wsj\.com\/articles\/|bloomberg\.com\/news\/articles\/|apnews\.com\/article\/|wired\.com\/story\/|marketwatch\.com\/story\/|techradar\.com\/best\/|zdnet\.com\/article\/|thetimes\.com\/article\/|investopedia\.com\/terms\/|pcmag\.com\/reviews\/|tomsguide\.com\/best\/|theatlantic\.com\/.+\/archive\/|usatoday\.com\/story\/|architecturaldigest\.com\/story\/|digitaltrends\.com\/cars\/best-|hgtv\.com\/design\/|britannica\.com\/science\/|alistapart\.com\/article\//i.test(lowerUrl) ||
+    /\/(best|top)-[a-z][\w-]+-(?:in|of|for|near|around)-[a-z][\w-]+/i.test(lowerUrl) ||
+    /\/\d+-best-[a-z][\w-]+|\/\d+-top-[a-z][\w-]+/i.test(lowerUrl);
 
   if (isStrongEditorialPage) return "Newspaper";
 
