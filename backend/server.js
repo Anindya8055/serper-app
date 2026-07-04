@@ -1076,6 +1076,10 @@ app.get("/api/search-status", async (req, res) => {
     });
   } catch (error) {
     console.error("Status route error:", error.message);
+    // On DB pool exhaustion, return a retryable 503 instead of 500
+    if (error.message && error.message.includes("connection pool")) {
+      return res.status(503).json({ error: "Server busy, retry shortly" });
+    }
     return res.status(500).json({ error: "Failed to fetch status" });
   }
 });
