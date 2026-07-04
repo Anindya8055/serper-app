@@ -4,8 +4,8 @@ const { getPooledPage, releasePage } = require("./browser");
 const { pickImportantLinks, getBaseDomain, runPool } = require("./utils");
 const { scoreSignals, getTopScore } = require("./classifier");
 
-const FETCH_TIMEOUT = 3000;
-const PLAYWRIGHT_TIMEOUT = 4000;
+const FETCH_TIMEOUT = 1500;
+const PLAYWRIGHT_TIMEOUT = 2500;
 
 const MAX_BODY_TEXT = 4000;
 const MAX_LINKS = 40;

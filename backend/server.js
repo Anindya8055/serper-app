@@ -75,9 +75,9 @@ const PORT = process.env.PORT || 5000;
 const TARGET_URL_COUNT = 20;
 const MAX_PAGES = 10;
 const SERPER_TIMEOUT_MS = 12000;
-const DOMAIN_CONCURRENCY = 5;
-const PAGE_CONCURRENCY = 5;
-const SNAPSHOT_BATCH_SIZE = 2;
+const DOMAIN_CONCURRENCY = 8;
+const PAGE_CONCURRENCY = 8;
+const SNAPSHOT_BATCH_SIZE = 10;
 const SKIP_DOMAIN_ANALYSIS_FOR_KNOWN_PRIORS = true;
 const SKIP_PAGE_FETCH_FOR_KNOWN_PRIORS = true;
 const MAX_DEEP_PAGE_ANALYSIS = 20;
@@ -751,30 +751,6 @@ async function runAnalysisInBackground(keyword, country) {
           classifyContentType(buildHomepageUrl(domain), null, da?.siteType || null)
         ) || null;
 
-        await saveSiteAnalysis({
-          url: homepageUrl,
-          domain,
-          homepageUrl,
-          classifierVersion: da?.classifierVersion || CLASSIFIER_VERSION,
-          fetchMethod:
-            knownPrior && SKIP_DOMAIN_ANALYSIS_FOR_KNOWN_PRIORS
-              ? "known-prior"
-              : "domain-analysis",
-          siteType: normalizeType(da?.siteType || "Small business"),
-          contentType: domainLevelContentType,
-          confidence: da?.confidence || "Low",
-          topScore: typeof da?.topScore === "number" ? da.topScore : null,
-          secondScore: typeof da?.secondScore === "number" ? da.secondScore : null,
-          scoreGap: typeof da?.scoreGap === "number" ? da.scoreGap : null,
-          needsReview: da?.confidence === "Low",
-          pageSignals: {},
-          pageResults: { domain, homepageUrl, pageTitles: da?.pageTitles || [] },
-          scores: da?.scores ?? undefined,
-          matchedSignals: da?.matchedSignals || [],
-          pageClassifications: da?.pageClassifications || [],
-          analyzedPages: da?.analyzedPages || [],
-        });
-
         // Await DR (started in parallel at top of this block)
         const dr = await drPromise;
         for (let i = 0; i < results.length; i++) {
@@ -811,9 +787,10 @@ async function runAnalysisInBackground(keyword, country) {
             contentType: intermediateContentType,
           };
         }
-
-        await updateSearchSnapshot(keyword, country, results);
       });
+
+      // Single snapshot write after all domains are processed (replaces per-domain writes)
+      await updateSearchSnapshot(keyword, country, results);
 
       let completed = 0;
       let deepCounter = 0;
@@ -841,7 +818,8 @@ async function runAnalysisInBackground(keyword, country) {
             matchedSignals: analyzedItem.matchedSignals,
           };
 
-          await saveSiteAnalysis({
+          // Fire-and-forget: saveSiteAnalysis is for analytics only, not on critical path
+          saveSiteAnalysis({
             url: analyzedItem.url,
             domain: analyzedItem.domain,
             homepageUrl: buildHomepageUrl(analyzedItem.domain),
