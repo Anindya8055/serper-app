@@ -108,8 +108,10 @@ function detectPlatformFromHtml(html = "", responseHeaders = {}, url = "") {
     // Suppress if page title/content indicates a photography, bootcamp, coworking, or freelance site
     const titleMatch = h.match(/<title[^>]*>([^<]{0,200})<\/title>/i);
     const pageTitle = titleMatch ? titleMatch[1].toLowerCase() : "";
-    const isMagentoServiceSite = /photographer|photography|bootcamp|boot camp|coding school|coworking|co-working|co working|freelance|portfolio|wedding planner/i.test(pageTitle);
-    if (isMagentoServiceSite) return null;
+    const isMagentoServiceSite = /photographer|photography|photo studio|bootcamp|boot camp|coding school|coworking|co-working|co working|freelance|portfolio|wedding planner/i.test(pageTitle);
+    // Also check if domain ends with "photo" (personal photographer sites like stefanaphoto.com)
+    const photoDomain = /photo(?:graphy|grapher)?$/.test(url.split("//")[1]?.split("/")[0]?.replace(/^www\./, "").split(".").slice(0, -1).join(".") || "");
+    if (isMagentoServiceSite || photoDomain) return null;
     if (shopPage) return { platform: "Magento", siteType: "E-commerce" };
     // On homepages, trust Magento only if the domain doesn't look like a local business or editorial site
     if (isHomepage) {

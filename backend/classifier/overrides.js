@@ -384,6 +384,21 @@ function applyFinalDomainOverrides(
     finalConfidence = "Medium";
   }
 
+  // ── FIX 8c: Photographer domains misclassified as Blog or Saas → Small business ─
+  const isPhotographerDomain =
+    /photograph(?:er|y)?|portrait|wedding.*photo|photo(?:graphy|grapher)?$/i.test(
+      domain.replace(/\.(com|net|org|co\.\w+)$/, "")
+    );
+  if (isPhotographerDomain && (finalType === "Blog" || finalType === "Saas" || finalType === "E-commerce")) {
+    matchedSignals.push({
+      type: "Post-process",
+      reason: "photographer domain misclassified -> Small business",
+      points: 0,
+    });
+    finalType = "Small business";
+    finalConfidence = "Medium";
+  }
+
   // ── FIX 8: .org/.edu health/medical domains that slipped through → Service ─
   const isHealthOrgOrEdu =
     /\.(org|edu)$/.test(domain) &&

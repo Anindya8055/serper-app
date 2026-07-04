@@ -540,14 +540,22 @@ function scoreBodyText(bodyText, matchedSignals, url, domain, domainIntel) {
     addScore(scores, matchedSignals, "E-commerce", 7, "commerce terms in storefront context");
   }
 
+  // Detect photography/creative service context to suppress false SaaS signals.
+  // Photographers use "plans" for booking packages and "monthly" for payment plans.
+  const isPhotographyDomain = /photograph(?:er|y)?|portrait|wedding.*photo|photo(?:graphy|grapher)?$/i.test(
+    domain.replace(/\.(com|net|org|co\.\w+)$/, "")
+  );
+  const isPhotographyContent = /wedding photographer|portrait photographer|photography studio|elopement photographer|lifestyle photographer|newborn photographer|family photographer|boudoir photographer/i.test(
+    t.slice(0, 2000)
+  );
+  const isPhotography = isPhotographyDomain || isPhotographyContent;
+
   if (
     /start your ?free trial|no credit card (required|needed)|cancel anytime|upgrade your plan|your workspace|team workspace|all-in-one software|connect your ?apps?|api documentation|api key|software pricing|plans?|integrations? with|developers?|automation|communications api|customer messaging platform/i.test(
       t
     )
   ) {
-    // Suppress SaaS signal on photography/creative service domains — "plans" = booking packages, not SaaS
-    const isPhotographyDomain = /photograph|photo(?:graphy|grapher)|portrait|studio|wedding.*photo|shoot/i.test(domain);
-    if (!isPhotographyDomain) {
+    if (!isPhotography) {
       addScore(scores, matchedSignals, "Saas", 14, "SaaS product-specific terms");
     }
   }
@@ -565,7 +573,9 @@ function scoreBodyText(bodyText, matchedSignals, url, domain, domainIntel) {
       t
     )
   ) {
-    addScore(scores, matchedSignals, "Saas", 10, "SaaS pricing model");
+    if (!isPhotography) {
+      addScore(scores, matchedSignals, "Saas", 10, "SaaS pricing model");
+    }
   }
 
   const hasListingSubjectTerms =
