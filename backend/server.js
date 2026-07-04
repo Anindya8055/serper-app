@@ -490,6 +490,14 @@ async function analyzeSingleResult(item, domainMap, deepIndex = 0) {
     let resolvedSiteType = normalizeType(
       knownPrior || effectiveDomainSiteType || mergedPageResult.siteType || "Small business"
     );
+
+    // Photographer domains should never be Blog/Saas — pattern match on domain
+    if (!knownPrior && (resolvedSiteType === "Blog" || resolvedSiteType === "Saas" || resolvedSiteType === "E-commerce")) {
+      const cleanDomain = (item.domain || "").replace(/\.(com|net|org|co\.\w+)$/, "");
+      const isPhotographerDomainFinal = /photograph(?:er|y)?|portrait|(?:wedding|family|newborn|boudoir|elopement).*photo|photo(?:graphy|grapher)?$/i.test(cleanDomain);
+      if (isPhotographerDomainFinal) resolvedSiteType = "Small business";
+    }
+
     const isLikelyEditorialUrl =
       /\/blog\/|\/post\/|\/posts\/|\/article\/|\/articles\/|\/story\/|\/stories\/|\/news\/|\/guide\/|\/best\/|\/reviews?\/|videos?\//i.test(
         lowerUrl
