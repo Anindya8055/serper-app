@@ -75,8 +75,8 @@ const PORT = process.env.PORT || 5000;
 const TARGET_URL_COUNT = 20;
 const MAX_PAGES = 10;
 const SERPER_TIMEOUT_MS = 12000;
-const DOMAIN_CONCURRENCY = 8;
-const PAGE_CONCURRENCY = 8;
+const DOMAIN_CONCURRENCY = 4;
+const PAGE_CONCURRENCY = 4;
 const SNAPSHOT_BATCH_SIZE = 10;
 const SKIP_DOMAIN_ANALYSIS_FOR_KNOWN_PRIORS = true;
 const SKIP_PAGE_FETCH_FOR_KNOWN_PRIORS = true;
@@ -952,6 +952,13 @@ async function runAnalysisInBackground(keyword, country) {
     }
   })();
 
+  // Hard timeout: kill the job after 90s to keep the server responsive
+  const jobTimeout = setTimeout(() => {
+    cancelledJobs.add(jobKey);
+    console.warn(`[job] Hard timeout reached for "${keyword}" — cancelling`);
+  }, 90_000);
+
+  jobPromise.finally(() => clearTimeout(jobTimeout));
   activeJobs.set(jobKey, jobPromise);
 }
 
