@@ -78,8 +78,8 @@ const SERPER_TIMEOUT_MS = 12000;
 // Concurrency is safe to run high: most fetches are lightweight cheerio/axios
 // requests, and the heavier Playwright fetches are independently capped by the
 // browser page pool (see browser.js) and a hard per-fetch wall-clock timeout.
-const DOMAIN_CONCURRENCY = 10;
-const PAGE_CONCURRENCY = 10;
+const DOMAIN_CONCURRENCY = 6;
+const PAGE_CONCURRENCY = 6;
 const SNAPSHOT_BATCH_SIZE = 10;
 const SKIP_DOMAIN_ANALYSIS_FOR_KNOWN_PRIORS = true;
 const SKIP_PAGE_FETCH_FOR_KNOWN_PRIORS = true;

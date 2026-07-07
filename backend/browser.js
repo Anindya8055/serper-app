@@ -5,7 +5,7 @@ const pagePool = [];
 const waitQueue = [];
 
 const MAX_POOL_SIZE = 3;
-const MAX_ACTIVE_PAGES = 6;
+const MAX_ACTIVE_PAGES = 5;
 
 let totalLivePages = 0;
 

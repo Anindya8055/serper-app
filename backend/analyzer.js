@@ -26,6 +26,7 @@ function withHardTimeout(promise, ms, label) {
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
+const MAX_PARSE_HTML = 1_500_000; // cap HTML fed to synchronous cheerio.load (~1.5MB)
 const MAX_BODY_TEXT = 4000;
 const MAX_LINKS = 40;
 const MAX_LINKS_TEXT = 2000;
@@ -225,8 +226,15 @@ function shouldFallbackToPlaywright({
       h
     ) && visible.length < 160;
 
+  // A Cloudflare/Akamai challenge ("Just a moment...", "Attention Required")
+  // is NOT solvable by a headless Playwright within our time budget — the
+  // challenge page just renders again. Upgrading wastes ~5s per page (in both
+  // domain and page phases) and yields the same bot-blocked fallback anyway.
+  // So a challenge page must NOT trigger a browser upgrade; only genuine
+  // client-rendered SPAs (jsShell / thin real content) benefit from Playwright.
+  if (botBlocked) return false;
+
   return (
-    botBlocked ||
     jsShell ||
     tooThin ||
     (weakTitle && weakLinks) ||
@@ -470,7 +478,13 @@ async function fetchWithCheerio(url) {
     validateStatus: (s) => s >= 200 && s < 500,
   });
 
-  const html = typeof response.data === "string" ? response.data : "";
+  const rawHtml = typeof response.data === "string" ? response.data : "";
+  // cheerio.load is synchronous and CPU-bound; a multi-MB page (heavy news
+  // homepages) can block the event loop long enough to delay the status-poll
+  // response and trigger an nginx 504. Cap the HTML we parse — platform
+  // fingerprints and the text/links we need are near the top of the document.
+  const html =
+    rawHtml.length > MAX_PARSE_HTML ? rawHtml.slice(0, MAX_PARSE_HTML) : rawHtml;
   const platformMatch = detectPlatformFromHtml(html, response.headers || {}, url);
   const $ = cheerio.load(html);
 
