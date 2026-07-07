@@ -425,7 +425,20 @@ async function analyzeSingleResult(item, domainMap, deepIndex = 0) {
     const platformMatch = pageData._platformMatch;
     delete pageData._platformMatch;
     const serpUrlIsContent = /\/blog\/|\/blogs\/|\/news\/|\/article\/|\/articles\/|\/guide\/|\/review\/|\/reviews\/|\/post\/|\/posts\/|\/video\/|\/videos\/|\/select\/|\/picks\/|\/ranked\/|\/roundup\/|\/forum\/|\/opinion\//i.test(item.url);
-    if (platformMatch && !(platformMatch.siteType === "E-commerce" && serpUrlIsContent)) {
+    const serpUrlIsShopPage = /\/collections\/|\/products?\/|\/shop\/|\/store\/|\/cart\/|\/checkout\/|\/buy\/|\/catalog\//i.test(item.url);
+
+    // If Magento/WooCommerce fingerprint fired but the page has no extractable body text
+    // (bot-blocked or near-empty HTML), do NOT trust the E-commerce label.
+    // These platforms are used by restaurants, local businesses, and blogs that have
+    // zero online shopping — thin content means we cannot verify the fingerprint.
+    const isThinContent = !pageData.bodyText || pageData.bodyText.trim().length < 100;
+    const isUnverifiedEcommerceFP =
+      platformMatch?.siteType === "E-commerce" &&
+      isThinContent &&
+      !serpUrlIsShopPage &&
+      (platformMatch?.platform === "Magento" || platformMatch?.platform === "WooCommerce");
+
+    if (platformMatch && !isUnverifiedEcommerceFP && !(platformMatch.siteType === "E-commerce" && serpUrlIsContent)) {
       const platformSiteType = normalizeType(platformMatch.siteType);
       const platformContentType = normalizeType(
         classifyContentType(item.url, pageData, platformSiteType)
