@@ -762,6 +762,21 @@ async function runAnalysisInBackground(keyword, country) {
             if (/travel|wander|nomad|backpack|adventure|journey|abroad|recipe|foodie|food|coffee|latte|espresso|macchiato|barista|brunch|bistro|eatery|dining|chef|cook|bak|pastry|blog|magazine|lifestyle|fashion|beauty|skincare|makeup|style|outfit|decor|interior|diy|craft|wellness|health|fitness|yoga|run|parent|mom|mum|dad|family|garden|pet|lattes|runway/i.test(domainCore)) {
               domainBlogType = "Blog";
             }
+
+            // Editorial listicle signal — a "best/top/N-best" guide URL or title on an
+            // unknown personal domain is almost always a blog post, not a local business.
+            // e.g. agirlandherhat.com/10-of-the-best-coffee-shops..., "Best Specialty Coffees in NYC".
+            if (!domainBlogType) {
+              const sample = results.find(
+                (r) => r.domain === domain && (r.serperTitle || r.url)
+              );
+              const hay = `${sample?.serperTitle || ""} ${sample?.url || ""}`.toLowerCase();
+              const looksEditorial =
+                /\b(best|top|ultimate|guide|coolest|cutest|prettiest|favou?rite|must[- ]?visit|where to)\b/.test(hay) ||
+                /\b\d+[- ]?(best|top|amazing|great|cool|cutest|coffee|cafes?|places|spots)/.test(hay) ||
+                /\/(best|top|guide|guides|review|reviews)[-/]/.test(hay);
+              if (looksEditorial) domainBlogType = "Blog";
+            }
           }
 
           domainMap.set(domain, {
