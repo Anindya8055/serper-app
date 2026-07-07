@@ -4,8 +4,8 @@ let browserInstance = null;
 const pagePool = [];
 const waitQueue = [];
 
-const MAX_POOL_SIZE = 2;
-const MAX_ACTIVE_PAGES = 4;
+const MAX_POOL_SIZE = 3;
+const MAX_ACTIVE_PAGES = 6;
 
 let totalLivePages = 0;
 

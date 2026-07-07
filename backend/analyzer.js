@@ -536,7 +536,7 @@ async function fetchWithPlaywright(url) {
       });
 
       try {
-        await page.waitForTimeout(800);
+        await page.waitForTimeout(500);
       } catch {}
 
       return runPageExtraction(page);
@@ -658,6 +658,20 @@ async function extractPageData(_ctx, url) {
     }
   } catch (cheerioError) {
     if (EVAL_FAST_MODE || !ENABLE_BROWSER_UPGRADE) {
+      throw cheerioError;
+    }
+
+    // If cheerio failed because the server never responded (network timeout /
+    // connection refused), a full-browser retry won't do better — it will just
+    // time out again and cost ~5s. Sites that block only axios return a challenge
+    // *page* (200 status → the success branch above), not a timeout. So on a true
+    // timeout we skip Playwright and fall straight to signal-based fallback.
+    const isTimeout =
+      cheerioError?.code === "ECONNABORTED" ||
+      cheerioError?.code === "ECONNREFUSED" ||
+      cheerioError?.code === "ETIMEDOUT" ||
+      /timeout/i.test(cheerioError?.message || "");
+    if (isTimeout) {
       throw cheerioError;
     }
 
