@@ -704,21 +704,34 @@ async function analyzeDomain(homepageUrl) {
   const platformMatch = homepageRaw._platformMatch;
   if (platformMatch) {
     delete homepageRaw._platformMatch;
-    return {
-      domain: getBaseDomain(homepageUrl),
-      homepageUrl,
-      classifierVersion: null,
-      siteType: platformMatch.siteType,
-      confidence: "High",
-      topScore: 1,
-      secondScore: 0,
-      scoreGap: 1,
-      scores: null,
-      analyzedPages: [homepageUrl],
-      pageTitles: [homepageRaw.title].filter(Boolean),
-      pageClassifications: [],
-      matchedSignals: [`Platform fingerprint: ${platformMatch.platform}`],
-    };
+
+    // If Magento/WooCommerce fired but the homepage has no extractable body text
+    // (bot-blocked or Cloudflare challenge page), do NOT trust the E-commerce label —
+    // these platforms are used by restaurants and local businesses with zero online shopping.
+    const isThinHomepage = !homepageRaw.bodyText || homepageRaw.bodyText.trim().length < 100;
+    const isUnverifiedPlatformFP =
+      platformMatch.siteType === "E-commerce" &&
+      isThinHomepage &&
+      (platformMatch.platform === "Magento" || platformMatch.platform === "WooCommerce");
+
+    if (!isUnverifiedPlatformFP) {
+      return {
+        domain: getBaseDomain(homepageUrl),
+        homepageUrl,
+        classifierVersion: null,
+        siteType: platformMatch.siteType,
+        confidence: "High",
+        topScore: 1,
+        secondScore: 0,
+        scoreGap: 1,
+        scores: null,
+        analyzedPages: [homepageUrl],
+        pageTitles: [homepageRaw.title].filter(Boolean),
+        pageClassifications: [],
+        matchedSignals: [`Platform fingerprint: ${platformMatch.platform}`],
+      };
+    }
+    // Fall through to full domain analysis when fingerprint is unverified
   }
 
   const homepageResolved = await maybeUpgradePageWithBrowser(homepageRaw);

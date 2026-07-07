@@ -737,15 +737,26 @@ async function runAnalysisInBackground(keyword, country) {
             }
           }
 
+          // Domain name signals — detect travel/food/lifestyle blogs even on total timeout
+          let domainBlogType = null;
+          if (!knownPrior && !domainSnippetType) {
+            const domainStripped = domain.replace(/^www\./, "").toLowerCase();
+            const domainCore = domainStripped.split(".").slice(0, -1).join(".");
+            if (/travel|wander|nomad|backpack|adventure|journey|abroad|recipe|foodie|food|coffee|latte|espresso|macchiato|barista|brunch|bistro|eatery|dining|chef|cook|bak|pastry|blog|magazine|lifestyle|fashion|beauty|skincare|makeup|style|outfit|decor|interior|diy|craft|wellness|health|fitness|yoga|run|parent|mom|mum|dad|family|garden|pet|lattes|runway/i.test(domainCore)) {
+              domainBlogType = "Blog";
+            }
+          }
+
           domainMap.set(domain, {
             domain,
             homepageUrl,
-            siteType: knownPrior || domainSnippetType || "Small business",
-            confidence: knownPrior ? "High" : domainSnippetType ? "Medium" : "Low",
+            siteType: knownPrior || domainSnippetType || domainBlogType || "Small business",
+            confidence: knownPrior ? "High" : domainSnippetType ? "Medium" : domainBlogType ? "Low" : "Low",
             classifierVersion: CLASSIFIER_VERSION,
             matchedSignals: [
               ...(knownPrior ? [`Known domain prior: ${knownPrior}`] : []),
               ...(domainSnippetType ? [`Snippet domain fallback: ${domainSnippetType}`] : []),
+              ...(domainBlogType ? [`Domain name blog signal: ${domainBlogType}`] : []),
               `Fallback — unable to analyze domain: ${error.message}`,
             ],
             analyzedPages: [],
