@@ -108,7 +108,7 @@ function detectPlatformFromHtml(html = "", responseHeaders = {}, url = "") {
     // Suppress if page title/content indicates a photography, bootcamp, coworking, or freelance site
     const titleMatch = h.match(/<title[^>]*>([^<]{0,200})<\/title>/i);
     const pageTitle = titleMatch ? titleMatch[1].toLowerCase() : "";
-    const isMagentoServiceSite = /photographer|photography|photo studio|bootcamp|boot camp|coding school|coworking|co-working|co working|freelance|portfolio|wedding planner/i.test(pageTitle);
+    const isMagentoServiceSite = /photographer|photography|photo studio|bootcamp|boot camp|coding school|coworking|co-working|co working|freelance|portfolio|wedding planner|brunch|breakfast|diner|bistro|cafe|restaurant|eatery|brasserie|tavern|coffee shop|coffeehouse|bar & grill|barista|espresso bar/i.test(pageTitle);
     // Also check if domain ends with "photo" (personal photographer sites like stefanaphoto.com)
     const photoDomain = /photo(?:graphy|grapher)?$/.test(url.split("//")[1]?.split("/")[0]?.replace(/^www\./, "").split(".").slice(0, -1).join(".") || "");
     if (isMagentoServiceSite || photoDomain) return null;
@@ -120,7 +120,7 @@ function detectPlatformFromHtml(html = "", responseHeaders = {}, url = "") {
       // Also check domain name for travel/food blog patterns and freelance/creative/education platforms
       try {
         const d = new URL(url).hostname.replace(/^www\./, "").toLowerCase();
-        if (/travel|wander|nomad|backpack|adventure|journey|abroad|recipe|skinny|healthy|foodie|groom|nutrition|nutriti|frugal|budget.*food|food.*budget|freelanc|bootcamp|coding\.io|learncode|codeacademy/i.test(d)) return null;
+        if (/travel|wander|nomad|backpack|adventure|journey|abroad|recipe|skinny|healthy|foodie|groom|nutrition|nutriti|frugal|budget.*food|food.*budget|freelanc|bootcamp|coding\.io|learncode|codeacademy|brunch|breakfast|diner|bistro|eatery|brasserie|tavern|coffee|sprudge|espresso|barista|roast|brew(?!ery)|blog|magazine/i.test(d)) return null;
       } catch {}
       return { platform: "Magento", siteType: "E-commerce" };
     }

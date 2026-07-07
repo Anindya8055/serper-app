@@ -11,5 +11,12 @@
   "standard.co.uk": "Newspaper",
   "bbc.co.uk": "Newspaper",
   "bbc.com": "Newspaper",
-  "ft.com": "Newspaper"
+  "ft.com": "Newspaper",
+  "indeed.com": "Directory",
+  "glassdoor.com": "Directory",
+  "linkedin.com": "Directory",
+  "tripadvisor.com": "Directory",
+  "yelp.com": "Directory",
+  "trustpilot.com": "Directory",
+  "yellowpages.com": "Directory"
 }
