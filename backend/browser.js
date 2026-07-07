@@ -171,6 +171,19 @@ async function releasePage(page) {
   }
 }
 
+// Force-destroy a page that is poisoned (stuck in a challenge/reload loop).
+// Unlike releasePage, this never tries to reuse the page — it closes the context
+// outright and frees a pool slot so waiters can proceed.
+async function destroyPage(page) {
+  try {
+    if (page && !page.isClosed()) {
+      await page.context().close().catch(() => {});
+    }
+  } catch {}
+  totalLivePages = Math.max(0, totalLivePages - 1);
+  resolveNextWaiter();
+}
+
 async function warmupPagePool(size = 1) {
   const target = Math.min(size, MAX_POOL_SIZE);
   for (let i = pagePool.length; i < target; i++) {
@@ -208,6 +221,7 @@ module.exports = {
   createPage,
   getPooledPage,
   releasePage,
+  destroyPage,
   warmupPagePool,
   closeBrowser
 };

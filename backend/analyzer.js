@@ -1,11 +1,30 @@
 const axios = require("axios");
 const cheerio = require("cheerio");
-const { getPooledPage, releasePage } = require("./browser");
+const { getPooledPage, releasePage, destroyPage } = require("./browser");
 const { pickImportantLinks, getBaseDomain, runPool } = require("./utils");
 const { scoreSignals, getTopScore } = require("./classifier");
 
 const FETCH_TIMEOUT = 1500;
 const PLAYWRIGHT_TIMEOUT = 2500;
+// Absolute wall-clock cap on a single Playwright fetch. page.evaluate() is NOT
+// bound by Playwright's default timeout, so anti-bot pages that reload in a loop
+// (Cloudflare "Just a moment...", "Security Verification") can hang evaluate
+// indefinitely, exhaust the page pool, and freeze the whole job. This race
+// guarantees a fetch can never exceed the cap regardless of what Playwright does.
+const PLAYWRIGHT_HARD_CAP = 5000;
+
+// Reject if `promise` doesn't settle within `ms`. The underlying operation keeps
+// running until its page is destroyed, so callers MUST destroy the page on timeout.
+function withHardTimeout(promise, ms, label) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(
+      () => reject(new Error(`${label} hard-timeout after ${ms}ms`)),
+      ms
+    );
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
 
 const MAX_BODY_TEXT = 4000;
 const MAX_LINKS = 40;
@@ -505,20 +524,60 @@ async function fetchWithCheerio(url) {
 
 async function fetchWithPlaywright(url) {
   let page = null;
+  let poisoned = false;
 
   try {
     page = await getPooledPage();
 
-    await page.goto(url, {
-      waitUntil: "domcontentloaded",
-      timeout: PLAYWRIGHT_TIMEOUT,
-    });
+    const work = (async () => {
+      await page.goto(url, {
+        waitUntil: "domcontentloaded",
+        timeout: PLAYWRIGHT_TIMEOUT,
+      });
 
-    try {
-      await page.waitForTimeout(800);
-    } catch {}
+      try {
+        await page.waitForTimeout(800);
+      } catch {}
 
-    const data = await page.evaluate(
+      return runPageExtraction(page);
+    })();
+
+    // Hard wall-clock cap: if the page (e.g. a reloading anti-bot challenge)
+    // hangs evaluate, this rejects and we destroy the page below.
+    const data = await withHardTimeout(work, PLAYWRIGHT_HARD_CAP, `playwright:${url}`);
+
+    return {
+      ...buildPageData(
+        url,
+        data.title,
+        data.metaDescription,
+        data.bodyText,
+        data.html,
+        data.links,
+        data.linksText,
+        data.schemaText || data.html
+      ),
+      _source: "playwright",
+      _needsBrowser: false,
+    };
+  } catch (err) {
+    // If we hit the hard cap the page is still busy (mid-navigation/evaluate) and
+    // must be destroyed, not returned to the pool.
+    if (/hard-timeout/.test(err?.message || "")) poisoned = true;
+    throw err;
+  } finally {
+    if (page) {
+      if (poisoned) {
+        await destroyPage(page).catch(() => {});
+      } else {
+        await releasePage(page).catch(() => {});
+      }
+    }
+  }
+}
+
+async function runPageExtraction(page) {
+  return page.evaluate(
       ({ maxLinks, maxBodyText }) => {
         const title = document.title || "";
         const metaDescription =
@@ -569,24 +628,6 @@ async function fetchWithPlaywright(url) {
       },
       { maxLinks: MAX_LINKS, maxBodyText: MAX_BODY_TEXT }
     );
-
-    return {
-      ...buildPageData(
-        url,
-        data.title,
-        data.metaDescription,
-        data.bodyText,
-        data.html,
-        data.links,
-        data.linksText,
-        data.schemaText || data.html
-      ),
-      _source: "playwright",
-      _needsBrowser: false,
-    };
-  } finally {
-    if (page) await releasePage(page).catch(() => {});
-  }
 }
 
 async function extractPageData(_ctx, url) {
