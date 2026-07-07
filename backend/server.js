@@ -401,9 +401,16 @@ async function saveSiteAnalysis(record) {
   });
 }
 
-async function analyzeSingleResult(item, domainMap, deepIndex = 0) {
+async function analyzeSingleResult(item, domainMap, deepIndex = 0, blockedDomains = null) {
   const domainAnalysis = domainMap.get(item.domain);
   const knownPrior = getDomainPrior(item.domain);
+
+  // If this domain's homepage already timed out in Phase 1, the per-URL fetch will
+  // time out identically — skip it and classify from snippet/URL signals instead.
+  // This avoids paying the ~4s fetch timeout a second time per blocked domain.
+  if (blockedDomains && blockedDomains.has(item.domain) && !knownPrior) {
+    return quickClassifyWithoutFetch(item, domainAnalysis, knownPrior);
+  }
 
   const doDeepFetch =
     deepIndex < MAX_DEEP_PAGE_ANALYSIS &&
@@ -695,6 +702,10 @@ async function runAnalysisInBackground(keyword, country) {
       if (cancelledJobs.has(jobKey)) { cancelledJobs.delete(jobKey); return; }
 
       const domainMap = new Map();
+      // Domains whose homepage fetch failed/timed out in Phase 1 (bot-blocked).
+      // Their per-URL pages will time out identically in Phase 2, so we skip the
+      // redundant deep fetch and classify those URLs from snippet/URL signals instead.
+      const blockedDomains = new Set();
 
       await runPool(uniqueDomains, DOMAIN_CONCURRENCY, async (domain) => {
         // Fetch DR in parallel with domain analysis
@@ -720,6 +731,9 @@ async function runAnalysisInBackground(keyword, country) {
           }
         } catch (error) {
           console.error(`Failed to analyze domain: ${domain}`, error.message);
+
+          // Homepage fetch failed — mark domain as blocked so Phase 2 skips re-fetching it
+          blockedDomains.add(domain);
 
           // Try snippet-based inference from any result for this domain
           let domainSnippetType = null;
@@ -827,7 +841,7 @@ async function runAnalysisInBackground(keyword, country) {
           if (cancelledJobs.has(jobKey)) return;
           const knownPrior = getDomainPrior(item.domain);
           const myDeepIndex = knownPrior ? MAX_DEEP_PAGE_ANALYSIS : deepCounter++;
-          const analyzedItem = await analyzeSingleResult(item, domainMap, myDeepIndex);
+          const analyzedItem = await analyzeSingleResult(item, domainMap, myDeepIndex, blockedDomains);
 
           results[index] = {
             url: analyzedItem.url,
