@@ -656,6 +656,8 @@ async function runAnalysisInBackground(keyword, country) {
   if (activeJobs.has(jobKey)) return;
   cancelledJobs.delete(jobKey);
 
+  let jobResults = null;
+
   const jobPromise = (async () => {
     try {
       const existing = await prisma.search.findUnique({
@@ -665,6 +667,7 @@ async function runAnalysisInBackground(keyword, country) {
       if (!existing?.resultsSnapshot?.length) return;
 
       const results = [...existing.resultsSnapshot];
+      jobResults = results; // expose to outer finally for guaranteed finalization
 
       // Phase 1: classify from Serper snippet before any crawling
       let snippetHits = 0;
@@ -962,15 +965,48 @@ async function runAnalysisInBackground(keyword, country) {
     } catch (error) {
       console.error("Background analysis job failed:", error.message);
     } finally {
+      // Guarantee convergence: no matter how the job ends (cancel, crash, hard
+      // timeout), never leave items stuck in "processing"/"pending" forever —
+      // that would make /api/search-status report analyzed:false indefinitely
+      // and the UI would poll forever. Finalize leftovers from their best guess.
+      if (Array.isArray(jobResults)) {
+        let changed = false;
+        for (let i = 0; i < jobResults.length; i++) {
+          const r = jobResults[i];
+          if (r && r.analysisStatus !== "done") {
+            jobResults[i] = {
+              ...r,
+              siteType: r.siteType || "Small business",
+              contentType: r.contentType || "Service",
+              confidence: r.confidence || "Low",
+              analysisStatus: "done",
+              matchedSignals: mergeMatchedSignals(
+                Array.isArray(r.matchedSignals) ? r.matchedSignals : [],
+                ["Finalized on job end (analysis did not complete for this URL)"]
+              ),
+            };
+            changed = true;
+          }
+        }
+        if (changed) {
+          try {
+            await updateSearchSnapshot(keyword, country, jobResults);
+          } catch (e) {
+            console.error("Failed to finalize snapshot on job end:", e.message);
+          }
+        }
+      }
       activeJobs.delete(jobKey);
     }
   })();
 
-  // Hard timeout: kill the job after 90s to keep the server responsive
+  // Hard timeout: stop the job after 150s so it can never run away. Real searches
+  // now finish in ~1-2 min (Playwright fetches are capped at ~6.5s each), so this
+  // only fires on pathological cases; the job's finally then finalizes leftovers.
   const jobTimeout = setTimeout(() => {
     cancelledJobs.add(jobKey);
     console.warn(`[job] Hard timeout reached for "${keyword}" — cancelling`);
-  }, 90_000);
+  }, 150_000);
 
   jobPromise.finally(() => clearTimeout(jobTimeout));
   activeJobs.set(jobKey, jobPromise);
